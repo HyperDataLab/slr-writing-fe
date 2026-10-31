@@ -1,0 +1,32 @@
+:root {
+  color-scheme: light;
+
+  --slr-primary: #0071bc;
+  --slr-primary-hover: #005f9e;
+  --slr-blue-tint: #f0f7fc;
+  --slr-ink: #122331;
+  --slr-muted-ink: #647381;
+  --slr-canvas: #f7f9fa;
+  --slr-surface: #ffffff;
+  --slr-border: #dce4e9;
+
+  --background: var(--slr-canvas);
+  --foreground: var(--slr-ink);
+  --card: var(--slr-surface);
+  --card-foreground: var(--slr-ink);
+  --popover: var(--slr-surface);
+  --popover-foreground: var(--slr-ink);
+  --primary: var(--slr-primary);
+  --primary-foreground: #ffffff;
+  --secondary: var(--slr-blue-tint);
+  --secondary-foreground: var(--slr-ink);
+  --muted: var(--slr-blue-tint);
+  --muted-foreground: var(--slr-muted-ink);
+  --accent: var(--slr-blue-tint);
+  --accent-foreground: var(--slr-ink);
+  --border: var(--slr-border);
+  --input: var(--slr-border);
+  --ring: var(--slr-primary);
+  --radius: 0.875rem;
+}
+
