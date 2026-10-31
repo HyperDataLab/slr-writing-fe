@@ -18,9 +18,11 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "gsap": "^3.13.0",
+    "i18next": "^26.5.12",
     "motion": "^12.23.24",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-i18next": "^17.1.9",
     "react-router": "^7.9.4",
     "tailwind-merge": "^3.3.1",
     "zod": "^3.25.76"
@@ -37,4 +39,3 @@
     "vite": "^7.1.12"
   }
 }
-

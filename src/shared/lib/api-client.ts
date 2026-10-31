@@ -1,3 +1,4 @@
+import i18n from "@/shared/i18n/i18n";
 import type { ApiEnvelope } from "@/shared/types/api.types";
 
 export type ApiTokenProvider = () => Promise<string | null>;
@@ -53,7 +54,7 @@ export async function apiRequest<T>(path: string, init: ApiRequestInit = {}): Pr
   if (!response.ok || !payload?.success) {
     const apiError = payload && !payload.success ? payload.error : undefined;
     throw new ApiError(
-      apiError?.message ?? "Không thể hoàn tất yêu cầu. Vui lòng thử lại.",
+      apiError?.message ?? i18n.t("common.requestError"),
       response.status,
       apiError?.code ?? "REQUEST_FAILED",
       apiError?.requestId,

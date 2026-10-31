@@ -1,7 +1,8 @@
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ApiError } from "@/shared/lib/api-client";
 import { importSnapshotFromSlr } from "@/features/snapshots/api/snapshots.api";
-import { importSnapshotSchema } from "@/features/snapshots/model/snapshot.schema";
+import { createImportSnapshotSchema } from "@/features/snapshots/model/snapshot.schema";
 
 export interface SnapshotImportState {
   isImporting: boolean;
@@ -10,6 +11,7 @@ export interface SnapshotImportState {
 }
 
 export function useSnapshotImport() {
+  const { t } = useTranslation();
   const [state, setState] = useState<SnapshotImportState>({
     isImporting: false,
     result: null,
@@ -17,9 +19,9 @@ export function useSnapshotImport() {
   });
 
   const importRun = useCallback(async (projectId: string, runId: string) => {
-    const parsedInput = importSnapshotSchema.safeParse({ runId });
+    const parsedInput = createImportSnapshotSchema(t).safeParse({ runId });
     if (!parsedInput.success) {
-      setState({ isImporting: false, result: null, error: parsedInput.error.issues[0]?.message ?? "Mã run không hợp lệ." });
+      setState({ isImporting: false, result: null, error: parsedInput.error.issues[0]?.message ?? t("snapshots.invalidRunId") });
       return;
     }
 
@@ -32,10 +34,10 @@ export function useSnapshotImport() {
       const message =
         error instanceof ApiError
           ? error.message
-          : "Không thể nhập snapshot. Vui lòng thử lại.";
+          : t("snapshots.importError");
       setState({ isImporting: false, result: null, error: message });
     }
-  }, []);
+  }, [t]);
 
   return { ...state, importRun };
 }

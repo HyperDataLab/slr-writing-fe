@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-export const importSnapshotSchema = z.object({
-  runId: z.string().trim().min(1, "Nhập mã run từ SLR.").max(256, "Mã run quá dài."),
-});
+type Translate = (key: string) => string;
+
+export function createImportSnapshotSchema(t: Translate) {
+  return z.object({
+    runId: z.string().trim().min(1, t("snapshots.runIdRequired")).max(256, t("snapshots.runIdMax")),
+  });
+}
 

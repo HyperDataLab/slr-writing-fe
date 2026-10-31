@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router";
+import { useTranslation } from "react-i18next";
 import {
   BookOpenIcon,
   ShieldCheckIcon,
@@ -13,8 +14,10 @@ import {
 } from "@/shared/constants/navigation";
 import { Dialog, DialogContent, DialogTitle } from "@/shared/ui/dialog";
 import { Separator } from "@/shared/ui/separator";
+import { LanguageSwitcher } from "@/shared/ui/LanguageSwitcher";
 
 function SidebarNavigation({ onNavigate }: { onNavigate?: () => void }) {
+  const { t } = useTranslation();
   const renderItem = (item: NavigationItem) => {
     const Icon = item.icon;
     return (
@@ -38,7 +41,7 @@ function SidebarNavigation({ onNavigate }: { onNavigate?: () => void }) {
               className={cn("size-[18px]", isActive ? "text-primary" : "text-muted-foreground")}
               aria-hidden="true"
             />
-            <span>{item.label}</span>
+            <span>{t(item.labelKey)}</span>
           </>
         )}
       </NavLink>
@@ -55,23 +58,23 @@ function SidebarNavigation({ onNavigate }: { onNavigate?: () => void }) {
           <span className="block truncate text-sm font-semibold tracking-tight text-foreground">
             SLR AI Writing
           </span>
-          <span className="mt-0.5 block text-xs text-muted-foreground">Research workspace</span>
+          <span className="mt-0.5 block text-xs text-muted-foreground">{t("navigation.researchWorkspace")}</span>
         </span>
       </Link>
 
       <Separator />
 
-      <nav aria-label="Điều hướng chính" className="flex-1 space-y-7 overflow-y-auto px-4 py-6">
+      <nav aria-label={t("navigation.main")} className="flex-1 space-y-7 overflow-y-auto px-4 py-6">
         <div>
           <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Workspace
+            {t("navigation.workspace")}
           </p>
           <div className="space-y-1">{workspaceNavigation.map(renderItem)}</div>
         </div>
 
         <div>
           <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Writing workflow
+            {t("navigation.writingWorkflow")}
           </p>
           <div className="space-y-1">{workflowNavigation.map(renderItem)}</div>
         </div>
@@ -81,10 +84,10 @@ function SidebarNavigation({ onNavigate }: { onNavigate?: () => void }) {
         <div className="rounded-xl border border-primary/15 bg-secondary/70 p-4">
           <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
             <ShieldCheckIcon className="size-4 text-primary" aria-hidden="true" />
-            Evidence-first writing
+            {t("navigation.evidenceFirst")}
           </div>
           <p className="mt-2 text-xs leading-5 text-muted-foreground">
-            Drafts stay traceable to reviewed findings and source evidence.
+            {t("navigation.evidenceDescription")}
           </p>
         </div>
       </div>
@@ -92,17 +95,18 @@ function SidebarNavigation({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-function getPageTitle(pathname: string): string {
-  if (pathname === "/") return "Tổng quan";
-  if (pathname.startsWith("/projects")) return "Projects";
-  if (pathname.startsWith("/snapshots")) return "Snapshot & readiness";
-  return "Workspace";
+function getPageTitleKey(pathname: string): string {
+  if (pathname === "/") return "navigation.overview";
+  if (pathname.startsWith("/projects")) return "navigation.projects";
+  if (pathname.startsWith("/snapshots")) return "navigation.snapshots";
+  return "common.workspace";
 }
 
 export function AppShell() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { pathname } = useLocation();
-  const pageTitle = getPageTitle(pathname);
+  const { t } = useTranslation();
+  const pageTitle = t(getPageTitleKey(pathname));
 
   return (
     <div className="min-h-screen bg-background">
@@ -112,7 +116,7 @@ export function AppShell() {
 
       <Dialog open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
         <DialogContent className="left-0 top-0 h-full w-[min(19rem,86vw)] translate-x-0 translate-y-0 rounded-none border-y-0 border-l-0 p-0 sm:max-w-none">
-          <DialogTitle className="sr-only">Điều hướng SLR AI Writing</DialogTitle>
+          <DialogTitle className="sr-only">{t("navigation.mobileTitle")}</DialogTitle>
           <SidebarNavigation onNavigate={() => setMobileMenuOpen(false)} />
         </DialogContent>
       </Dialog>
@@ -123,7 +127,7 @@ export function AppShell() {
             <button
               type="button"
               className="inline-flex size-10 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
-              aria-label="Mở điều hướng"
+              aria-label={t("navigation.mobileMenu")}
               aria-expanded={mobileMenuOpen}
               onClick={() => setMobileMenuOpen(true)}
             >
@@ -134,9 +138,12 @@ export function AppShell() {
               <h1 className="truncate text-sm font-semibold text-foreground">{pageTitle}</h1>
             </div>
           </div>
-          <div className="hidden items-center gap-2 text-xs font-medium text-muted-foreground sm:flex">
-            <span className="size-2 rounded-full bg-primary" aria-hidden="true" />
-            Evidence-linked workflow
+          <div className="flex items-center gap-3">
+            <div className="hidden items-center gap-2 text-xs font-medium text-muted-foreground sm:flex">
+              <span className="size-2 rounded-full bg-primary" aria-hidden="true" />
+              {t("navigation.workflowStatus")}
+            </div>
+            <LanguageSwitcher />
           </div>
         </header>
 

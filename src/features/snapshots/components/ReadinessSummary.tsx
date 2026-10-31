@@ -1,9 +1,11 @@
 import { CheckCircleIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
+import { useTranslation } from "react-i18next";
 import type { ReadinessReport } from "@/features/snapshots/model/snapshot.types";
 import { Badge } from "@/shared/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 
 export function ReadinessSummary({ report }: { report: ReadinessReport }) {
+  const { t } = useTranslation();
   const isReady = report.status === "READY";
   const blockingCount = report.issues.filter((issue) => issue.severity === "blocking").length;
   const warningCount = report.issues.filter((issue) => issue.severity === "warning").length;
@@ -12,15 +14,11 @@ export function ReadinessSummary({ report }: { report: ReadinessReport }) {
     <Card>
       <CardHeader className="flex-row items-start justify-between gap-4">
         <div className="space-y-1.5">
-          <CardTitle>Readiness report</CardTitle>
-          <CardDescription>
-            {isReady
-              ? "Snapshot đã vượt qua các điều kiện chặn hiện tại."
-              : "Cần xử lý các lỗi chặn trước khi tiếp tục."}
-          </CardDescription>
+          <CardTitle>{t("snapshots.reportTitle")}</CardTitle>
+          <CardDescription>{t(isReady ? "snapshots.readyDescription" : "snapshots.blockedDescription")}</CardDescription>
         </div>
         <Badge variant={isReady ? "default" : "outline"}>
-          {isReady ? "READY" : "BLOCKED"}
+          {t(isReady ? "snapshots.ready" : "snapshots.blocked")}
         </Badge>
       </CardHeader>
       <CardContent>
@@ -31,10 +29,10 @@ export function ReadinessSummary({ report }: { report: ReadinessReport }) {
             ) : (
               <ExclamationTriangleIcon className="size-4 text-muted-foreground" aria-hidden="true" />
             )}
-            {blockingCount} lỗi chặn
+            {t("snapshots.blockingIssue", { count: blockingCount })}
           </span>
           <span className="rounded-md bg-secondary px-2.5 py-1.5 text-muted-foreground">
-            {warningCount} cảnh báo
+            {t("snapshots.warning", { count: warningCount })}
           </span>
         </div>
         {report.issues.length > 0 && (

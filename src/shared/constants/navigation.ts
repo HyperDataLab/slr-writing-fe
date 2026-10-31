@@ -6,17 +6,17 @@ import {
 } from "@heroicons/react/24/outline";
 
 export interface NavigationItem {
-  label: string;
+  labelKey: string;
   to: string;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
 }
 
 export const workspaceNavigation: NavigationItem[] = [
-  { label: "Tổng quan", to: "/", icon: HomeIcon },
-  { label: "Projects", to: "/projects", icon: FolderIcon },
+  { labelKey: "navigation.overview", to: "/", icon: HomeIcon },
+  { labelKey: "navigation.projects", to: "/projects", icon: FolderIcon },
 ];
 
 export const workflowNavigation: NavigationItem[] = [
-  { label: "Snapshot & readiness", to: "/snapshots", icon: ArrowUpTrayIcon },
+  { labelKey: "navigation.snapshots", to: "/snapshots", icon: ArrowUpTrayIcon },
 ];
 

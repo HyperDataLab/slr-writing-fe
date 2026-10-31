@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ApiError } from "@/shared/lib/api-client";
 import { listProjects } from "@/features/projects/api/projects.api";
 import type { ProjectSummary } from "@/features/projects/model/project.types";
@@ -10,6 +11,7 @@ export interface ProjectsState {
 }
 
 export function useProjects() {
+  const { t } = useTranslation();
   const [state, setState] = useState<ProjectsState>({
     projects: [],
     isLoading: false,
@@ -26,10 +28,10 @@ export function useProjects() {
       const message =
         error instanceof ApiError
           ? error.message
-          : "Không thể tải danh sách project. Vui lòng thử lại.";
+          : t("projects.loadError");
       setState((current) => ({ ...current, isLoading: false, error: message }));
     }
-  }, []);
+  }, [t]);
 
   return { ...state, load };
 }
