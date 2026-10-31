@@ -2,6 +2,8 @@
 
 This repository is the SLR AI Writing frontend. The first delivery establishes the application shell and a feature module convention; backend integration and writing workflows follow the sequence below.
 
+See [`spec.md`](./spec.md) for the onboarding context and current implementation status. Current FE sequencing defers Firebase auth while the Projects and Snapshot UI foundations are built; authentication and token wiring are required before those pages connect to protected backend endpoints.
+
 ## Base stack
 
 React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui source components with Radix UI primitives, Heroicons, Motion for React, and GSAP.
@@ -23,7 +25,7 @@ React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui source components with Rad
 
 ## Delivery order
 
-1. `auth` → `projects` → `snapshots`: establish identity, ownership, import, and readiness.
+1. `projects` → `snapshots` UI foundations; then `auth` and Firebase token wiring before connecting protected endpoints.
 2. `methods` → `journal-profiles`: deliver the first deterministic manuscript section and the default profile.
 3. `outline` → `approvals` (H1): create and approve the blueprint.
 4. `manuscripts` → `approvals` (H2): plan and draft paragraphs from snapshot evidence.

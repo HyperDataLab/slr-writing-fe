@@ -2,6 +2,10 @@
 
 Feature-based React + TypeScript frontend for the SLR AI Writing workspace.
 
+## Start here
+
+Contributors and AI agents should read [`docs/spec.md`](docs/spec.md) first for product context, current implementation status, frontend conventions, and the current auth sequencing decision. Use [`docs/feature-map.md`](docs/feature-map.md) for detailed module ownership and delivery mapping.
+
 ## Local development
 
 1. Install dependencies with `npm install`.
