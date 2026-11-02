@@ -26,7 +26,7 @@ export const resources = {
         evidenceFirst: "Viết dựa trên bằng chứng",
         evidenceDescription: "Bản thảo luôn liên kết với các kết quả đã duyệt và bằng chứng nguồn.",
         mobileMenu: "Mở điều hướng",
-        mobileTitle: "Điều hướng SLR AI Writing",
+        mobileTitle: "Điều hướng SLRW",
         workflowStatus: "Quy trình có liên kết bằng chứng",
       },
       overview: {
@@ -440,7 +440,7 @@ export const resources = {
         evidenceFirst: "Evidence-first writing",
         evidenceDescription: "Drafts stay traceable to reviewed findings and source evidence.",
         mobileMenu: "Open navigation",
-        mobileTitle: "SLR AI Writing navigation",
+        mobileTitle: "SLRW navigation",
         workflowStatus: "Evidence-linked workflow",
       },
       overview: {
