@@ -328,12 +328,20 @@ export function SnapshotReadinessPage() {
                   {t("snapshots.integrityHash", { hash: snapshotDetail.integrityHash })}
                 </p>
                 {snapshotDetail.status === "READY" && (
-                  <Button asChild className="w-full sm:w-auto">
-                    <Link to={`/methods?projectId=${encodeURIComponent(snapshotDetail.projectId)}&snapshotId=${encodeURIComponent(snapshotDetail.id)}`}>
-                      {t("snapshots.openMethods")}
-                      <ArrowRightIcon aria-hidden="true" />
-                    </Link>
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button asChild className="w-full sm:w-auto">
+                      <Link to={`/methods?projectId=${encodeURIComponent(snapshotDetail.projectId)}&snapshotId=${encodeURIComponent(snapshotDetail.id)}`}>
+                        {t("snapshots.openMethods")}
+                        <ArrowRightIcon aria-hidden="true" />
+                      </Link>
+                    </Button>
+                    <Button asChild variant="outline" className="w-full sm:w-auto">
+                      <Link to={`/outline?projectId=${encodeURIComponent(snapshotDetail.projectId)}&snapshotId=${encodeURIComponent(snapshotDetail.id)}`}>
+                        {t("snapshots.openOutline")}
+                        <ArrowRightIcon aria-hidden="true" />
+                      </Link>
+                    </Button>
+                  </div>
                 )}
               </CardContent>
             </Card>

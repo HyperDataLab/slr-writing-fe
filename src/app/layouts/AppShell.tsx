@@ -101,6 +101,7 @@ function getPageTitleKey(pathname: string): string {
   if (pathname.startsWith("/snapshots")) return "navigation.snapshots";
   if (pathname.startsWith("/methods")) return "navigation.methods";
   if (pathname.startsWith("/journal-profiles")) return "navigation.journalProfiles";
+  if (pathname.startsWith("/outline")) return "navigation.outline";
   return "common.workspace";
 }
 

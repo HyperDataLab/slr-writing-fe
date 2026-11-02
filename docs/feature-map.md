@@ -1,6 +1,6 @@
 # FE Feature Map
 
-This repository is the SLR AI Writing frontend. The base shell, Projects, Snapshots, Methods/PRISMA, and Journal Profile are implemented; later manuscript workflows follow the sequence below.
+This repository is the SLR AI Writing frontend. The base shell, Projects, Snapshots, Methods/PRISMA, Journal Profile, and Outline/H1 are implemented; later manuscript workflows follow the sequence below.
 
 See [`spec.md`](./spec.md) for the onboarding context and current implementation status. Projects and Snapshots currently connect to the writing backend using opt-in local dev-auth; Firebase auth remains deferred and is required before production use of protected endpoints.
 
@@ -17,7 +17,7 @@ React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui source components with Rad
 | `snapshots` | Import a run, show immutable snapshot history/details, and present readiness issues and stale state. | M0, M10 |
 | `methods` | Generate and review deterministic Methods revisions from a READY snapshot; show PRISMA facts, source paths, and missing-data warnings. | M2 |
 | `journal-profiles` | List and view read-only journal profiles, preserve section order and expected sources, and clearly label verification status and suggested word budgets. | M3 |
-| `outline` | Edit and reorder the manuscript blueprint, show research-question coverage, and request H1 approval. | M5 |
+| `outline` | Generate and version a manuscript blueprint from a READY snapshot and Journal Profile; assign snapshot claims, show RQ coverage and backend issues, and request H1 approval. Profile section order is fixed; subsections can be reordered. OWNER authorization is enforced by the backend. | M5 |
 | `manuscripts` | Show paragraph plans and revisions, draft from the approved evidence pack, and request H2 approval. | M6–M7 |
 | `verification` | Show citation-registry checks, G1–G7 results, and review issues. | M8 |
 | `approvals` | Present OWNER-only H1/H2/H3 decisions with their recorded provenance. | Cross-cutting workflow |
@@ -26,11 +26,10 @@ React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui source components with Rad
 ## Delivery order
 
 1. `projects` → `snapshots`: connect project list/create and snapshot import-from-SLR/history/detail endpoints. Use local backend dev-auth only when explicitly configured; implement `auth` and Firebase token wiring before production use.
-2. `methods` → `journal-profiles` → `outline`: Methods/PRISMA and the read-only M3 Journal Profile endpoints are connected. Next, build Outline/H1.
-3. `outline` → `approvals` (H1): create and approve the blueprint.
-4. `manuscripts` → `approvals` (H2): plan and draft paragraphs from snapshot evidence.
-5. `verification`: validate citation IDs and quality gates; expose unresolved issues.
-6. `export` → `approvals` (H3): enforce export gates and prepare the final package.
+2. `methods` → `journal-profiles` → `outline`: connected. Outline/H1 supports create, optimistic-concurrency revisions, history, validation, and OWNER decisions through the backend Blueprint API.
+3. `manuscripts` → `approvals` (H2): plan and draft paragraphs from snapshot evidence.
+4. `verification`: validate citation IDs and quality gates; expose unresolved issues.
+5. `export` → `approvals` (H3): enforce export gates and prepare the final package.
 
 ## UI invariants
 

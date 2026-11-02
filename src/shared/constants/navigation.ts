@@ -5,6 +5,7 @@ import {
   DocumentTextIcon,
   FolderIcon,
   HomeIcon,
+  ListBulletIcon,
 } from "@heroicons/react/24/outline";
 
 export interface NavigationItem {
@@ -22,5 +23,6 @@ export const workflowNavigation: NavigationItem[] = [
   { labelKey: "navigation.snapshots", to: "/snapshots", icon: ArrowUpTrayIcon },
   { labelKey: "navigation.methods", to: "/methods", icon: DocumentTextIcon },
   { labelKey: "navigation.journalProfiles", to: "/journal-profiles", icon: BookOpenIcon },
+  { labelKey: "navigation.outline", to: "/outline", icon: ListBulletIcon },
 ];
 
