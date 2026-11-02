@@ -13,6 +13,7 @@ export class ApiError extends Error {
     readonly status: number,
     readonly code: string,
     readonly requestId?: string,
+    readonly details?: unknown,
   ) {
     super(message);
     this.name = "ApiError";
@@ -40,7 +41,12 @@ export async function apiRequest<T>(path: string, init: ApiRequestInit = {}): Pr
     headers.set("Content-Type", "application/json");
   }
 
-  if (token) headers.set("Authorization", "Bearer " + token);
+  if (token) {
+    headers.set("Authorization", "Bearer " + token);
+  } else if (import.meta.env.DEV && import.meta.env.VITE_DEV_AUTH_UID?.trim()) {
+    const devUid = import.meta.env.VITE_DEV_AUTH_UID.trim();
+    headers.set("X-Dev-User-Id", devUid);
+  }
 
   const baseUrl = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
   const normalizedPath = path.startsWith("/") ? path : "/" + path;
@@ -58,6 +64,7 @@ export async function apiRequest<T>(path: string, init: ApiRequestInit = {}): Pr
       response.status,
       apiError?.code ?? "REQUEST_FAILED",
       apiError?.requestId,
+      apiError?.details,
     );
   }
 

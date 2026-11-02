@@ -1,8 +1,8 @@
 # FE Feature Map
 
-This repository is the SLR AI Writing frontend. The first delivery establishes the application shell and a feature module convention; backend integration and writing workflows follow the sequence below.
+This repository is the SLR AI Writing frontend. The base shell, Projects, Snapshots, Methods/PRISMA, and Journal Profile are implemented; later manuscript workflows follow the sequence below.
 
-See [`spec.md`](./spec.md) for the onboarding context and current implementation status. Current FE sequencing defers Firebase auth while the Projects and Snapshot UI foundations are built; authentication and token wiring are required before those pages connect to protected backend endpoints.
+See [`spec.md`](./spec.md) for the onboarding context and current implementation status. Projects and Snapshots currently connect to the writing backend using opt-in local dev-auth; Firebase auth remains deferred and is required before production use of protected endpoints.
 
 ## Base stack
 
@@ -15,8 +15,8 @@ React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui source components with Rad
 | `auth` | Hold the signed-in user session, pass the Firebase ID token, and protect authenticated routes. | M1 |
 | `projects` | List, create, and open writing projects linked to an SLR project. | Existing project API; M1 permission check |
 | `snapshots` | Import a run, show immutable snapshot history/details, and present readiness issues and stale state. | M0, M10 |
-| `methods` | Show deterministic Methods/PRISMA text and source keys, including missing-data warnings. | M2 |
-| `journal-profiles` | Show the default IMRaD profile and its unverified policy status. | M3 |
+| `methods` | Generate and review deterministic Methods revisions from a READY snapshot; show PRISMA facts, source paths, and missing-data warnings. | M2 |
+| `journal-profiles` | List and view read-only journal profiles, preserve section order and expected sources, and clearly label verification status and suggested word budgets. | M3 |
 | `outline` | Edit and reorder the manuscript blueprint, show research-question coverage, and request H1 approval. | M5 |
 | `manuscripts` | Show paragraph plans and revisions, draft from the approved evidence pack, and request H2 approval. | M6–M7 |
 | `verification` | Show citation-registry checks, G1–G7 results, and review issues. | M8 |
@@ -25,8 +25,8 @@ React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui source components with Rad
 
 ## Delivery order
 
-1. `projects` → `snapshots` UI foundations; then `auth` and Firebase token wiring before connecting protected endpoints.
-2. `methods` → `journal-profiles`: deliver the first deterministic manuscript section and the default profile.
+1. `projects` → `snapshots`: connect project list/create and snapshot import-from-SLR/history/detail endpoints. Use local backend dev-auth only when explicitly configured; implement `auth` and Firebase token wiring before production use.
+2. `methods` → `journal-profiles` → `outline`: Methods/PRISMA and the read-only M3 Journal Profile endpoints are connected. Next, build Outline/H1.
 3. `outline` → `approvals` (H1): create and approve the blueprint.
 4. `manuscripts` → `approvals` (H2): plan and draft paragraphs from snapshot evidence.
 5. `verification`: validate citation IDs and quality gates; expose unresolved issues.
@@ -34,11 +34,13 @@ React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui source components with Rad
 
 ## UI invariants
 
+- Use Heroicons React for interface icons; keep one icon library across features.
 - Writing views read saved snapshots; they do not read live SLR corpus data.
 - Findings, counts, and reference records are never edited by the writing UI.
 - Citations must resolve to IDs in the snapshot registry.
 - `NOT_RUN` is visibly distinct from `PASS`; blocking issues prevent the next workflow step.
 - The default journal profile is always labeled as unverified.
+- Suggested word budgets must not be presented as a target journal's policy; display the backend notice while a profile is unverified.
 - H1, H2, and H3 are OWNER decisions and must be recorded with provenance by the backend.
 
 ## Feature folder convention

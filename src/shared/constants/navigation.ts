@@ -1,6 +1,8 @@
 import type { ComponentType, SVGProps } from "react";
 import {
   ArrowUpTrayIcon,
+  BookOpenIcon,
+  DocumentTextIcon,
   FolderIcon,
   HomeIcon,
 } from "@heroicons/react/24/outline";
@@ -18,5 +20,7 @@ export const workspaceNavigation: NavigationItem[] = [
 
 export const workflowNavigation: NavigationItem[] = [
   { labelKey: "navigation.snapshots", to: "/snapshots", icon: ArrowUpTrayIcon },
+  { labelKey: "navigation.methods", to: "/methods", icon: DocumentTextIcon },
+  { labelKey: "navigation.journalProfiles", to: "/journal-profiles", icon: BookOpenIcon },
 ];
 

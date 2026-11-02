@@ -99,6 +99,8 @@ function getPageTitleKey(pathname: string): string {
   if (pathname === "/") return "navigation.overview";
   if (pathname.startsWith("/projects")) return "navigation.projects";
   if (pathname.startsWith("/snapshots")) return "navigation.snapshots";
+  if (pathname.startsWith("/methods")) return "navigation.methods";
+  if (pathname.startsWith("/journal-profiles")) return "navigation.journalProfiles";
   return "common.workspace";
 }
 

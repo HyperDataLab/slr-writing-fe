@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
+import { MotionReveal } from "@/shared/ui/motion";
 
 type Step = {
   number: string;
@@ -146,10 +147,12 @@ export function OverviewPage() {
         </div>
         <div className="grid gap-4 md:grid-cols-3">
           {Array.from({ length: 3 }, (_, index) => (
-            <div key={index} className="border-l-2 border-primary/25 pl-4">
+            <MotionReveal key={index} delay={index * 0.05}>
+            <div className="border-l-2 border-primary/25 pl-4">
               <h3 className="text-sm font-semibold">{t(`overview.guardrails.${index}.title`)}</h3>
               <p className="mt-1.5 text-sm leading-6 text-muted-foreground">{t(`overview.guardrails.${index}.description`)}</p>
             </div>
+            </MotionReveal>
           ))}
         </div>
       </section>

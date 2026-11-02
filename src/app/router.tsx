@@ -15,6 +15,12 @@ const SnapshotReadinessPage = lazy(() =>
     default: module.SnapshotReadinessPage,
   })),
 );
+const MethodsPage = lazy(() =>
+  import("@/features/methods/pages/MethodsPage").then((module) => ({ default: module.MethodsPage })),
+);
+const JournalProfilesPage = lazy(() =>
+  import("@/features/journal-profiles/pages/JournalProfilesPage").then((module) => ({ default: module.JournalProfilesPage })),
+);
 
 function PageSuspense({ children }: { children: ReactNode }) {
   return <Suspense fallback={<RouteLoading />}>{children}</Suspense>;
@@ -28,6 +34,8 @@ export function AppRouter() {
           <Route index element={<PageSuspense><OverviewPage /></PageSuspense>} />
           <Route path="projects" element={<PageSuspense><ProjectsPage /></PageSuspense>} />
           <Route path="snapshots" element={<PageSuspense><SnapshotReadinessPage /></PageSuspense>} />
+          <Route path="methods" element={<PageSuspense><MethodsPage /></PageSuspense>} />
+          <Route path="journal-profiles" element={<PageSuspense><JournalProfilesPage /></PageSuspense>} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

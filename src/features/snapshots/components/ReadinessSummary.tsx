@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { ReadinessReport } from "@/features/snapshots/model/snapshot.types";
 import { Badge } from "@/shared/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
+import { MotionListItem } from "@/shared/ui/motion";
 
 export function ReadinessSummary({ report }: { report: ReadinessReport }) {
   const { t } = useTranslation();
@@ -38,7 +39,7 @@ export function ReadinessSummary({ report }: { report: ReadinessReport }) {
         {report.issues.length > 0 && (
           <ul className="mt-5 divide-y divide-border rounded-lg border border-border">
             {report.issues.map((issue, index) => (
-              <li key={issue.code + "-" + index} className="flex items-start gap-3 px-4 py-3">
+              <MotionListItem key={issue.code + "-" + index} delay={index * 0.035} className="flex items-start gap-3 px-4 py-3">
                 <span
                   className={
                     issue.severity === "blocking"
@@ -53,7 +54,7 @@ export function ReadinessSummary({ report }: { report: ReadinessReport }) {
                     <p className="mt-1 text-sm leading-5 text-muted-foreground">{issue.message}</p>
                   )}
                 </div>
-              </li>
+              </MotionListItem>
             ))}
           </ul>
         )}
