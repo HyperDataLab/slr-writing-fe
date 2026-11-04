@@ -15,6 +15,27 @@ const SnapshotReadinessPage = lazy(() =>
     default: module.SnapshotReadinessPage,
   })),
 );
+const JournalProfilesPage = lazy(() =>
+  import("@/features/journal-profiles/pages/JournalProfilesPage").then((module) => ({ default: module.JournalProfilesPage })),
+);
+const MethodsPage = lazy(() =>
+  import("@/features/methods/pages/MethodsPage").then((module) => ({ default: module.MethodsPage })),
+);
+const OutlinePage = lazy(() =>
+  import("@/features/outline/pages/OutlinePage").then((module) => ({ default: module.OutlinePage })),
+);
+const ParagraphPlansPage = lazy(() =>
+  import("@/features/paragraph-plans/pages/ParagraphPlansPage").then((module) => ({ default: module.ParagraphPlansPage })),
+);
+const DraftingPage = lazy(() =>
+  import("@/features/drafting/pages/DraftingPage").then((module) => ({ default: module.DraftingPage })),
+);
+const VerificationPage = lazy(() =>
+  import("@/features/verification/pages/VerificationPage").then((module) => ({ default: module.VerificationPage })),
+);
+const ExportPage = lazy(() =>
+  import("@/features/export/pages/ExportPage").then((module) => ({ default: module.ExportPage })),
+);
 
 function PageSuspense({ children }: { children: ReactNode }) {
   return <Suspense fallback={<RouteLoading />}>{children}</Suspense>;
@@ -28,10 +49,16 @@ export function AppRouter() {
           <Route index element={<PageSuspense><OverviewPage /></PageSuspense>} />
           <Route path="projects" element={<PageSuspense><ProjectsPage /></PageSuspense>} />
           <Route path="snapshots" element={<PageSuspense><SnapshotReadinessPage /></PageSuspense>} />
+          <Route path="journal-profiles" element={<PageSuspense><JournalProfilesPage /></PageSuspense>} />
+          <Route path="methods" element={<PageSuspense><MethodsPage /></PageSuspense>} />
+          <Route path="outline" element={<PageSuspense><OutlinePage /></PageSuspense>} />
+          <Route path="paragraph-plans" element={<PageSuspense><ParagraphPlansPage /></PageSuspense>} />
+          <Route path="drafting" element={<PageSuspense><DraftingPage /></PageSuspense>} />
+          <Route path="verification" element={<PageSuspense><VerificationPage /></PageSuspense>} />
+          <Route path="export" element={<PageSuspense><ExportPage /></PageSuspense>} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
   );
 }
-

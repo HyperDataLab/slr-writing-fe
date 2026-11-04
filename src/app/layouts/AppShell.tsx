@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
 import {
-  BookOpenIcon,
   ShieldCheckIcon,
   Bars3Icon,
 } from "@heroicons/react/24/outline";
@@ -50,16 +49,12 @@ function SidebarNavigation({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="flex h-full flex-col bg-card">
-      <Link to="/" className="flex items-center gap-3 px-6 py-6" onClick={onNavigate}>
-        <span className="flex size-10 items-center justify-center rounded-xl bg-primary text-white shadow-sm">
-          <BookOpenIcon className="size-5" aria-hidden="true" />
-        </span>
-        <span className="min-w-0">
-          <span className="block truncate text-sm font-semibold tracking-tight text-foreground">
-            SLR AI Writing
-          </span>
-          <span className="mt-0.5 block text-xs text-muted-foreground">{t("navigation.researchWorkspace")}</span>
-        </span>
+      <Link to="/" className="flex items-center px-6 py-4" onClick={onNavigate}>
+        <img
+          src="/SLRW_logo_vector.svg"
+          alt="SLRW"
+          className="h-auto w-32 max-w-full"
+        />
       </Link>
 
       <Separator />
@@ -99,6 +94,9 @@ function getPageTitleKey(pathname: string): string {
   if (pathname === "/") return "navigation.overview";
   if (pathname.startsWith("/projects")) return "navigation.projects";
   if (pathname.startsWith("/snapshots")) return "navigation.snapshots";
+  if (pathname.startsWith("/methods")) return "navigation.methods";
+  if (pathname.startsWith("/journal-profiles")) return "navigation.journalProfiles";
+  if (pathname.startsWith("/outline")) return "navigation.outline";
   return "common.workspace";
 }
 
@@ -134,7 +132,7 @@ export function AppShell() {
               <Bars3Icon className="size-5" aria-hidden="true" />
             </button>
             <div className="min-w-0">
-              <p className="truncate text-xs font-medium text-muted-foreground">SLR AI Writing</p>
+              <p className="truncate text-xs font-medium text-muted-foreground">SLRW</p>
               <h1 className="truncate text-sm font-semibold text-foreground">{pageTitle}</h1>
             </div>
           </div>
