@@ -1,61 +1,29 @@
-import { useEffect, useState } from "react";
-import { ArrowDownTrayIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
-import { Link, useSearchParams } from "react-router";
+import { ArrowRightIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
+import { Link } from "react-router";
 import { ExportWorkspace } from "@/features/export/components/ExportWorkspace";
-import { useProjects } from "@/features/projects/hooks/use-projects";
-import { listSnapshots } from "@/features/snapshots/api/snapshots.api";
-import type { SnapshotSummary } from "@/features/snapshots/model/snapshot.types";
+import { useActiveWorkspaceSelection } from "@/features/projects/hooks/use-active-workspace-selection";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
 
 export function ExportPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const selectedProjectId = searchParams.get("projectId") ?? "";
-  const selectedSnapshotId = searchParams.get("snapshotId") ?? "";
-
-  const { projects, load: loadProjects } = useProjects();
-  const [snapshots, setSnapshots] = useState<SnapshotSummary[]>([]);
-  const [snapshotsLoading, setSnapshotsLoading] = useState(false);
-
-  useEffect(() => {
-    void loadProjects();
-  }, [loadProjects]);
-
-  useEffect(() => {
-    let cancelled = false;
-    if (!selectedProjectId) {
-      setSnapshots([]);
-      setSnapshotsLoading(false);
-      return () => { cancelled = true; };
-    }
-
-    setSnapshotsLoading(true);
-    void listSnapshots(selectedProjectId)
-      .then((items) => {
-        if (cancelled) return;
-        setSnapshots(items);
-        if (items.length > 0 && !selectedSnapshotId) {
-          const next = new URLSearchParams(searchParams);
-          next.set("snapshotId", items[0].id);
-          setSearchParams(next, { replace: true });
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setSnapshotsLoading(false);
-      });
-
-    return () => { cancelled = true; };
-  }, [selectedProjectId, searchParams, setSearchParams, selectedSnapshotId]);
-
-  const activeSnapshot = snapshots.find((s) => s.id === selectedSnapshotId);
+  const {
+    selectedProjectId,
+    selectedSnapshotId,
+    projects,
+    snapshots,
+    snapshotsLoading,
+    activeSnapshot,
+    selectProject,
+    selectSnapshot,
+  } = useActiveWorkspaceSelection();
 
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Submission Export & H3 Final Approval</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Submission Package Export (H3)</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Stage M9: Final oversight, PKZIP archive compilation, and reverse lineage traceability.
+          Stage M9: Final pre-submission checklist, human approval (H3), and PKZIP export bundle.
         </p>
       </div>
 
@@ -68,11 +36,7 @@ export function ExportPage() {
             </label>
             <select
               value={selectedProjectId}
-              onChange={(e) => {
-                const next = new URLSearchParams();
-                if (e.target.value) next.set("projectId", e.target.value);
-                setSearchParams(next);
-              }}
+              onChange={(e) => selectProject(e.target.value)}
               className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-primary"
             >
               <option value="">-- Select Project --</option>
@@ -91,12 +55,7 @@ export function ExportPage() {
             <select
               value={selectedSnapshotId}
               disabled={!selectedProjectId || snapshotsLoading}
-              onChange={(e) => {
-                const next = new URLSearchParams(searchParams);
-                if (e.target.value) next.set("snapshotId", e.target.value);
-                else next.delete("snapshotId");
-                setSearchParams(next);
-              }}
+              onChange={(e) => selectSnapshot(e.target.value)}
               className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-primary disabled:opacity-50"
             >
               <option value="">-- Select Snapshot --</option>
@@ -117,7 +76,7 @@ export function ExportPage() {
             <ArrowDownTrayIcon className="size-10 text-muted-foreground mx-auto" />
             <h3 className="text-base font-semibold">Please select a project</h3>
             <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-              Select an active writing project to view submission readiness, approve H3, or download the ZIP package.
+              Select an active writing project to inspect checklist, lineage, and export bundle.
             </p>
           </CardContent>
         </Card>
@@ -152,4 +111,3 @@ export function ExportPage() {
     </div>
   );
 }
-

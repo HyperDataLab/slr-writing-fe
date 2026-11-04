@@ -26,6 +26,34 @@ export function MethodsPage() {
   }, [loadProjects]);
 
   useEffect(() => {
+    if (projects.length > 0 && !selectedProjectId) {
+      const stored = localStorage.getItem('slrw_selected_project_id');
+      const matched = projects.find((p) => p.id === stored) ?? projects[0];
+      setSearchParams((current) => {
+        const next = new URLSearchParams(current);
+        next.set('projectId', matched.id);
+        const storedSnap = localStorage.getItem('slrw_selected_snapshot_id');
+        if (storedSnap && !next.get('snapshotId')) {
+          next.set('snapshotId', storedSnap);
+        }
+        return next;
+      }, { replace: true });
+    }
+  }, [projects, selectedProjectId, setSearchParams]);
+
+  useEffect(() => {
+    if (selectedProjectId) {
+      localStorage.setItem('slrw_selected_project_id', selectedProjectId);
+    }
+  }, [selectedProjectId]);
+
+  useEffect(() => {
+    if (selectedSnapshotId) {
+      localStorage.setItem('slrw_selected_snapshot_id', selectedSnapshotId);
+    }
+  }, [selectedSnapshotId]);
+
+  useEffect(() => {
     let cancelled = false;
     if (!selectedProjectId) {
       setSnapshots([]);
