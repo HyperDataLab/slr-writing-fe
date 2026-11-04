@@ -1,127 +1,63 @@
-# SLR AI Writing FE — Product and Engineering Spec
+# SLRW Frontend Specification
 
-> Onboarding context for contributors and AI agents. Read this file first, then inspect the linked source documents and current code for the task at hand. This file summarizes the frontend; backend contracts and detailed module ownership remain in their source documents.
+Updated: 2026-11-05
 
-## 1. Product context
+## Product shape
 
-SLR AI Writing is the post-review writing workspace for the SLR system. It takes an approved review run, imports it as an immutable snapshot, checks whether that snapshot is ready, and then supports a controlled manuscript workflow. The intended output is a traceable manuscript package: each scientific claim can be followed back through evidence, finding, study, and source anchor.
+SLRW is a single writing workspace inspired by Google Docs and VS Code. After local development sign-in, the user stays in a three-column shell:
 
-The guiding product rule is: **AI may help write and edit prose; it must not change scientific data.** The FE presents and coordinates the workflow. The writing backend remains responsible for authorization, persistence, validation, provenance, and workflow gates.
+- **Explorer:** Writing projects, snapshots, Methods / PRISMA, journal profile, outline / H1, paragraph plans, manuscript sections / H2, verification, final approval, and export.
+- **Work area:** The selected item opens here. Import, review, editing, and workflow checks do not navigate to separate dashboard pages.
+- **Inspector:** Snapshot provenance/readiness, Methods warnings, profile status, outline checks, paragraph evidence links, and workflow results.
 
-## 2. Non-negotiable behavior
+The top menubar has File, Edit, Review, Verify, and Export. Text formatting is only relevant in the manuscript editor; workflow commands call the Writing BE and are disabled when their required project/snapshot/revision is missing.
 
-- Writing uses a saved, versioned snapshot. Do not read live SLR corpus data as the source for manuscript content.
-- Treat snapshots as immutable. Changed source data produces a different snapshot; do not edit snapshot findings, counts, studies, or references in the writing UI.
-- Citations must resolve to IDs in the snapshot registry. Never invent a DOI, reference, evidence ID, or citation.
-- Fail closed: a blocking issue prevents the next workflow step. `NOT_RUN` is distinct from `PASS`.
-- Keep missing, inferred, and explicit information distinct. Do not fill missing values with invented facts.
-- The project OWNER makes H1 (outline), H2 (manuscript), and H3 (final package) decisions. The backend records the decisions and provenance.
-- A fluent draft is not automatically a valid manuscript. Show readiness, verification, and unresolved issues clearly when those workflows are implemented.
+## API and data flow
 
-The backend source for these requirements is [`PROJECT_GUIDE.md`](../PROJECT_GUIDE.md), especially its principles, snapshot readiness, API, and roadmap sections. See [`feature-map.md`](./feature-map.md) for the frontend invariants and module responsibilities.
+The browser calls the Writing BE for project data and all writing workflows. Writing BE calls the SLR BE with the user's SLR token when it needs SLR projects, runs, or owner decisions. The FE calls SLR BE directly only for development quick-login.
 
-## 3. Frontend architecture
-
-### Stack
-
-| Area | Choice |
-| --- | --- |
-| Application | React 19, TypeScript, Vite |
-| Routing | React Router 7 |
-| UI primitives | shadcn/ui source-component patterns with Radix UI primitives |
-| Styling | Tailwind CSS v4; semantic SLR tokens in `src/app/styles/tokens.css` |
-| Icons | Heroicons React |
-| Motion | Motion for React and GSAP; staged page reveals and list entrances respect reduced-motion preferences |
-| Validation | Zod |
-| Localization | i18next and react-i18next |
-
-The repository uses shadcn/ui patterns; `shadcn/ui` is not a runtime package dependency. The accepted stack decision and alternatives are recorded in [`adr/0001-frontend-stack.md`](./adr/0001-frontend-stack.md).
-
-### Code ownership
-
-- `src/app/`: app entry, routing, providers, shell, and global styles.
-- `src/features/<feature>/`: feature-owned API methods, components, hooks, pages, types/schemas, and helpers.
-- `src/shared/`: reusable UI primitives, API transport, localization, types, constants, and utilities.
-- Keep business logic and API contracts within their feature. Put cross-feature infrastructure in `shared/`; do not add empty placeholder folders for roadmap modules.
-- Use `@heroicons/react/24/outline` for interface icons. Do not add another icon pack or draw replacement icons inline.
-
-## 4. Current frontend state
-
-The app currently exposes `/` (Overview), `/projects`, `/snapshots`, `/methods`, `/journal-profiles`, and `/outline`, wrapped in the shared `AppShell`.
-
-| Area | Present in code | Current limitation |
+| Purpose | FE endpoint | Backend endpoint |
 | --- | --- | --- |
-| App shell | Responsive navigation, page title, shared layout | No authenticated-route guard yet |
-| Overview | Product workflow and guardrail introduction | Informational screen |
-| Projects | Lists and creates writing projects through the backend; links each project to its snapshot workflow | Protected backend routes currently use opt-in backend dev-auth for local development; Firebase auth is deferred |
-| Snapshots | Imports approved SLR runs through the backend, lists snapshot history, loads snapshot details, and displays readiness issues | Manual snapshot import and raw-corpus validation are intentionally not exposed in the FE |
-| Methods / PRISMA | Generates deterministic Methods revisions from a READY snapshot; shows PRISMA facts, source paths, missing-data and import warnings, and revision history | Manuscript text is generated by the backend in English; FE does not edit scientific facts |
-| Journal Profile | Lists and opens backend profiles; displays ordered sections, expected sources, generator availability, verification, and word budgets | The generic IMRaD profile is unverified; all word budgets are suggestions, and the profile API is read-only |
-| Outline / H1 | Generates and edits a versioned blueprint from a READY snapshot and Journal Profile; assigns snapshot claim IDs, tracks RQ coverage, displays backend validation issues, and records H1 decisions | Journal Profile section order is fixed; subsections can be reordered. Only the project OWNER can decide H1, enforced by the backend. |
-| Auth | `setApiTokenProvider` seam in the API client | No Firebase session feature/provider, token wiring, or protected routes; **auth is deferred by the current FE delivery decision** |
-| Manuscripts through Export | Responsibilities and sequence are mapped | Roadmap only; no feature implementation yet |
-| Localization | Vietnamese default, English option, header selector | New user-facing text must be added to both locales |
+| Local role sign-in | `/slr-api/auth/dev/quick-login` | SLR BE `POST /api/auth/dev/quick-login` |
+| Writing projects | `/api/projects` | Writing BE projects API |
+| SLR projects and runs | `/api/slr/projects`, `/api/slr/projects/:id/runs` | Writing BE SLR discovery; it forwards the bearer token |
+| Import an approved run | `/api/projects/:id/snapshots/from-slr` | Writing BE pulls the run and creates an immutable snapshot |
+| Snapshot detail/readiness | `/api/projects/:id/snapshots/:snapshotId` | Writing BE |
+| Methods / PRISMA | `.../manuscript/methods` | Writing BE generator and revision API |
+| Journal profile | `/api/journal-profiles` and `/:profileId` | Writing BE |
+| Outline / H1 | `.../manuscript/blueprint` | Writing BE; SLR project OWNER controls approval |
+| Paragraph plan | `.../manuscript/paragraph-plans` | Writing BE; generation requires approved H1 |
+| Manuscript / H2 | `.../manuscript/sections/:sectionKey` | Writing BE; drafting uses approved outline and paragraph plan |
+| Verification | `.../manuscript/verification` | Writing BE quality gates and report |
+| Final approval / export | `.../manuscript/final/*`, `.../manuscript/export*` | Writing BE; H3 and gates remain backend-authoritative |
 
-Do not describe a hook or API wrapper as a completed user flow unless the page actually calls it. Inspect the current route and component before extending a feature.
+All FE writes use the current project and snapshot identifiers. A snapshot is never edited in the FE. Readiness blockers returned as `422 SNAPSHOT_NOT_READY` are shown from the BE report, including issue codes and messages. Warnings on a successful import remain attached to the snapshot.
 
-## 5. Module roadmap and sequencing
+### Local API proxy and development session
 
-The ten planned modules are `auth`, `projects`, `snapshots`, `methods`, `journal-profiles`, `outline`, `manuscripts`, `verification`, `approvals`, and `export`. See [`feature-map.md`](./feature-map.md) for each module's full responsibility and backend milestone mapping.
+- Vite sends `/api/*` to Writing BE, default `http://localhost:5100`.
+- Vite sends `/slr-api/*` to SLR BE, default `http://localhost:5000`, rewriting the prefix to `/api`.
+- Override targets with `VITE_WRITING_API_TARGET` and `VITE_SLR_API_TARGET` in a local `.env` file; `.env.example` documents the defaults.
+- The dev sign-in selector offers the SLR BE fixture aliases `reviewer`, `leader`, and `admin`. The token and user ID are kept in `sessionStorage`.
+- Writing BE requests include `Authorization: Bearer <accessToken>` and `X-Dev-User-Id: <userId>`. The latter is needed when Writing BE is running with its explicit development auth mode and no Firebase token verifier.
+- This role selector is a development convenience, not production authentication. Production sign-in is not implemented in this FE reset.
 
-Current FE sequencing decision: Projects, Snapshots, Methods/PRISMA, Journal Profile, and Outline/H1 are implemented against the writing backend. Next is manuscript planning/drafting/H2, followed by verification and export/H3. Before production use, implement Firebase auth, supply its ID token through `setApiTokenProvider`, and protect authenticated routes.
+## Import contract
 
-The backend contract still requires authentication for its routes. Deferring the FE auth module does not make protected API calls anonymous or authorize bypassing backend checks.
+The first work item after signing in is to link a Writing project to an SLR project the selected identity can access. The Explorer then offers approved SLR runs from Writing BE discovery. Import sends only `{ "runId": "..." }` to `POST /api/projects/:projectId/snapshots/from-slr`; Writing BE fetches and validates source artifacts server-side.
 
-## 6. SLR visual system
+The Writing BE currently has no ZIP package upload endpoint. The FE must not simulate ZIP import or post untrusted corpus data to the manual import/validate routes. If a run is blocked, no snapshot is created and the FE presents the returned readiness report.
 
-`src/app/styles/tokens.css` is the source of truth for the palette:
+## Current implementation
 
-| Token / role | Value |
-| --- | --- |
-| Primary / accent | `#0071BC` |
-| Primary hover | `#005F9E` |
-| Light blue tint | `#F0F7FC` |
-| Main text | `#122331` |
-| Secondary text | `#647381` |
-| Main background | `#F7F9FA` |
-| Surface / card | `#FFFFFF` |
-| Border | `#DCE4E9` |
+- React + TypeScript + Vite.
+- Tailwind CSS v4; local shadcn-style components use Radix UI primitives, currently Radix Menubar.
+- Heroicons for workspace navigation and actions.
+- Motion for subtle view transitions. GSAP remains available for later intentional motion work.
+- Development role selection, session persistence, typed API client, project linking/discovery, run import, snapshot readiness, and the writing workflow endpoints listed above are connected.
+- The main workspace is a persistent three-column shell; no React Router page navigation is used for its modules.
 
-Use semantic Tailwind classes such as `bg-primary`, `text-muted-foreground`, and `border-border`; do not repeat these hex values in feature components.
-
-## 7. Localization
-
-- i18next is initialized in `src/shared/i18n/i18n.ts`; resource dictionaries live in `src/shared/i18n/resources.ts`.
-- Vietnamese (`vi`) is the default; English (`en`) is supported. The header selector persists the choice in local storage and updates `document.documentElement.lang`.
-- Initialize the app only after i18n resources are ready. Use `useTranslation()` for UI and validation messages.
-- Add every new visible label, status, empty state, validation message, and generic error to both locales. Keep server-provided readiness codes/messages intact unless the backend contract explicitly provides translation keys.
-
-## 8. API and environment
-
-The shared client is `src/shared/lib/api-client.ts`. It prefixes feature paths with `/api`, sends the bearer token supplied by `setApiTokenProvider`, and parses the backend envelope:
-
-```ts
-{ success: true, data: ... }
-{ success: false, error: { code, message, requestId?, details? } }
-```
-
-Feature API wrappers live alongside their feature, for example `src/features/projects/api/projects.api.ts` and `src/features/snapshots/api/snapshots.api.ts`. The Vite development proxy targets `http://localhost:5100` by default. Configure `VITE_API_PROXY_TARGET` to change that target; `VITE_API_BASE_URL` can set an API base URL. See [`.env.example`](../.env.example).
-
-Current FE integrations (all paths are prefixed with `/api` by the shared client):
-
-- Projects page: `GET /projects` and `POST /projects`. The feature API also has a `GET /projects/:projectId` wrapper for a future detail view; the current page does not call it.
-- Snapshots: `POST /projects/:projectId/snapshots/from-slr`, `GET /projects/:projectId/snapshots`, and `GET /projects/:projectId/snapshots/:snapshotId`.
-- Methods: `GET/POST /projects/:projectId/snapshots/:snapshotId/manuscript/methods` and `GET /projects/:projectId/snapshots/:snapshotId/manuscript/methods/revisions/:version`.
-- Journal Profile: `GET /journal-profiles` and `GET /journal-profiles/:profileId`. Profiles are read-only; the returned verification state and notice are authoritative. Do not present suggested word budgets as journal policy.
-- Outline / H1: `GET` and `POST /projects/:projectId/snapshots/:snapshotId/manuscript/blueprint`, `PUT` the same path with `{ baseVersion, content }` to save an optimistic-concurrency revision, `GET .../revisions/:version`, and `POST .../approve` or `.../reject` with `{ version, note? }`. The FE only enables create/edit/decision actions for READY snapshots. The backend validates blueprint content and enforces SLR OWNER authorization for H1 decisions; never treat the FE state as authorization. The Journal Profile supplies the section set and order, while subsections can be reordered. RQ coverage requires an answering Results/Discussion/Conclusion subsection or a recorded not-applicable reason.
-- In local Vite development only, `VITE_DEV_AUTH_UID` optionally sends `X-Dev-User-Id: <uid>` for the writing backend's dev-auth middleware. Set the same UID in the backend's `DEV_AUTH_UID`; leave this variable unset otherwise. This does not authenticate to the upstream SLR backend: project-access checks and `from-slr` forward the caller's bearer token, so those operations need a real SLR-compatible token from `setApiTokenProvider` when upstream auth is enabled.
-- Do not call the backend `/snapshots/validate` route from the FE: it accepts raw corpus input. Use `from-slr`, which lets the writing backend fetch and validate the SLR run. The manual `POST /snapshots` route is disabled in production.
-
-Blueprint/approval endpoint payloads and authorization behavior are documented in [`PROJECT_GUIDE.md`](../PROJECT_GUIDE.md#8-api-hiện-có). Methods uses the backend's fixed English template and displays `facts`, their `source` paths, and persisted warnings without editing the snapshot or generated prose.
-
-The FE calls the writing backend. It must not call `slr-be` directly for writing data; the writing backend owns the SLR integration and snapshot creation. Current endpoint definitions and error semantics are in [`PROJECT_GUIDE.md`](../PROJECT_GUIDE.md#8-api-hiện-có).
-
-## 9. Local commands
+## Commands
 
 ```bash
 npm install
@@ -131,13 +67,4 @@ npm run build
 npm run preview
 ```
 
-`npm run build` runs `tsc --noEmit` and then creates a Vite production build. `package.json` currently has no test or lint script; do not invent project commands based only on the stack.
-
-## 10. AI scout checklist
-
-1. Read this spec first to understand product invariants, current status, and sequencing.
-2. Read [`feature-map.md`](./feature-map.md) for the target module and [`adr/0001-frontend-stack.md`](./adr/0001-frontend-stack.md) for stack decisions.
-3. For backend behavior, verify the relevant endpoint and invariant in [`PROJECT_GUIDE.md`](../PROJECT_GUIDE.md); then verify actual FE behavior in the route, page, hook, API wrapper, and types.
-4. Before editing, distinguish implemented code from roadmap and static UI. Keep changes within the owning feature and its shared dependencies.
-5. Update both locale resources for new UI copy, use semantic design tokens, and preserve snapshot, citation, readiness, and approval rules.
-6. Read run commands from `package.json`; report only checks actually run.
+Start both backends separately for integrated local use. Writing BE requires its database and explicit dev-auth configuration; SLR BE requires its Firebase/emulator configuration and the dev quick-login endpoint enabled.

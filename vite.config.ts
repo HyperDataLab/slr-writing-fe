@@ -19,8 +19,13 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         "/api": {
-          target: env.VITE_API_PROXY_TARGET || "http://localhost:5100",
+          target: env.VITE_WRITING_API_TARGET || "http://localhost:5100",
           changeOrigin: true,
+        },
+        "/slr-api": {
+          target: env.VITE_SLR_API_TARGET || "http://localhost:5000",
+          changeOrigin: true,
+          rewrite: (requestPath) => requestPath.replace(/^\/slr-api/, "/api"),
         },
       },
     },

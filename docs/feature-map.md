@@ -1,47 +1,28 @@
 # FE Feature Map
 
-This repository is the SLR AI Writing frontend. The base shell, Projects, Snapshots, Methods/PRISMA, Journal Profile, and Outline/H1 are implemented; later manuscript workflows follow the sequence below.
+Updated: 2026-11-05
 
-See [`spec.md`](./spec.md) for the onboarding context and current implementation status. Projects and Snapshots currently connect to the writing backend using opt-in local dev-auth; Firebase auth remains deferred and is required before production use of protected endpoints.
+The UI is one persistent Google Docs / VS Code-inspired workspace. Explorer selection changes the center work area and contextual inspector without leaving the shell.
 
-## Base stack
+| Feature | FE location | Connected Writing BE API | Main behavior |
+| --- | --- | --- | --- |
+| Local development role picker | `src/features/auth/` | SLR BE quick-login via Vite `/slr-api` proxy | Select reviewer, leader, or admin fixture; hold session in `sessionStorage` |
+| Shared API client | `src/shared/api/client.ts` | `/api/*` | Bearer token, dev user header, envelope/error handling, ZIP download |
+| Project linking and discovery | `src/features/workspace/Workspace.tsx` | `GET/POST /api/projects`, `GET /api/slr/projects` | Link a Writing project to an accessible SLR project |
+| Run discovery and snapshot import | `Workspace.tsx` | `GET /api/slr/projects/:id/runs`, `POST /api/projects/:id/snapshots/from-slr` | Import approved SLR run; show blockers/warnings from backend readiness |
+| Snapshot explorer and inspector | `Workspace.tsx` | `GET /api/projects/:id/snapshots`, `GET .../:snapshotId` | Browse immutable snapshots, counts, provenance, and readiness issues |
+| Methods / PRISMA | `Workspace.tsx` | `GET/POST .../manuscript/methods` | Generate evidence-derived Methods and show facts/warnings |
+| Journal profile | `Workspace.tsx` | `GET /api/journal-profiles`, `GET /:profileId` | Show verification notice, structure, and suggested word budgets |
+| Outline / H1 | `Workspace.tsx` | `GET/POST/PUT .../manuscript/blueprint`, `POST .../approve|reject` | Generate, edit as a revision, inspect blockers, request OWNER approval |
+| Paragraph plan | `Workspace.tsx` | `GET/POST/PUT .../manuscript/paragraph-plans` | Generate plans after approved H1; show readiness and evidence counts |
+| Manuscript / H2 | `Workspace.tsx` | `GET/POST .../manuscript/sections/:sectionKey` | Generate evidence-grounded drafts, edit/save revisions, request H2 approval |
+| Verification | `Workspace.tsx` | `GET .../manuscript/verification`, `POST .../verification/run` | Run and inspect quality-gate report |
+| Final approval / export | `Workspace.tsx` | `GET .../final/status`, `POST .../final/approve|reject`, `POST/GET .../export`, `GET .../export/download` | Backend-gated H3 decision, create and download submission package |
 
-React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui source components with Radix UI primitives, Heroicons, Motion for React, and GSAP.
+## Explicit limitations
 
-## Feature boundaries
-
-| Feature | Responsibility | Roadmap alignment |
-| --- | --- | --- |
-| `auth` | Hold the signed-in user session, pass the Firebase ID token, and protect authenticated routes. | M1 |
-| `projects` | List, create, and open writing projects linked to an SLR project. | Existing project API; M1 permission check |
-| `snapshots` | Import a run, show immutable snapshot history/details, and present readiness issues and stale state. | M0, M10 |
-| `methods` | Generate and review deterministic Methods revisions from a READY snapshot; show PRISMA facts, source paths, and missing-data warnings. | M2 |
-| `journal-profiles` | List and view read-only journal profiles, preserve section order and expected sources, and clearly label verification status and suggested word budgets. | M3 |
-| `outline` | Generate and version a manuscript blueprint from a READY snapshot and Journal Profile; assign snapshot claims, show RQ coverage and backend issues, and request H1 approval. Profile section order is fixed; subsections can be reordered. OWNER authorization is enforced by the backend. | M5 |
-| `manuscripts` | Show paragraph plans and revisions, draft from the approved evidence pack, and request H2 approval. | M6–M7 |
-| `verification` | Show citation-registry checks, G1–G7 results, and review issues. | M8 |
-| `approvals` | Present OWNER-only H1/H2/H3 decisions with their recorded provenance. | Cross-cutting workflow |
-| `export` | Present export eligibility and produce the Markdown package after H3. | M9 |
-
-## Delivery order
-
-1. `projects` → `snapshots`: connect project list/create and snapshot import-from-SLR/history/detail endpoints. Use local backend dev-auth only when explicitly configured; implement `auth` and Firebase token wiring before production use.
-2. `methods` → `journal-profiles` → `outline`: connected. Outline/H1 supports create, optimistic-concurrency revisions, history, validation, and OWNER decisions through the backend Blueprint API.
-3. `manuscripts` → `approvals` (H2): plan and draft paragraphs from snapshot evidence.
-4. `verification`: validate citation IDs and quality gates; expose unresolved issues.
-5. `export` → `approvals` (H3): enforce export gates and prepare the final package.
-
-## UI invariants
-
-- Use Heroicons React for interface icons; keep one icon library across features.
-- Writing views read saved snapshots; they do not read live SLR corpus data.
-- Findings, counts, and reference records are never edited by the writing UI.
-- Citations must resolve to IDs in the snapshot registry.
-- `NOT_RUN` is visibly distinct from `PASS`; blocking issues prevent the next workflow step.
-- The default journal profile is always labeled as unverified.
-- Suggested word budgets must not be presented as a target journal's policy; display the backend notice while a profile is unverified.
-- H1, H2, and H3 are OWNER decisions and must be recorded with provenance by the backend.
-
-## Feature folder convention
-
-Each implemented feature owns its API calls, components, hooks/composables, pages, model types/schemas, and helpers. Cross-feature primitives stay in `shared/`; route composition and global providers stay in `app/`. Avoid creating placeholder files for roadmap features before they have behavior to own.
+- Dev role picker is local-only. No production Firebase sign-in is connected in this rebuild.
+- The BE does not expose ZIP project-package upload, so the FE imports SLR runs through Writing BE.
+- H1/H2/H3 authorization and readiness are decided by the BE. FE state is a view of the current backend response, never the authority.
+- The editor currently exposes outline JSON and Markdown draft text areas. Rich-text formatting controls and citation/evidence selection editing are not part of this API connection pass.
+- Lineage/citation-manifest history endpoints exist in Writing BE but do not yet have dedicated inspector interactions.
