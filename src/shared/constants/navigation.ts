@@ -1,11 +1,15 @@
 import type { ComponentType, SVGProps } from "react";
 import {
+  ArrowDownTrayIcon,
   ArrowUpTrayIcon,
   BookOpenIcon,
   DocumentTextIcon,
   FolderIcon,
   HomeIcon,
   ListBulletIcon,
+  PencilSquareIcon,
+  QueueListIcon,
+  ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
 
 export interface NavigationItem {
@@ -21,8 +25,11 @@ export const workspaceNavigation: NavigationItem[] = [
 
 export const workflowNavigation: NavigationItem[] = [
   { labelKey: "navigation.snapshots", to: "/snapshots", icon: ArrowUpTrayIcon },
-  { labelKey: "navigation.methods", to: "/methods", icon: DocumentTextIcon },
   { labelKey: "navigation.journalProfiles", to: "/journal-profiles", icon: BookOpenIcon },
+  { labelKey: "navigation.methods", to: "/methods", icon: DocumentTextIcon },
   { labelKey: "navigation.outline", to: "/outline", icon: ListBulletIcon },
+  { labelKey: "navigation.paragraphPlans", to: "/paragraph-plans", icon: QueueListIcon },
+  { labelKey: "navigation.drafting", to: "/drafting", icon: PencilSquareIcon },
+  { labelKey: "navigation.verification", to: "/verification", icon: ShieldCheckIcon },
+  { labelKey: "navigation.export", to: "/export", icon: ArrowDownTrayIcon },
 ];
-
