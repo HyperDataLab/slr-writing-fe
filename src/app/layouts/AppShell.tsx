@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, NavLink, Outlet, useLocation } from "react-router";
+import { Link, NavLink, Outlet, useLocation, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import {
   ShieldCheckIcon,
@@ -17,12 +17,21 @@ import { LanguageSwitcher } from "@/shared/ui/LanguageSwitcher";
 
 function SidebarNavigation({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
+  const currentProjectId = searchParams.get("projectId") || (typeof window !== "undefined" ? localStorage.getItem("slrw_selected_project_id") : null);
+  const currentSnapshotId = searchParams.get("snapshotId") || (typeof window !== "undefined" ? localStorage.getItem("slrw_selected_snapshot_id") : null);
+
   const renderItem = (item: NavigationItem) => {
     const Icon = item.icon;
+    const isRoot = item.to === "/";
+    const toWithParams = !isRoot && currentProjectId
+      ? `${item.to}?projectId=${encodeURIComponent(currentProjectId)}${currentSnapshotId ? `&snapshotId=${encodeURIComponent(currentSnapshotId)}` : ""}`
+      : item.to;
+
     return (
       <NavLink
         key={item.to}
-        to={item.to}
+        to={toWithParams}
         end={item.to === "/"}
         onClick={onNavigate}
         className={({ isActive }) =>
@@ -97,6 +106,10 @@ function getPageTitleKey(pathname: string): string {
   if (pathname.startsWith("/methods")) return "navigation.methods";
   if (pathname.startsWith("/journal-profiles")) return "navigation.journalProfiles";
   if (pathname.startsWith("/outline")) return "navigation.outline";
+  if (pathname.startsWith("/paragraph-plans")) return "navigation.paragraphPlans";
+  if (pathname.startsWith("/drafting")) return "navigation.drafting";
+  if (pathname.startsWith("/verification")) return "navigation.verification";
+  if (pathname.startsWith("/export")) return "navigation.export";
   return "common.workspace";
 }
 
@@ -152,4 +165,3 @@ export function AppShell() {
     </div>
   );
 }
-
