@@ -6,6 +6,7 @@ import { useProjects } from "@/features/projects/hooks/use-projects";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { ReadinessSummary } from "@/features/snapshots/components/ReadinessSummary";
+import { SlrRunPicker } from "@/features/snapshots/components/SlrRunPicker";
 import { getSnapshot, listSnapshots } from "@/features/snapshots/api/snapshots.api";
 import { useSnapshotImport } from "@/features/snapshots/hooks/use-snapshot-import";
 import { MotionListItem, MotionReveal } from "@/shared/ui/motion";
@@ -214,9 +215,16 @@ export function SnapshotReadinessPage() {
 
                   {activeProject && (
                     <form className="space-y-3" onSubmit={handleImport}>
+                      <SlrRunPicker
+                        key={selectedProjectId}
+                        projectId={selectedProjectId}
+                        selectedRunId={runId}
+                        onSelect={setRunId}
+                        refreshKey={snapshotRefreshKey}
+                      />
                       <div className="space-y-2">
                         <label htmlFor="snapshot-run-id" className="text-sm font-medium text-foreground">
-                          {t("snapshots.runIdLabel")}
+                          {t("snapshots.runIdLabelManual")}
                         </label>
                         <input
                           id="snapshot-run-id"
