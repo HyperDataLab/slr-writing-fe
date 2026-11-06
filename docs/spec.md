@@ -47,7 +47,7 @@ The repository uses shadcn/ui patterns; `shadcn/ui` is not a runtime package dep
 
 ## 4. Current frontend state
 
-The app currently exposes `/` (Overview), `/projects`, `/snapshots`, `/methods`, `/journal-profiles`, and `/outline`, wrapped in the shared `AppShell`.
+Last verified against code and a live writing BE: 2026-11-06. The app exposes `/` (Overview), `/projects`, `/snapshots`, `/journal-profiles`, `/methods`, `/outline`, `/paragraph-plans`, `/drafting`, `/verification`, and `/export` (see `src/app/router.tsx`), wrapped in the shared `AppShell`. The active project and snapshot are kept in the URL (`?projectId=&snapshotId=`) and remembered in local storage by `useActiveWorkspaceSelection`, so every workflow page opens on the same snapshot.
 
 | Area | Present in code | Current limitation |
 | --- | --- | --- |
@@ -59,8 +59,11 @@ The app currently exposes `/` (Overview), `/projects`, `/snapshots`, `/methods`,
 | Journal Profile | Lists and opens backend profiles; displays ordered sections, expected sources, generator availability, verification, and word budgets | The generic IMRaD profile is unverified; all word budgets are suggestions, and the profile API is read-only |
 | Outline / H1 | Generates and edits a versioned blueprint from a READY snapshot and Journal Profile; assigns snapshot claim IDs, tracks RQ coverage, displays backend validation issues, and records H1 decisions | Journal Profile section order is fixed; subsections can be reordered. Only the project OWNER can decide H1, enforced by the backend. |
 | Auth | `setApiTokenProvider` seam in the API client | No Firebase session feature/provider, token wiring, or protected routes; **auth is deferred by the current FE delivery decision** |
-| Manuscripts through Export | Responsibilities and sequence are mapped | Roadmap only; no feature implementation yet |
-| Localization | Vietnamese default, English option, header selector | New user-facing text must be added to both locales |
+| Paragraph plans (M6) | Generates the plan set from the approved H1 blueprint (`POST` returns only `{revision, created}`, so the page reloads with `GET`); shows plans per section, status, claim strength, evidence/finding IDs, and the backend's readiness issues | Plans cannot be edited (BE has `PUT`, FE does not call it). The button creates plans once; it never regenerates |
+| Drafting + H2 (M7) | Drafts a section from READY paragraph plans (the LLM runs on the BE), shows markdown with clickable `[E-..]` markers checked against the draft's evidence pack, and records OWNER H2 approve/reject for the loaded section | No manual edit of a draft (BE has `PUT /sections/:key`, FE does not call it). Methods is generated on the Methods page, so AI drafting is disabled for it |
+| Verification (M8) | Runs gates G1-G7, shows each gate (`PASS`, `WARNING`, `FAIL`, `NEEDS_REVIEW`, `NOT_APPLICABLE`, `NOT_RUN` are distinct), review issues per gate, and the citation manifest | Gate results are read-only; no remediation flow yet |
+| Export + H3 (M9) | Shows H3 readiness (`blockingReasons`, `requiredSections`, `omittedSections`), records OWNER H3, creates the package, downloads the ZIP, and queries evidence lineage | The BE can export without sections the engine cannot draft (for example Abstract, Conclusion); the page lists them and the package discloses them |
+| Localization | Vietnamese default, English option, header selector. Projects, Snapshots, Methods, Journal Profile, and Outline are translated | **Paragraph plans, Drafting, Verification, and Export are hard-coded English** (no `useTranslation`); move their copy into both locales |
 
 Do not describe a hook or API wrapper as a completed user flow unless the page actually calls it. Inspect the current route and component before extending a feature.
 
@@ -68,7 +71,13 @@ Do not describe a hook or API wrapper as a completed user flow unless the page a
 
 The ten planned modules are `auth`, `projects`, `snapshots`, `methods`, `journal-profiles`, `outline`, `manuscripts`, `verification`, `approvals`, and `export`. See [`feature-map.md`](./feature-map.md) for each module's full responsibility and backend milestone mapping.
 
-Current FE sequencing decision: Projects, Snapshots, Methods/PRISMA, Journal Profile, and Outline/H1 are implemented against the writing backend. Next is manuscript planning/drafting/H2, followed by verification and export/H3. Before production use, implement Firebase auth, supply its ID token through `setApiTokenProvider`, and protect authenticated routes.
+Current FE sequencing: every workflow from Projects through Export/H3 is wired to the writing backend. What remains, in the suggested order:
+
+1. Manual draft edit (`PUT /sections/:key` with `{ baseVersion, markdown }`) and paragraph plan edit, so a human can adjust text before H2.
+2. A picker for approved SLR runs; import currently needs a typed `runId`.
+3. Translate the four hard-coded English features.
+4. A run with real evidence to exercise G2/G5 (they report `NOT_APPLICABLE` on the seed data).
+5. Firebase auth: supply the ID token through `setApiTokenProvider` and protect authenticated routes. Needed before any use outside local development.
 
 The backend contract still requires authentication for its routes. Deferring the FE auth module does not make protected API calls anonymous or authorize bypassing backend checks.
 
@@ -114,12 +123,25 @@ Current FE integrations (all paths are prefixed with `/api` by the shared client
 - Methods: `GET/POST /projects/:projectId/snapshots/:snapshotId/manuscript/methods` and `GET /projects/:projectId/snapshots/:snapshotId/manuscript/methods/revisions/:version`.
 - Journal Profile: `GET /journal-profiles` and `GET /journal-profiles/:profileId`. Profiles are read-only; the returned verification state and notice are authoritative. Do not present suggested word budgets as journal policy.
 - Outline / H1: `GET` and `POST /projects/:projectId/snapshots/:snapshotId/manuscript/blueprint`, `PUT` the same path with `{ baseVersion, content }` to save an optimistic-concurrency revision, `GET .../revisions/:version`, and `POST .../approve` or `.../reject` with `{ version, note? }`. The FE only enables create/edit/decision actions for READY snapshots. The backend validates blueprint content and enforces SLR OWNER authorization for H1 decisions; never treat the FE state as authorization. The Journal Profile supplies the section set and order, while subsections can be reordered. RQ coverage requires an answering Results/Discussion/Conclusion subsection or a recorded not-applicable reason.
+- Paragraph plans: `GET/POST /projects/:projectId/snapshots/:snapshotId/manuscript/paragraph-plans` and `GET .../revisions/:version`. `POST` needs an approved H1 and returns `{ revision, created }` (200 when plans already exist); the full view comes from `GET`. A missing manuscript or blueprint is a 404, which the page treats as "not created yet".
+- Drafting / H2: `GET .../manuscript/sections/:sectionKey` (404 `SECTION_NOT_FOUND` or `MANUSCRIPT_NOT_FOUND` means not drafted yet), `POST .../draft` (no body; 422 `NO_READY_PARAGRAPH_PLANS` when nothing is ready), `GET .../revisions/:version` (returns the full view), `POST .../approve` with `{ version, note? }` and `.../reject` with `{ version, note }`. Decisions use the section key returned by the loaded view, not the selected tab.
+- Verification: `GET .../manuscript/verification` (latest), `POST .../verification/run`, `GET .../verification/revisions/:version`, and `GET .../citation-manifest`. The run response is `{ created, report }`. The report carries `manifest` and `issues`; `PASSED_WITH_WARNINGS` and `FAILED` are overall statuses.
+- Export / H3: `GET .../manuscript/final/status`, `POST .../final/approve` and `.../final/reject` with `{ note? }` / `{ note }`, `POST/GET .../export`, `GET .../export/revisions/:version`, `GET .../export/download`, and `GET .../lineage`.
 - In local Vite development only, `VITE_DEV_AUTH_UID` optionally sends `X-Dev-User-Id: <uid>` for the writing backend's dev-auth middleware. Set the same UID in the backend's `DEV_AUTH_UID`; leave this variable unset otherwise. This does not authenticate to the upstream SLR backend: project-access checks and `from-slr` forward the caller's bearer token, so those operations need a real SLR-compatible token from `setApiTokenProvider` when upstream auth is enabled.
 - Do not call the backend `/snapshots/validate` route from the FE: it accepts raw corpus input. Use `from-slr`, which lets the writing backend fetch and validate the SLR run. The manual `POST /snapshots` route is disabled in production.
 
 Blueprint/approval endpoint payloads and authorization behavior are documented in [`PROJECT_GUIDE.md`](../PROJECT_GUIDE.md#8-api-hiện-có). Methods uses the backend's fixed English template and displays `facts`, their `source` paths, and persisted warnings without editing the snapshot or generated prose.
 
 The FE calls the writing backend. It must not call `slr-be` directly for writing data; the writing backend owns the SLR integration and snapshot creation. Current endpoint definitions and error semantics are in [`PROJECT_GUIDE.md`](../PROJECT_GUIDE.md#8-api-hiện-có).
+
+### Contract rules learned the hard way
+
+- The backend is the contract. Check the zod types in `slr-writing-be/src/modules/<module>/` before writing FE types; three views (verification, paragraph plans, drafting) were once written against a guessed shape and broke on real data.
+- Do not swallow every request error as "no data". Treat only 404 as "not created yet" and show everything else.
+- Enum casing differs by module: paragraph plan issues use lowercase `blocking`/`warning`, verification issues use `BLOCKING`/`WARNING`. Copy the exact values.
+- Revision `facts` differ by section: Methods stores an array of facts, drafted sections store `{ paragraphs: [...] }`.
+- Ignore responses from an earlier request (see the sequence guard in `DraftingWorkspace`) so a slow reply never shows another section's data next to its approve button.
+- Never show a hard-coded "verified" state. Grounding is decided by the backend gates.
 
 ## 9. Local commands
 
