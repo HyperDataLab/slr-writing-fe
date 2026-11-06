@@ -5,7 +5,7 @@ import { RouteLoading } from "@/shared/ui/RouteLoading";
 
 /** Keeps every workflow route behind a signed-in session. The backend still checks the token on every call. */
 export function RequireAuth() {
-  const { status } = useAuth();
+  const { status, user } = useAuth();
   const location = useLocation();
   const { t } = useTranslation();
 
@@ -25,5 +25,6 @@ export function RequireAuth() {
     return <Navigate to={next === "/" ? "/login" : `/login?next=${encodeURIComponent(next)}`} replace />;
   }
 
-  return <Outlet />;
+  // Keyed by user so no page keeps another user's state after a switch.
+  return <Outlet key={user?.uid} />;
 }

@@ -1,6 +1,9 @@
 import i18n from "@/shared/i18n/i18n";
 import type { ApiEnvelope } from "@/shared/types/api.types";
 
+/** Error codes of the writing backend's own authentication (src/middleware/auth.middleware.ts). */
+const SESSION_REJECTED_CODES = new Set(["UNAUTHORIZED", "INVALID_TOKEN"]);
+
 export type ApiTokenProvider = () => Promise<string | null>;
 
 type ApiRequestInit = RequestInit & {
@@ -22,11 +25,15 @@ export class ApiError extends Error {
 
 let tokenProvider: ApiTokenProvider | undefined;
 
-export type UnauthorizedHandler = () => void;
+/** Receives the token the rejected request carried, so a late answer for an old session can be ignored. */
+export type UnauthorizedHandler = (rejectedToken: string) => void;
 
 let unauthorizedHandler: UnauthorizedHandler | undefined;
 
-/** Called when the backend answers 401 to a request that carried a token (expired or revoked session). */
+/**
+ * Called when the writing backend rejects the session's own token. Not for every 401: the backend also answers 401 with
+ * SLR_AUTH_REJECTED when slr-be refuses the forwarded token, which is not a reason to end the user's session.
+ */
 export function setUnauthorizedHandler(handler: UnauthorizedHandler): () => void {
   const previous = unauthorizedHandler;
   unauthorizedHandler = handler;
@@ -77,9 +84,11 @@ export async function apiRequest<T>(path: string, init: ApiRequestInit = {}): Pr
     headers,
   });
 
-  if (response.status === 401 && token) unauthorizedHandler?.();
-
   const payload = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
+
+  if (response.status === 401 && token && payload && !payload.success && SESSION_REJECTED_CODES.has(payload.error?.code)) {
+    unauthorizedHandler?.(token);
+  }
 
   if (!response.ok || !payload?.success) {
     const apiError = payload && !payload.success ? payload.error : undefined;

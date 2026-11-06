@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type PropsWithChildren,
 } from "react";
@@ -15,7 +16,7 @@ import {
   signOut as firebaseSignOut,
   type User,
 } from "firebase/auth";
-import { getAuthMode, getFirebaseConfig, type AuthMode } from "@/features/auth/auth.config";
+import { getAuthMode, getDevAuthUid, getFirebaseConfig, type AuthMode } from "@/features/auth/auth.config";
 import { getFirebaseAuth } from "@/features/auth/firebase-client";
 import { setApiTokenProvider, setUnauthorizedHandler } from "@/shared/lib/api-client";
 
@@ -63,14 +64,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return getFirebaseConfig() ? "loading" : "unconfigured";
   });
   const [user, setUser] = useState<AuthUser | null>(() =>
-    mode === "dev" ? { uid: import.meta.env.VITE_DEV_AUTH_UID?.trim() || "dev_user", email: null, displayName: null } : null,
+    mode === "dev" ? { uid: getDevAuthUid() ?? "dev_user", email: null, displayName: null } : null,
   );
+
+  const lastUid = useRef<string | null>(null);
 
   useEffect(() => {
     if (!auth) return undefined;
     // `getIdToken()` returns the cached token and refreshes it shortly before it expires.
     const removeTokenProvider = setApiTokenProvider(async () => (auth.currentUser ? auth.currentUser.getIdToken() : null));
     const unsubscribe = onAuthStateChanged(auth, (next) => {
+      // However the session ended or changed (sign-out here, the SDK, another tab), nothing of the previous user stays.
+      if (lastUid.current !== null && lastUid.current !== (next?.uid ?? null)) clearUserScopedStorage();
+      lastUid.current = next?.uid ?? null;
       setUser(next ? toAuthUser(next) : null);
       setStatus(next ? "signedIn" : "signedOut");
     });
@@ -88,8 +94,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
   // The backend rejected the token (revoked or the account was disabled): end the session instead of failing every call.
   useEffect(() => {
     if (!auth) return undefined;
-    return setUnauthorizedHandler(() => {
-      void signOut();
+    return setUnauthorizedHandler((rejectedToken) => {
+      // A late 401 for an earlier session must not sign out whoever is signed in now.
+      void (async () => {
+        const current = auth.currentUser ? await auth.currentUser.getIdToken().catch(() => null) : null;
+        if (current === rejectedToken) await signOut();
+      })();
     });
   }, [auth, signOut]);
 

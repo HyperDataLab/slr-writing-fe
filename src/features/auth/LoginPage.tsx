@@ -7,10 +7,21 @@ import { LanguageSwitcher } from "@/shared/ui/LanguageSwitcher";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 
-/** Only same-site paths are followed after sign-in, so a crafted `?next=` cannot send the user elsewhere. */
+/**
+ * Only same-site paths are followed after sign-in, so a crafted `?next=` cannot send the user elsewhere. Browsers drop
+ * tabs and line breaks and read a backslash as a slash, so `/%09/evil.com` would turn into `//evil.com`: reject control
+ * characters and backslashes, then confirm by parsing that the result stays on this origin.
+ */
 function safeNextPath(value: string | null): string {
-  if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) return "/";
-  return value;
+  // eslint-disable-next-line no-control-regex
+  if (!value || !value.startsWith("/") || /[\u0000-\u001f\u007f\\]/.test(value)) return "/";
+  try {
+    const parsed = new URL(value, window.location.origin);
+    if (parsed.origin !== window.location.origin) return "/";
+    return parsed.pathname + parsed.search + parsed.hash;
+  } catch {
+    return "/";
+  }
 }
 
 function errorKey(error: unknown): string {
