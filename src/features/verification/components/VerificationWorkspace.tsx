@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useStableT } from "@/shared/i18n/use-stable-t";
 import {
   ArrowPathIcon,
   CheckCircleIcon,
@@ -25,6 +26,7 @@ export function VerificationWorkspace({
   snapshot: SnapshotSummary;
 }) {
   const { t } = useTranslation();
+  const stableT = useStableT();
   const [report, setReport] = useState<VerificationReportView | null>(null);
   const [loading, setLoading] = useState(true);
   const [auditing, setAuditing] = useState(false);
@@ -39,12 +41,12 @@ export function VerificationWorkspace({
     } catch (err: unknown) {
       setReport(null);
       if (!(err instanceof ApiError && err.status === 404)) {
-        setError(err instanceof Error ? err.message : t("verify.loadError"));
+        setError(err instanceof Error ? err.message : stableT("verify.loadError"));
       }
     } finally {
       setLoading(false);
     }
-  }, [projectId, snapshot.id, t]);
+  }, [projectId, snapshot.id, stableT]);
 
   useEffect(() => {
     void loadData();

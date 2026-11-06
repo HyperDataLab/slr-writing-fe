@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useStableT } from "@/shared/i18n/use-stable-t";
 import {
   CheckBadgeIcon,
   ChevronDownIcon,
@@ -20,6 +21,7 @@ export function LineageExplorer({
   snapshotId: string;
 }) {
   const { t } = useTranslation();
+  const stableT = useStableT();
   const [items, setItems] = useState<LineageItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,11 +41,11 @@ export function LineageExplorer({
       });
       setItems(res.lineage);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t("exportPkg.lineage.loadError"));
+      setError(err instanceof Error ? err.message : stableT("exportPkg.lineage.loadError"));
     } finally {
       setLoading(false);
     }
-  }, [projectId, snapshotId, sectionFilter, search, t]);
+  }, [projectId, snapshotId, sectionFilter, search, stableT]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -230,9 +232,9 @@ export function LineageExplorer({
                                   <span>
                                     {t("exportPkg.lineage.location")}:{" "}
                                     {[
-                                      ev.page ? t("exportPkg.lineage.page", { n: ev.page }) : null,
+                                      ev.page != null ? t("exportPkg.lineage.page", { n: ev.page }) : null,
                                       ev.section ? t("exportPkg.lineage.sectionOf", { name: ev.section }) : null,
-                                      ev.paragraph ? t("exportPkg.lineage.paragraph", { n: ev.paragraph }) : null,
+                                      ev.paragraph != null ? t("exportPkg.lineage.paragraph", { n: ev.paragraph }) : null,
                                     ]
                                       .filter(Boolean)
                                       .join(", ") || t("exportPkg.lineage.locationUnknown")}

@@ -140,6 +140,8 @@ The FE calls the writing backend. It must not call `slr-be` directly for writing
 - Enum casing differs by module: paragraph plan issues use lowercase `blocking`/`warning`, verification issues use `BLOCKING`/`WARNING`. Copy the exact values.
 - Revision `facts` differ by section: Methods stores an array of facts, drafted sections store `{ paragraphs: [...] }`.
 - Ignore responses from an earlier request (see the sequence guard in `DraftingWorkspace`) so a slow reply never shows another section's data next to its approve button.
+- Do not put `t` from `useTranslation()` in a data-loading hook's dependencies: it changes identity on every language change, which refetches and (in Drafting) drops an unsaved edit. Use `useStableT()` (`src/shared/i18n/use-stable-t.ts`) for messages created inside loaders.
+- A snapshot with no manuscript yet answers 404 `MANUSCRIPT_NOT_FOUND` on `final/status`; that is a normal blocked state, not an error banner.
 - Never show a hard-coded "verified" state. Grounding is decided by the backend gates.
 
 ## 9. Local commands

@@ -77,7 +77,7 @@ export function H2DecisionDialog({
           <div className="bg-muted/50 p-2.5 rounded-md border border-border/60 text-xs space-y-1">
             <div className="flex justify-between">
               <span className="text-muted-foreground">{t("draft.decision.section")}:</span>
-              <span className="font-semibold text-foreground capitalize">{sectionLabel}</span>
+              <span className="font-semibold text-foreground">{sectionLabel}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">{t("draft.decision.revision")}:</span>

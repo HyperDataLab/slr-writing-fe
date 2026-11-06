@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useStableT } from "@/shared/i18n/use-stable-t";
 import { ArrowPathIcon, SparklesIcon } from "@heroicons/react/24/outline";
 import {
   createParagraphPlans,
@@ -22,6 +23,7 @@ export function ParagraphPlansWorkspace({
   snapshot: SnapshotSummary;
 }) {
   const { t } = useTranslation();
+  const stableT = useStableT();
   const [view, setView] = useState<ParagraphPlanView | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -41,12 +43,12 @@ export function ParagraphPlansWorkspace({
     } catch (err: unknown) {
       setView(null);
       if (!(err instanceof ApiError && err.status === 404)) {
-        setError(err instanceof Error ? err.message : t("plans.loadError"));
+        setError(err instanceof Error ? err.message : stableT("plans.loadError"));
       }
     } finally {
       setLoading(false);
     }
-  }, [projectId, snapshot.id, t]);
+  }, [projectId, snapshot.id, stableT]);
 
   useEffect(() => {
     void loadPlans();
@@ -224,7 +226,7 @@ export function ParagraphPlansWorkspace({
                       : "bg-muted text-muted-foreground hover:bg-muted/80"
                   }`}
                 >
-                  <span className="capitalize">{t(`plans.sectionName.${sec}`, { defaultValue: sec })}</span>
+                  <span>{t(`plans.sectionName.${sec}`, { defaultValue: sec })}</span>
                   <span className="text-[10px] bg-background/50 px-1 rounded font-mono">
                     {info ? `${info.ready}/${info.count}` : "0"}
                   </span>

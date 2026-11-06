@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useStableT } from "@/shared/i18n/use-stable-t";
 import { Link } from "react-router";
 import {
   ArrowPathIcon,
@@ -47,6 +48,7 @@ export function DraftingWorkspace({
   const [drafting, setDrafting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { t } = useTranslation();
+  const stableT = useStableT();
   const [editing, setEditing] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   // Whether the latest verification report still describes the current sections; false while loading or when none exists (fail-closed).
@@ -82,12 +84,12 @@ export function DraftingWorkspace({
       if (seq !== loadSeq.current) return;
       setDraftView(null);
       if (!(err instanceof ApiError && err.status === 404)) {
-        setError(err instanceof Error ? err.message : t("draft.loadError"));
+        setError(err instanceof Error ? err.message : stableT("draft.loadError"));
       }
     } finally {
       if (seq === loadSeq.current) setLoading(false);
     }
-  }, [projectId, snapshot.id, t]);
+  }, [projectId, snapshot.id, stableT]);
 
   useEffect(() => {
     setNotice(null);

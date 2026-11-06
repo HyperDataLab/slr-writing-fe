@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useStableT } from "@/shared/i18n/use-stable-t";
 import {
   ArrowDownTrayIcon,
   ArrowPathIcon,
@@ -34,6 +35,7 @@ export function ExportWorkspace({
   snapshot: SnapshotSummary;
 }) {
   const { t } = useTranslation();
+  const stableT = useStableT();
   const [h3Status, setH3Status] = useState<H3StatusView | null>(null);
   const [exportPackage, setExportPackage] = useState<ExportPackageView | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,7 +53,11 @@ export function ExportWorkspace({
     setError(null);
     try {
       const [h3, pkg] = await Promise.all([
-        getH3Status(projectId, snapshot.id),
+        // No manuscript row yet (nothing generated for this snapshot) is a normal, blocked state, not an error.
+        getH3Status(projectId, snapshot.id).catch((err: unknown) => {
+          if (err instanceof ApiError && err.status === 404 && err.code === "MANUSCRIPT_NOT_FOUND") return null;
+          throw err;
+        }),
         getLatestExportPackage(projectId, snapshot.id).catch((err: unknown) => {
           if (err instanceof ApiError && err.status === 404) return null;
           throw err;
@@ -62,11 +68,11 @@ export function ExportWorkspace({
     } catch (err: unknown) {
       setH3Status(null);
       setExportPackage(null);
-      setError(err instanceof Error ? err.message : t("exportPkg.loadError"));
+      setError(err instanceof Error ? err.message : stableT("exportPkg.loadError"));
     } finally {
       setLoading(false);
     }
-  }, [projectId, snapshot.id, t]);
+  }, [projectId, snapshot.id, stableT]);
 
   useEffect(() => {
     void loadData();
@@ -280,7 +286,7 @@ export function ExportWorkspace({
                 <div className="bg-muted/30 p-3 rounded-lg border border-border/40">
                   <span className="text-muted-foreground block text-[11px] mb-1">{t("exportPkg.compositeHash")}</span>
                   <div className="font-mono text-muted-foreground truncate text-[11px] mt-1" title={h3Status?.compositeTargetHash}>
-                    {h3Status?.compositeTargetHash ? `${h3Status.compositeTargetHash.slice(0, 18)}...` : "N/A"}
+                    {h3Status?.compositeTargetHash ? `${h3Status.compositeTargetHash.slice(0, 18)}...` : "—"}
                   </div>
                   <p className="text-[10px] text-muted-foreground mt-1">{t("exportPkg.fingerprint")}</p>
                 </div>

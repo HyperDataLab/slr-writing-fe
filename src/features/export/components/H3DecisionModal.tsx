@@ -72,7 +72,7 @@ export function H3DecisionModal({
             <div className="flex justify-between">
               <span className="text-muted-foreground">{t("exportPkg.decision.targetHash")}:</span>
               <span className="font-mono text-muted-foreground text-[11px] truncate max-w-[200px]" title={compositeHash}>
-                {compositeHash ? `${compositeHash.slice(0, 20)}...` : "N/A"}
+                {compositeHash ? `${compositeHash.slice(0, 20)}...` : "—"}
               </span>
             </div>
             <div className="flex justify-between">
