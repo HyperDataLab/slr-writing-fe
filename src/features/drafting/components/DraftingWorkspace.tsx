@@ -51,6 +51,7 @@ export function DraftingWorkspace({
   const [notice, setNotice] = useState<string | null>(null);
   // When the latest verification report ran; null while loading or when none exists (fail-closed).
   const [verifiedAt, setVerifiedAt] = useState<string | null>(null);
+  const [verifiedStatus, setVerifiedStatus] = useState<string | null>(null);
 
   // Decision Modal State
   const [modalAction, setModalAction] = useState<"approve" | "reject" | null>(null);
@@ -68,11 +69,15 @@ export function DraftingWorkspace({
     setDraftView(null);
     setEditing(false);
     setVerifiedAt(null);
+    setVerifiedStatus(null);
     try {
       const data = await getSectionDraft(projectId, snapshot.id, secKey);
       if (seq === loadSeq.current) setDraftView(data);
       const report = await getLatestVerification(projectId, snapshot.id).catch(() => null);
-      if (seq === loadSeq.current) setVerifiedAt(report?.runAt ?? null);
+      if (seq === loadSeq.current) {
+        setVerifiedAt(report?.runAt ?? null);
+        setVerifiedStatus(report?.status ?? null);
+      }
     } catch (err: unknown) {
       if (seq !== loadSeq.current) return;
       setDraftView(null);
@@ -85,6 +90,7 @@ export function DraftingWorkspace({
   }, [projectId, snapshot.id]);
 
   useEffect(() => {
+    setNotice(null);
     void loadDraft(activeSection);
   }, [activeSection, loadDraft]);
 
@@ -139,10 +145,9 @@ export function DraftingWorkspace({
   // Methods comes from the fixed template (Methods page), never from the LLM drafter.
   const canDraft = activeSection !== "methods";
   // A hand edit keeps the old evidence facts, so the new version must be re-verified before H2 can approve it.
-  const needsReverify =
-    !!latest &&
-    latest.generator === "manual-edit" &&
-    !(verifiedAt && Date.parse(verifiedAt) > Date.parse(latest.createdAt));
+  const verificationFailed = verifiedStatus === "FAILED";
+  const reportCoversVersion = !!latest && !!verifiedAt && Date.parse(verifiedAt) > Date.parse(latest.createdAt);
+  const needsReverify = !!latest && latest.generator === "manual-edit" && !(reportCoversVersion && !verificationFailed);
   const verificationLink = `/verification?projectId=${encodeURIComponent(projectId)}&snapshotId=${encodeURIComponent(snapshot.id)}`;
 
   const handleSaveEdit = async (markdown: string) => {
@@ -182,7 +187,7 @@ export function DraftingWorkspace({
               variant="outline"
               size="sm"
               onClick={() => loadDraft(activeSection)}
-              disabled={loading || drafting}
+              disabled={loading || drafting || editing}
               className="gap-1.5"
             >
               <ArrowPathIcon className={`size-4 ${loading ? "animate-spin" : ""}`} />
@@ -192,7 +197,7 @@ export function DraftingWorkspace({
               variant="default"
               size="sm"
               onClick={handleGenerate}
-              disabled={drafting || !canDraft}
+              disabled={drafting || editing || !canDraft}
               title={canDraft ? undefined : "Methods is generated on the Methods page"}
               className="gap-1.5"
             >
@@ -208,6 +213,7 @@ export function DraftingWorkspace({
             <button
               key={sec.key}
               onClick={() => setActiveSection(sec.key)}
+              disabled={editing}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                 activeSection === sec.key
                   ? "bg-primary text-primary-foreground shadow-xs"
@@ -262,7 +268,7 @@ export function DraftingWorkspace({
                 size="sm"
                 className="text-xs h-8 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border-rose-200 dark:border-rose-900"
                 onClick={() => setModalAction("reject")}
-                disabled={drafting || loading || status === "REJECTED"}
+                disabled={drafting || loading || editing || status === "REJECTED"}
               >
                 Reject H2
               </Button>
@@ -271,8 +277,7 @@ export function DraftingWorkspace({
                 size="sm"
                 className="text-xs h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
                 onClick={() => setModalAction("approve")}
-                disabled={drafting || loading || needsReverify || status === "APPROVED"}
-                title={needsReverify ? t("draftEdit.reverifyBody") : undefined}
+                disabled={drafting || loading || editing || needsReverify || status === "APPROVED"}
               >
                 <CheckBadgeIcon className="size-4 mr-1" />
                 Approve H2
@@ -297,10 +302,12 @@ export function DraftingWorkspace({
       )}
 
       {needsReverify && !loading && (
-        <div role="alert" className="bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-sm p-4 rounded-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div role="status" className="bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-sm p-4 rounded-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <div className="font-semibold">{t("draftEdit.reverifyTitle")}</div>
-            <div className="text-xs mt-0.5">{t("draftEdit.reverifyBody")}</div>
+            <div className="text-xs mt-0.5">
+              {reportCoversVersion && verificationFailed ? t("draftEdit.reverifyFailedBody") : t("draftEdit.reverifyBody")}
+            </div>
           </div>
           <Button asChild variant="outline" size="sm">
             <Link to={verificationLink}>{t("draftEdit.reverifyAction")}</Link>
@@ -474,7 +481,7 @@ export function DraftingWorkspace({
           isOpen={true}
           onClose={() => setModalAction(null)}
           action={modalAction}
-          sectionKey={activeSection}
+          sectionKey={draftView?.sectionKey ?? activeSection}
           version={latest.version}
           contentHash={latest.contentHash}
           onConfirm={handleDecisionConfirm}

@@ -22,7 +22,8 @@ export function DraftEditor({
   const [error, setError] = useState<string | null>(null);
 
   const dirty = text !== initialMarkdown;
-  const empty = text.trim() === "";
+  // Zero-width characters count as empty: the backend rejects text that shows nothing.
+  const empty = text.replace(/[\u200B-\u200D\u2060\uFEFF]/g, "").trim() === "";
   const tooLong = text.length > MAX_MARKDOWN_LENGTH;
 
   const handleSave = async () => {
@@ -36,7 +37,8 @@ export function DraftEditor({
       await onSave(text);
     } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 409) setError(t("draftEdit.conflictError"));
-      else setError(err instanceof Error ? err.message : t("draftEdit.saveError"));
+      else if (err instanceof ApiError) setError(err.message);
+      else setError(t("draftEdit.saveError"));
       setSaving(false);
     }
   };
@@ -58,6 +60,7 @@ export function DraftEditor({
         </p>
         <textarea
           id="draft-editor"
+          autoFocus
           value={text}
           onChange={(e) => setText(e.target.value)}
           disabled={saving}
