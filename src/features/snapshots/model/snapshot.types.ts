@@ -62,8 +62,10 @@ export interface SlrRunSummary {
   corpusHash: string;
   /** Review state of the artifacts the writing MVP reads. */
   mvpArtifacts: Record<string, MvpArtifactState>;
-  /** All four MVP artifacts approved on slr-be. Informational; readiness at import stays authoritative. */
-  mvpApproved: boolean;
+  /** A1 and A10, which the import needs, are approved on slr-be. Informational; readiness at import stays authoritative. */
+  importable: boolean;
+  /** All four MVP artifacts are approved. */
+  complete: boolean;
   /** Snapshots of this project already imported from the run. */
   snapshots: Array<{ id: string; status: string }>;
 }

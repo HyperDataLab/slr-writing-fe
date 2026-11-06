@@ -16,6 +16,11 @@ function artifactVariant(state: MvpArtifactState): "success" | "warning" | "dest
   return "warning";
 }
 
+function formatTime(value: string, language: string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString(language);
+}
+
 /**
  * Lists the runs of the linked SLR project so a person picks one instead of typing a run id. The list only informs:
  * a run that looks unapproved can still be tried, and the backend's readiness check decides what is importable.
@@ -107,12 +112,12 @@ export function SlrRunPicker({
                     {run.snapshots.length > 0 && (
                       <Badge variant="outline">{t("snapshots.runs.imported", { count: run.snapshots.length })}</Badge>
                     )}
-                    <Badge variant={run.mvpApproved ? "success" : "warning"}>
-                      {run.mvpApproved ? t("snapshots.runs.allApproved") : t("snapshots.runs.notAllApproved")}
+                    <Badge variant={run.importable ? "success" : "warning"}>
+                      {run.importable ? t("snapshots.runs.importable") : t("snapshots.runs.notImportable")}
                     </Badge>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {new Date(run.generatedAt).toLocaleString(i18n.resolvedLanguage ?? "vi")}
+                    {formatTime(run.generatedAt, i18n.resolvedLanguage ?? "vi")}
                     {run.generatedBy ? ` · ${run.generatedBy}` : ""}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-1.5">

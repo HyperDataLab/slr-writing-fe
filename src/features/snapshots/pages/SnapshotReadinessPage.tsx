@@ -216,6 +216,7 @@ export function SnapshotReadinessPage() {
                   {activeProject && (
                     <form className="space-y-3" onSubmit={handleImport}>
                       <SlrRunPicker
+                        key={selectedProjectId}
                         projectId={selectedProjectId}
                         selectedRunId={runId}
                         onSelect={setRunId}

@@ -471,8 +471,8 @@ export const resources = {
           manualFallback: "Bạn vẫn có thể nhập run ID thủ công bên dưới.",
           empty: "Project SLR này chưa có run nào. Hãy tạo và duyệt run ở hệ thống SLR trước.",
           imported: "đã import {{count}} lần",
-          allApproved: "A1, A2, A7, A10 đã duyệt",
-          notAllApproved: "Chưa duyệt đủ",
+          importable: "Sẵn sàng import (A1, A10 đã duyệt)",
+          notImportable: "Chưa duyệt A1/A10",
           state: {
             approved: "đã duyệt",
             unreviewed: "chưa xem xét",
@@ -1251,8 +1251,8 @@ export const resources = {
           manualFallback: "You can still enter a run ID by hand below.",
           empty: "This SLR project has no runs yet. Create and approve a run in the SLR system first.",
           imported: "imported {{count}} time(s)",
-          allApproved: "A1, A2, A7, A10 approved",
-          notAllApproved: "Not fully approved",
+          importable: "Ready to import (A1, A10 approved)",
+          notImportable: "A1/A10 not approved yet",
           state: {
             approved: "approved",
             unreviewed: "unreviewed",

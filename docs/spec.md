@@ -117,7 +117,7 @@ Feature API wrappers live alongside their feature, for example `src/features/pro
 Current FE integrations (all paths are prefixed with `/api` by the shared client):
 
 - Projects page: `GET /projects` and `POST /projects`. The feature API also has a `GET /projects/:projectId` wrapper for a future detail view; the current page does not call it.
-- Run picker: `GET /projects/:projectId/slr-runs` (the writing BE reads slr-be with the caller's token; 502 `SLR_UNREACHABLE` etc. leave the typed run id as a fallback). `mvpApproved` is informational: an unapproved run can still be tried and the import's readiness check decides.
+- Run picker: `GET /projects/:projectId/slr-runs` (the writing BE reads slr-be with the caller's token; 502 `SLR_UNREACHABLE` etc. leave the typed run id as a fallback). `importable` (A1 and A10 approved) and `complete` (all four MVP artifacts) are informational: a run that does not look importable can still be tried and the import's readiness check decides. The picker remounts per project so another project's runs are never shown.
 - Snapshots: `POST /projects/:projectId/snapshots/from-slr`, `GET /projects/:projectId/snapshots`, and `GET /projects/:projectId/snapshots/:snapshotId`.
 - Methods: `GET/POST /projects/:projectId/snapshots/:snapshotId/manuscript/methods` and `GET /projects/:projectId/snapshots/:snapshotId/manuscript/methods/revisions/:version`.
 - Journal Profile: `GET /journal-profiles` and `GET /journal-profiles/:profileId`. Profiles are read-only; the returned verification state and notice are authoritative. Do not present suggested word budgets as journal policy.
