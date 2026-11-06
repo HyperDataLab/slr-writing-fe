@@ -7,3 +7,6 @@ coverage/
 !.env.example
 *.local
 
+
+# Screenshots written by docs/demo/demo.cjs
+docs/demo/shots/
