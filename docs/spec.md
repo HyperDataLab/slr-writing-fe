@@ -63,7 +63,7 @@ Last verified against code and a live writing BE: 2026-11-06. The app exposes `/
 | Drafting + H2 (M7) | Drafts a section from READY paragraph plans (the LLM runs on the BE), shows markdown with clickable `[E-..]` markers checked against the draft's evidence pack, and records OWNER H2 approve/reject for the loaded section | Hand edit is available for drafted sections (not Methods, which is generated on the Methods page and has AI drafting disabled). A saved edit is a new `manual-edit` version, back to H2 `PENDING`; the H2 approve button stays locked until a verification report that is current (`isCurrent`, from the BE) and not failed exists. The BE enforces the same rule: approving a hand edit without it returns 422 `REVERIFICATION_REQUIRED`; Methods cannot be edited (422 `SECTION_NOT_EDITABLE`). Rejecting stays available |
 | Verification (M8) | Runs gates G1-G7, shows each gate (`PASS`, `WARNING`, `FAIL`, `NEEDS_REVIEW`, `NOT_APPLICABLE`, `NOT_RUN` are distinct), review issues per gate, and the citation manifest | Gate results are read-only; no remediation flow yet |
 | Export + H3 (M9) | Shows H3 readiness (`blockingReasons`, `requiredSections`, `omittedSections`), records OWNER H3, creates the package, downloads the ZIP, and queries evidence lineage | The BE can export without sections the engine cannot draft (for example Abstract, Conclusion); the page lists them and the package discloses them |
-| Localization | Vietnamese default, English option, header selector. Projects, Snapshots, Methods, Journal Profile, and Outline are translated | **Paragraph plans, Drafting, Verification, and Export are hard-coded English** (no `useTranslation`); move their copy into both locales |
+| Localization | Vietnamese default, English option, header selector. Every workflow page is translated, including Paragraph plans (`plans.*`), Drafting (`draft.*`, `draftEdit.*`), Verification (`verify.*`), and Export (`exportPkg.*`); the four pages share `WorkflowPageShell` and the `workflow.*` strings | Server-provided text (readiness and H3 blocking reasons, issue messages, error messages) is shown as the backend sends it, in English |
 
 Do not describe a hook or API wrapper as a completed user flow unless the page actually calls it. Inspect the current route and component before extending a feature.
 
@@ -75,9 +75,8 @@ Current FE sequencing: every workflow from Projects through Export/H3 is wired t
 
 1. Paragraph plan edit (`PUT .../paragraph-plans` with `{ baseVersion, content }`).
 2. A picker for approved SLR runs; import currently needs a typed `runId`.
-3. Translate the four hard-coded English features (only the manual-edit strings, under `draftEdit.*`, are translated so far).
-4. A run with real evidence to exercise G2/G5 (they report `NOT_APPLICABLE` on the seed data).
-5. Firebase auth: supply the ID token through `setApiTokenProvider` and protect authenticated routes. Needed before any use outside local development.
+3. A run with real evidence to exercise G2/G5 (they report `NOT_APPLICABLE` on the seed data).
+4. Firebase auth: supply the ID token through `setApiTokenProvider` and protect authenticated routes. Needed before any use outside local development.
 
 The backend contract still requires authentication for its routes. Deferring the FE auth module does not make protected API calls anonymous or authorize bypassing backend checks.
 

@@ -3,55 +3,50 @@ import {
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 import type { GateStatus, QualityGateResult, ReviewIssue } from "@/features/verification/model/verification.types";
 import { Badge } from "@/shared/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 
-const GATE_TITLES: Record<string, { title: string; subtitle: string }> = {
-  G1: { title: "Citation Integrity", subtitle: "100% of references strictly map to valid SLR registry entities" },
-  G2: { title: "Quote Fidelity", subtitle: "Verbatim quotes audited against cryptographic source hashes" },
-  G3: { title: "PRISMA Flow Reconciliation", subtitle: "Reconciles flow of identification, screening, and inclusion" },
-  G4: { title: "Ungrounded Numbers", subtitle: "Rejects any numerical claim not grounded in snapshot facts" },
-  G5: { title: "Evidence Entailment", subtitle: "NLI entailment verification ensuring evidence supports drafted claims" },
-  G6: { title: "Claim Strength & Hedging", subtitle: "Enforces scientific hedging rules and certainty bounds" },
-  G7: { title: "RQ Coverage", subtitle: "Verifies all research questions are addressed in manuscript sections" },
-};
+const GATE_KEYS: Record<string, true> = { G1: true, G2: true, G3: true, G4: true, G5: true, G6: true, G7: true };
 
-function statusBadge(status: GateStatus) {
+function statusBadge(status: GateStatus, t: TFunction) {
   switch (status) {
     case "PASS":
       return (
         <Badge variant="success" className="gap-1">
-          <CheckCircleIcon className="size-3.5" /> PASS
+          <CheckCircleIcon className="size-3.5" /> {t("verify.gateStatus.PASS")}
         </Badge>
       );
     case "WARNING":
     case "NEEDS_REVIEW":
       return (
         <Badge variant="warning" className="gap-1">
-          <ExclamationTriangleIcon className="size-3.5" /> {status.replace("_", " ")}
+          <ExclamationTriangleIcon className="size-3.5" /> {t(`verify.gateStatus.${status}`)}
         </Badge>
       );
     case "FAIL":
       return (
         <Badge variant="destructive" className="gap-1">
-          <ExclamationCircleIcon className="size-3.5" /> FAIL
+          <ExclamationCircleIcon className="size-3.5" /> {t("verify.gateStatus.FAIL")}
         </Badge>
       );
     case "NOT_RUN":
       // NOT_RUN is never a pass: keep it visibly distinct from PASS.
       return (
         <Badge variant="outline" className="gap-1 border-dashed">
-          NOT RUN
+          {t("verify.gateStatus.NOT_RUN")}
         </Badge>
       );
     default:
-      return <Badge variant="secondary">{status.replace("_", " ")}</Badge>;
+      return <Badge variant="secondary">{t(`verify.gateStatus.${status}`)}</Badge>;
   }
 }
 
 export function GateAuditCard({ gate, issues }: { gate: QualityGateResult; issues: ReviewIssue[] }) {
-  const meta = GATE_TITLES[gate.gateId] || { title: gate.name, subtitle: "Audit Check" };
+  const { t } = useTranslation();
+  const hasMeta = gate.gateId in GATE_KEYS;
 
   return (
     <Card className="border border-border/80 shadow-xs hover:border-primary/40 transition-colors">
@@ -61,11 +56,13 @@ export function GateAuditCard({ gate, issues }: { gate: QualityGateResult; issue
             <span className="font-mono font-bold text-xs bg-muted px-2 py-0.5 rounded text-foreground">
               {gate.gateId}
             </span>
-            <CardTitle className="text-base font-semibold">{meta.title}</CardTitle>
+            <CardTitle className="text-base font-semibold">{hasMeta ? t(`verify.gate.${gate.gateId}.title`) : gate.name}</CardTitle>
           </div>
-          <p className="text-xs text-muted-foreground">{meta.subtitle}</p>
+          <p className="text-xs text-muted-foreground">
+            {hasMeta ? t(`verify.gate.${gate.gateId}.subtitle`) : t("verify.gate.auditCheck")}
+          </p>
         </div>
-        <div>{statusBadge(gate.status)}</div>
+        <div>{statusBadge(gate.status, t)}</div>
       </CardHeader>
 
       <CardContent className="space-y-3 text-xs">
@@ -88,7 +85,7 @@ export function GateAuditCard({ gate, issues }: { gate: QualityGateResult; issue
 
         {issues.length > 0 && (
           <div className="space-y-1.5 pt-1 border-t border-border/40">
-            <span className="font-medium text-foreground block">Issues ({issues.length}):</span>
+            <span className="font-medium text-foreground block">{t("verify.issues")} ({issues.length}):</span>
             <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
               {issues.map((issue) => (
                 <div
@@ -107,12 +104,12 @@ export function GateAuditCard({ gate, issues }: { gate: QualityGateResult; issue
                       variant={issue.severity === "BLOCKING" ? "destructive" : "warning"}
                       className="text-[10px] py-0 px-1.5"
                     >
-                      {issue.severity}
+                      {t(`verify.severity.${issue.severity}`)}
                     </Badge>
                   </div>
                   <p>{issue.message}</p>
                   {issue.evidenceExcerpt && <p className="text-[10px] italic opacity-80">&ldquo;{issue.evidenceExcerpt}&rdquo;</p>}
-                  {issue.suggestedRemedy && <p className="text-[10px] opacity-80">Remedy: {issue.suggestedRemedy}</p>}
+                  {issue.suggestedRemedy && <p className="text-[10px] opacity-80">{t("verify.remedy")}: {issue.suggestedRemedy}</p>}
                 </div>
               ))}
             </div>

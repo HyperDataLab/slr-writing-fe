@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   CheckBadgeIcon,
   ChevronDownIcon,
@@ -18,6 +19,7 @@ export function LineageExplorer({
   projectId: string;
   snapshotId: string;
 }) {
+  const { t } = useTranslation();
   const [items, setItems] = useState<LineageItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,11 +39,11 @@ export function LineageExplorer({
       });
       setItems(res.lineage);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load lineage graph");
+      setError(err instanceof Error ? err.message : t("exportPkg.lineage.loadError"));
     } finally {
       setLoading(false);
     }
-  }, [projectId, snapshotId, sectionFilter, search]);
+  }, [projectId, snapshotId, sectionFilter, search, t]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -60,10 +62,10 @@ export function LineageExplorer({
         <div>
           <div className="flex items-center gap-2">
             <DocumentMagnifyingGlassIcon className="size-5 text-primary" />
-            <CardTitle className="text-base">Reverse Evidence Lineage Explorer</CardTitle>
+            <CardTitle className="text-base">{t("exportPkg.lineage.title")}</CardTitle>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Cryptographic claim-to-source traceability linking drafted sentences to extracted quotes and PDF locations.
+            {t("exportPkg.lineage.description")}
           </p>
         </div>
 
@@ -74,10 +76,12 @@ export function LineageExplorer({
             onChange={(e) => setSectionFilter(e.target.value)}
             className="bg-background border border-border rounded-md px-2.5 py-1.5 text-xs focus:outline-hidden focus:ring-2 focus:ring-primary"
           >
-            <option value="all">All Sections</option>
-            <option value="results">Results</option>
-            <option value="methods">Methods</option>
-            <option value="discussion">Discussion</option>
+            <option value="all">{t("plans.allSections")}</option>
+            {["abstract", "introduction", "methods", "results", "discussion", "conclusion"].map((key) => (
+              <option key={key} value={key}>
+                {t(`plans.sectionName.${key}`)}
+              </option>
+            ))}
           </select>
 
           <div className="relative flex-1 sm:w-56">
@@ -86,7 +90,7 @@ export function LineageExplorer({
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search claims or quotes..."
+              placeholder={t("exportPkg.lineage.search")}
               className="w-full pl-8 pr-3 py-1.5 bg-background border border-border rounded-md text-xs focus:outline-hidden focus:ring-2 focus:ring-primary"
             />
           </div>
@@ -96,13 +100,13 @@ export function LineageExplorer({
       <CardContent className="p-4 space-y-4">
         {loading ? (
           <div className="text-center py-12 text-sm text-muted-foreground animate-pulse">
-            Tracing claim lineage from snapshot corpus...
+            {t("exportPkg.lineage.loading")}
           </div>
         ) : error ? (
           <div className="text-center py-8 text-destructive text-sm">{error}</div>
         ) : items.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground text-xs">
-            No lineage items found for current filters.
+            {t("exportPkg.lineage.empty")}
           </div>
         ) : (
           <div className="space-y-3">
@@ -137,20 +141,20 @@ export function LineageExplorer({
 
                     <div className="flex items-center gap-2 shrink-0">
                       <Badge variant="outline" className="text-[10px]">
-                        {item.evidence.length} Evidence
+                        {t("exportPkg.lineage.evidenceCount", { count: item.evidence.length })}
                       </Badge>
                       {item.claimStrength && (
                         <Badge
                           variant={
-                            item.claimStrength === "DEFINITIVE"
+                            item.claimStrength === "strong"
                               ? "success"
-                              : item.claimStrength === "PROBABILISTIC"
-                              ? "secondary"
-                              : "warning"
+                              : item.claimStrength === "qualified"
+                              ? "warning"
+                              : "secondary"
                           }
                           className="text-[10px]"
                         >
-                          {item.claimStrength}
+                          {t(`plans.strength.${item.claimStrength}`, { defaultValue: item.claimStrength })}
                         </Badge>
                       )}
                     </div>
@@ -162,7 +166,7 @@ export function LineageExplorer({
                       {/* Full Paragraph Text */}
                       <div className="space-y-1">
                         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
-                          Drafted Assertion Prose
+                          {t("exportPkg.lineage.prose")}
                         </span>
                         <p className="bg-muted/30 p-3 rounded-md border border-border/40 leading-relaxed text-foreground">
                           {item.text}
@@ -173,12 +177,12 @@ export function LineageExplorer({
                       {(item.rhetoricalMove || item.claimSlot) && (
                         <div className="grid grid-cols-2 gap-2 text-[11px] font-mono bg-muted/20 p-2.5 rounded border border-border/30">
                           <div>
-                            <span className="text-muted-foreground block font-sans">Move:</span>
-                            <span className="font-semibold text-foreground">{item.rhetoricalMove || "N/A"}</span>
+                            <span className="text-muted-foreground block font-sans">{t("exportPkg.lineage.move")}:</span>
+                            <span className="font-semibold text-foreground">{item.rhetoricalMove ? t(`plans.move.${item.rhetoricalMove}`, { defaultValue: item.rhetoricalMove }) : "—"}</span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground block font-sans">Claim Slot:</span>
-                            <span className="font-semibold text-foreground truncate block">{item.claimSlot || "N/A"}</span>
+                            <span className="text-muted-foreground block font-sans">{t("exportPkg.lineage.claimSlot")}:</span>
+                            <span className="font-semibold text-foreground truncate block">{item.claimSlot || "—"}</span>
                           </div>
                         </div>
                       )}
@@ -186,11 +190,11 @@ export function LineageExplorer({
                       {/* Evidence Anchors Traceability Chain */}
                       <div className="space-y-2">
                         <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
-                          Anchored Source Evidence ({item.evidence.length})
+                          {t("exportPkg.lineage.anchored")} ({item.evidence.length})
                         </span>
 
                         {item.evidence.length === 0 ? (
-                          <p className="text-muted-foreground italic text-[11px]">No direct evidence anchors attached.</p>
+                          <p className="text-muted-foreground italic text-[11px]">{t("exportPkg.lineage.noAnchors")}</p>
                         ) : (
                           <div className="space-y-2.5">
                             {item.evidence.map((ev) => (
@@ -202,16 +206,18 @@ export function LineageExplorer({
                                   <div>
                                     <span className="font-mono font-bold text-primary mr-2">[{ev.externalId}]</span>
                                     <span className="font-semibold text-foreground">{ev.studyTitle}</span>
-                                    <span className="text-muted-foreground ml-1.5">
-                                      ({ev.studyAuthors?.slice(0, 2).join(", ") || "Authors"} et al., {ev.studyYear})
-                                    </span>
+                                    {(ev.studyAuthors?.length > 0 || ev.studyYear) && (
+                                      <span className="text-muted-foreground ml-1.5">
+                                        ({[ev.studyAuthors?.slice(0, 2).join(", "), ev.studyYear].filter(Boolean).join(", ")})
+                                      </span>
+                                    )}
                                   </div>
                                   <Badge
                                     variant={ev.quoteHashVerified ? "success" : "warning"}
                                     className="gap-1 shrink-0 text-[10px]"
                                   >
                                     <CheckBadgeIcon className="size-3" />
-                                    {ev.quoteHashVerified ? "Hash Verified" : "Unverified"}
+                                    {ev.quoteHashVerified ? t("exportPkg.lineage.hashVerified") : t("exportPkg.lineage.unverified")}
                                   </Badge>
                                 </div>
 
@@ -220,7 +226,17 @@ export function LineageExplorer({
                                 </blockquote>
 
                                 <div className="flex items-center gap-3 text-[11px] text-muted-foreground font-mono">
-                                  <span>Location: Page {ev.page || 1}, Section &apos;{ev.section || "Body"}&apos;, Para {ev.paragraph || 1}</span>
+                                  {/* Only the parts the source anchor really has: never invent a page or paragraph. */}
+                                  <span>
+                                    {t("exportPkg.lineage.location")}:{" "}
+                                    {[
+                                      ev.page ? t("exportPkg.lineage.page", { n: ev.page }) : null,
+                                      ev.section ? t("exportPkg.lineage.sectionOf", { name: ev.section }) : null,
+                                      ev.paragraph ? t("exportPkg.lineage.paragraph", { n: ev.paragraph }) : null,
+                                    ]
+                                      .filter(Boolean)
+                                      .join(", ") || t("exportPkg.lineage.locationUnknown")}
+                                  </span>
                                   {ev.studyDoi && (
                                     <span className="truncate max-w-xs">DOI: {ev.studyDoi}</span>
                                   )}
