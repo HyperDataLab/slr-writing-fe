@@ -1,4 +1,4 @@
-import { apiRequest } from "@/shared/lib/api-client";
+import { ApiError, apiRequest, authHeaders } from "@/shared/lib/api-client";
 import type {
   ExportPackageView,
   H3StatusView,
@@ -58,14 +58,16 @@ export async function downloadExportZipFile(projectId: string, snapshotId: strin
   const path = `${manuscriptPath(projectId, snapshotId)}/export/download`;
   const url = `${baseUrl}/api${path}`;
 
-  const headers: Record<string, string> = {};
-  if (import.meta.env.DEV && import.meta.env.VITE_DEV_AUTH_UID?.trim()) {
-    headers["X-Dev-User-Id"] = import.meta.env.VITE_DEV_AUTH_UID.trim();
-  }
-
+  const { headers } = await authHeaders();
   const response = await fetch(url, { headers });
   if (!response.ok) {
-    throw new Error(`Failed to download export package (HTTP ${response.status})`);
+    // The backend answers with the usual error envelope; keep its code so callers can tell a missing H3 from a bad session.
+    const payload = (await response.json().catch(() => null)) as { error?: { message?: string; code?: string } } | null;
+    throw new ApiError(
+      payload?.error?.message ?? `Failed to download export package (HTTP ${response.status})`,
+      response.status,
+      payload?.error?.code ?? "REQUEST_FAILED",
+    );
   }
 
   const disposition = response.headers.get("Content-Disposition");

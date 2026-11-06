@@ -22,6 +22,34 @@ export class ApiError extends Error {
 
 let tokenProvider: ApiTokenProvider | undefined;
 
+export type UnauthorizedHandler = () => void;
+
+let unauthorizedHandler: UnauthorizedHandler | undefined;
+
+/** Called when the backend answers 401 to a request that carried a token (expired or revoked session). */
+export function setUnauthorizedHandler(handler: UnauthorizedHandler): () => void {
+  const previous = unauthorizedHandler;
+  unauthorizedHandler = handler;
+  return () => {
+    if (unauthorizedHandler === handler) unauthorizedHandler = previous;
+  };
+}
+
+/**
+ * Authentication headers for a backend call: the bearer token when a session exists, otherwise (development only) the
+ * dev-auth user id. Shared with the file download, which does not go through `apiRequest`.
+ */
+export async function authHeaders(explicitToken?: string): Promise<{ headers: Headers; token: string | null }> {
+  const token = explicitToken ?? (await tokenProvider?.()) ?? null;
+  const headers = new Headers();
+  if (token) {
+    headers.set("Authorization", "Bearer " + token);
+  } else if (import.meta.env.DEV && import.meta.env.VITE_DEV_AUTH_UID?.trim()) {
+    headers.set("X-Dev-User-Id", import.meta.env.VITE_DEV_AUTH_UID.trim());
+  }
+  return { headers, token };
+}
+
 export function setApiTokenProvider(provider: ApiTokenProvider): () => void {
   const previousProvider = tokenProvider;
   tokenProvider = provider;
@@ -33,19 +61,13 @@ export function setApiTokenProvider(provider: ApiTokenProvider): () => void {
 
 export async function apiRequest<T>(path: string, init: ApiRequestInit = {}): Promise<T> {
   const { token: explicitToken, headers: requestHeaders, ...requestInit } = init;
-  const token = explicitToken ?? (await tokenProvider?.());
+  const { headers: authHeaderSet, token } = await authHeaders(explicitToken);
   const headers = new Headers(requestHeaders);
   headers.set("Accept", "application/json");
+  authHeaderSet.forEach((value, key) => headers.set(key, value));
 
   if (requestInit.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
-  }
-
-  if (token) {
-    headers.set("Authorization", "Bearer " + token);
-  } else if (import.meta.env.DEV && import.meta.env.VITE_DEV_AUTH_UID?.trim()) {
-    const devUid = import.meta.env.VITE_DEV_AUTH_UID.trim();
-    headers.set("X-Dev-User-Id", devUid);
   }
 
   const baseUrl = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
@@ -54,6 +76,8 @@ export async function apiRequest<T>(path: string, init: ApiRequestInit = {}): Pr
     ...requestInit,
     headers,
   });
+
+  if (response.status === 401 && token) unauthorizedHandler?.();
 
   const payload = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
 

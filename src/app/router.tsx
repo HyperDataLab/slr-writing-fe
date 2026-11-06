@@ -1,9 +1,13 @@
 import { lazy, Suspense, type ReactNode } from "react";
 import { BrowserRouter, Route, Routes } from "react-router";
 import { AppShell } from "@/app/layouts/AppShell";
+import { RequireAuth } from "@/features/auth/RequireAuth";
 import { NotFoundPage } from "@/shared/ui/NotFoundPage";
 import { RouteLoading } from "@/shared/ui/RouteLoading";
 
+const LoginPage = lazy(() =>
+  import("@/features/auth/LoginPage").then((module) => ({ default: module.LoginPage })),
+);
 const OverviewPage = lazy(() =>
   import("@/features/projects/pages/OverviewPage").then((module) => ({ default: module.OverviewPage })),
 );
@@ -45,6 +49,8 @@ export function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="login" element={<PageSuspense><LoginPage /></PageSuspense>} />
+        <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
           <Route index element={<PageSuspense><OverviewPage /></PageSuspense>} />
           <Route path="projects" element={<PageSuspense><ProjectsPage /></PageSuspense>} />
@@ -57,6 +63,7 @@ export function AppRouter() {
           <Route path="verification" element={<PageSuspense><VerificationPage /></PageSuspense>} />
           <Route path="export" element={<PageSuspense><ExportPage /></PageSuspense>} />
           <Route path="*" element={<NotFoundPage />} />
+        </Route>
         </Route>
       </Routes>
     </BrowserRouter>

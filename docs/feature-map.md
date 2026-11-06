@@ -12,7 +12,7 @@ React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui source components with Rad
 
 | Feature | Responsibility | Roadmap alignment |
 | --- | --- | --- |
-| `auth` | Hold the signed-in user session, pass the Firebase ID token, and protect authenticated routes. | M1 |
+| `auth` | Firebase sign-in (email/password, Google), session restore, route guard, sign-out; supplies the ID token to the API client and ends the session on 401. Implemented against the Auth emulator; a real Firebase project is still to be wired for deployment. | M1 |
 | `projects` | List, create, and open writing projects linked to an SLR project. | Existing project API; M1 permission check |
 | `snapshots` | Pick a run from the linked SLR project (or type a run id) and import it, show immutable snapshot history/details, and present readiness issues and stale state. | M0, M10 |
 | `methods` | Generate and review deterministic Methods revisions from a READY snapshot; show PRISMA facts, source paths, and missing-data warnings. | M2 |
@@ -27,7 +27,7 @@ React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui source components with Rad
 
 ## Delivery status
 
-1. `projects` → `snapshots`: done. Local backend dev-auth only; `auth` is still missing.
+1. `projects` → `snapshots`: done. `auth` done (Firebase; dev-auth shortcut kept for local development).
 2. `methods` → `journal-profiles` → `outline`: done (Outline/H1 uses optimistic-concurrency revisions and OWNER decisions).
 3. `paragraph-plans` → `drafting` (H2): done; read, generate and approve only.
 4. `verification`: done.
@@ -36,7 +36,7 @@ React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui source components with Rad
 ## Open items
 
 - Manual edit of paragraph plans (the BE `PUT` route exists). Manual edit of drafts is done.
-- Firebase `auth`: token via `setApiTokenProvider`, protected routes.
+- A real Firebase project for staging/production (`VITE_FIREBASE_*`); sign-in is verified against the Auth emulator only.
 - A run with real evidence to exercise G2/G5.
 
 ## UI invariants

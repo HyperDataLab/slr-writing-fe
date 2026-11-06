@@ -13,6 +13,7 @@ import {
 } from "@/shared/constants/navigation";
 import { Dialog, DialogContent, DialogTitle } from "@/shared/ui/dialog";
 import { Separator } from "@/shared/ui/separator";
+import { useAuth } from "@/features/auth/auth-context";
 import { LanguageSwitcher } from "@/shared/ui/LanguageSwitcher";
 
 function SidebarNavigation({ onNavigate }: { onNavigate?: () => void }) {
@@ -118,6 +119,7 @@ export function AppShell() {
   const { pathname } = useLocation();
   const { t } = useTranslation();
   const pageTitle = t(getPageTitleKey(pathname));
+  const { mode, user, signOut } = useAuth();
 
   return (
     <div className="min-h-screen bg-background">
@@ -155,6 +157,20 @@ export function AppShell() {
               {t("navigation.workflowStatus")}
             </div>
             <LanguageSwitcher />
+            {mode === "firebase" && user && (
+              <div className="flex items-center gap-2">
+                <span className="hidden max-w-[12rem] truncate text-xs text-muted-foreground md:inline" title={user.email ?? user.uid}>
+                  {user.email ?? user.displayName ?? user.uid}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => void signOut()}
+                  className="h-9 rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+                >
+                  {t("auth.signOut")}
+                </button>
+              </div>
+            )}
           </div>
         </header>
 
