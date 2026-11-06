@@ -227,6 +227,12 @@ export function ExportWorkspace({
                 </div>
               )}
 
+              {h3Status && h3Status.omittedSections.length > 0 && (
+                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs">
+                  Not part of this export (the engine cannot draft them yet): {h3Status.omittedSections.join(", ")}.
+                </div>
+              )}
+
               {/* Status Points */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                 <div className="bg-muted/30 p-3 rounded-lg border border-border/40">

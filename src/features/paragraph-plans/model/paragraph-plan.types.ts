@@ -42,7 +42,7 @@ export interface ParagraphPlanRevision {
 
 export interface ParagraphPlanIssue {
   code: string;
-  severity: string;
+  severity: "blocking" | "warning";
   message: string;
   ref?: string;
 }

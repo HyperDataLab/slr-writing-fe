@@ -13,10 +13,8 @@ export interface DraftRevision {
   generator: string;
   markdown: string;
   contentHash: string;
-  facts: {
-    paragraphs?: DraftParagraphFact[];
-    [key: string]: unknown;
-  };
+  // Drafted sections store an object with `paragraphs`; the Methods template stores an array of facts.
+  facts: { paragraphs?: DraftParagraphFact[]; [key: string]: unknown } | unknown[];
   warnings?: unknown[];
   createdBy: string;
   createdAt: string;

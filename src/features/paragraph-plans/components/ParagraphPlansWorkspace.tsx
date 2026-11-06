@@ -26,6 +26,10 @@ export function ParagraphPlansWorkspace({
   const [error, setError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<string>("all");
 
+  useEffect(() => {
+    setActiveSection("all");
+  }, [snapshot.id]);
+
   const loadPlans = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -105,11 +109,12 @@ export function ParagraphPlansWorkspace({
               variant="default"
               size="sm"
               onClick={handleGenerate}
-              disabled={generating}
+              disabled={generating || !!view}
+              title={view ? "Plans already exist for this snapshot" : undefined}
               className="gap-1.5"
             >
               <SparklesIcon className="size-4" />
-              {generating ? "Planning..." : view ? "Regenerate Plans" : "Generate Paragraph Plans"}
+              {generating ? "Planning..." : "Generate Paragraph Plans"}
             </Button>
           </div>
         </CardHeader>
@@ -157,8 +162,8 @@ export function ParagraphPlansWorkspace({
           <CardContent className="space-y-1.5 text-xs">
             {view.issues.map((issue, idx) => (
               <div key={`${issue.code}-${issue.ref ?? idx}`} className="flex items-start gap-2">
-                <Badge variant={issue.severity === "BLOCKING" ? "destructive" : "warning"} className="text-[10px] shrink-0">
-                  {issue.severity}
+                <Badge variant={issue.severity === "blocking" ? "destructive" : "warning"} className="text-[10px] shrink-0">
+                  {issue.severity.toUpperCase()}
                 </Badge>
                 <span>
                   <span className="font-mono text-muted-foreground">{issue.code}</span> — {issue.message}
@@ -226,6 +231,9 @@ export function ParagraphPlansWorkspace({
             })}
           </div>
 
+          {filteredParagraphs.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-6">No paragraph plans in this view.</p>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredParagraphs.map((item, idx) => (
               <MotionReveal key={item.id}>
