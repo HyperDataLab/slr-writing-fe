@@ -1,6 +1,6 @@
 import { apiRequest } from "@/shared/lib/api-client";
 import type {
-  ParagraphPlanRevisionView,
+  ParagraphPlanMutationResponse,
   ParagraphPlanView,
 } from "@/features/paragraph-plans/model/paragraph-plan.types";
 
@@ -12,8 +12,8 @@ export function getParagraphPlans(projectId: string, snapshotId: string): Promis
   return apiRequest<ParagraphPlanView>(paragraphPlansPath(projectId, snapshotId));
 }
 
-export function createParagraphPlans(projectId: string, snapshotId: string): Promise<ParagraphPlanView> {
-  return apiRequest<ParagraphPlanView>(paragraphPlansPath(projectId, snapshotId), {
+export function createParagraphPlans(projectId: string, snapshotId: string): Promise<ParagraphPlanMutationResponse> {
+  return apiRequest<ParagraphPlanMutationResponse>(paragraphPlansPath(projectId, snapshotId), {
     method: "POST",
   });
 }
@@ -22,7 +22,7 @@ export function getParagraphPlanRevision(
   projectId: string,
   snapshotId: string,
   version: number,
-): Promise<ParagraphPlanRevisionView> {
-  return apiRequest<ParagraphPlanRevisionView>(`${paragraphPlansPath(projectId, snapshotId)}/revisions/${version}`);
+): Promise<ParagraphPlanView> {
+  return apiRequest<ParagraphPlanView>(`${paragraphPlansPath(projectId, snapshotId)}/revisions/${version}`);
 }
 

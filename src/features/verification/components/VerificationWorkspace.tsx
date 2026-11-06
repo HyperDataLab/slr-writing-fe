@@ -5,17 +5,11 @@ import {
   ExclamationCircleIcon,
   ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
-import {
-  getCitationManifest,
-  getLatestVerification,
-  runVerification,
-} from "@/features/verification/api/verification.api";
+import { getLatestVerification, runVerification } from "@/features/verification/api/verification.api";
 import { CitationManifestTable } from "@/features/verification/components/CitationManifestTable";
 import { GateAuditCard } from "@/features/verification/components/GateAuditCard";
-import type {
-  CitationManifestView,
-  VerificationReportView,
-} from "@/features/verification/model/verification.types";
+import type { GateId, QualityGateResult, VerificationReportView } from "@/features/verification/model/verification.types";
+import { ApiError } from "@/shared/lib/api-client";
 import type { SnapshotSummary } from "@/features/snapshots/model/snapshot.types";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -30,7 +24,6 @@ export function VerificationWorkspace({
   snapshot: SnapshotSummary;
 }) {
   const [report, setReport] = useState<VerificationReportView | null>(null);
-  const [manifest, setManifest] = useState<CitationManifestView | null>(null);
   const [loading, setLoading] = useState(true);
   const [auditing, setAuditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,14 +33,12 @@ export function VerificationWorkspace({
     setLoading(true);
     setError(null);
     try {
-      const [repData, manData] = await Promise.all([
-        getLatestVerification(projectId, snapshot.id).catch(() => null),
-        getCitationManifest(projectId, snapshot.id).catch(() => null),
-      ]);
-      setReport(repData);
-      setManifest(manData);
+      setReport(await getLatestVerification(projectId, snapshot.id));
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load verification report");
+      setReport(null);
+      if (!(err instanceof ApiError && err.status === 404)) {
+        setError(err instanceof Error ? err.message : "Failed to load verification report");
+      }
     } finally {
       setLoading(false);
     }
@@ -63,8 +54,6 @@ export function VerificationWorkspace({
     try {
       const { report: newReport } = await runVerification(projectId, snapshot.id);
       setReport(newReport);
-      const newManifest = await getCitationManifest(projectId, snapshot.id).catch(() => null);
-      setManifest(newManifest);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Verification audit failed");
     } finally {
@@ -73,7 +62,12 @@ export function VerificationWorkspace({
   };
 
   const summary = report?.summary;
-  const isPassed = report?.status === "PASSED";
+  const manifest = report?.manifest ?? null;
+  const statusVariant =
+    report?.status === "PASSED" ? "success" : report?.status === "PASSED_WITH_WARNINGS" ? "warning" : "destructive";
+  const gateEntries = (Object.entries(report?.gates ?? {}) as Array<[GateId, QualityGateResult]>).sort(([a], [b]) =>
+    a.localeCompare(b),
+  );
 
   return (
     <div className="space-y-6">
@@ -124,9 +118,9 @@ export function VerificationWorkspace({
               <div className="bg-muted/40 p-3 rounded-lg border border-border/40">
                 <span className="text-[11px] text-muted-foreground uppercase tracking-wider block font-medium">Overall Status</span>
                 <div className="mt-1 flex items-center justify-center">
-                  <Badge variant={isPassed ? "success" : "destructive"} className="gap-1 text-xs">
-                    {isPassed ? <CheckCircleIcon className="size-3.5" /> : <ExclamationCircleIcon className="size-3.5" />}
-                    {report.status}
+                  <Badge variant={statusVariant} className="gap-1 text-xs">
+                    {report.status === "FAILED" ? <ExclamationCircleIcon className="size-3.5" /> : <CheckCircleIcon className="size-3.5" />}
+                    {report.status.replace(/_/g, " ")}
                   </Badge>
                 </div>
               </div>
@@ -153,9 +147,9 @@ export function VerificationWorkspace({
               </div>
 
               <div className="bg-muted/40 p-3 rounded-lg border border-border/40 col-span-2 sm:col-span-1">
-                <span className="text-[11px] text-muted-foreground uppercase tracking-wider block font-medium">Composite Hash</span>
-                <span className="text-xs font-mono text-muted-foreground mt-1.5 block truncate max-w-[120px] mx-auto" title={report.compositeTargetHash}>
-                  {report.compositeTargetHash ? `${report.compositeTargetHash.slice(0, 14)}...` : "N/A"}
+                <span className="text-[11px] text-muted-foreground uppercase tracking-wider block font-medium">Not run / N/A</span>
+                <span className={`text-xl font-bold mt-0.5 block ${(summary?.notRun ?? 0) > 0 ? "text-amber-500" : "text-muted-foreground"}`}>
+                  {summary?.notRun ?? 0} / {summary?.notApplicable ?? 0}
                 </span>
               </div>
             </div>
@@ -190,7 +184,7 @@ export function VerificationWorkspace({
               : "bg-muted text-muted-foreground hover:bg-muted/80"
           }`}
         >
-          Citation Manifest {manifest?.entries ? `(${manifest.entries.length})` : ""}
+          Citation Manifest {manifest ? `(${manifest.items.length})` : ""}
         </button>
       </div>
 
@@ -219,14 +213,14 @@ export function VerificationWorkspace({
         </Card>
       ) : activeTab === "gates" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {Object.values(report.gates).map((gate) => (
-            <MotionReveal key={gate.gateId}>
-              <GateAuditCard gate={gate} />
+          {gateEntries.map(([gateId, gate]) => (
+            <MotionReveal key={gateId}>
+              <GateAuditCard gate={gate} issues={report.issues.filter((i) => i.gateId === gateId)} />
             </MotionReveal>
           ))}
         </div>
       ) : (
-        manifest && <CitationManifestTable entries={manifest.entries} />
+        manifest && <CitationManifestTable manifest={manifest} />
       )}
     </div>
   );

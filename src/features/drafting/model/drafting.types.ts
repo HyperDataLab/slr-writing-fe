@@ -1,48 +1,63 @@
+export interface DraftParagraphFact {
+  paragraphId: string;
+  text: string;
+  usedEvidenceIds: string[];
+  usedFindingIds: string[];
+  limitationsNoted?: string[];
+}
+
 export interface DraftRevision {
+  id: string;
+  sectionId: string;
   version: number;
   generator: string;
   markdown: string;
   contentHash: string;
   facts: {
-    paragraphs?: Array<{
-      paragraphId?: string;
-      paragraphKey?: string;
-      text?: string;
-      usedEvidenceIds?: string[];
-      usedFindingIds?: string[];
-    }>;
+    paragraphs?: DraftParagraphFact[];
     [key: string]: unknown;
   };
+  warnings?: unknown[];
+  createdBy: string;
   createdAt: string;
 }
 
 export interface SectionApproval {
   id: string;
   seq: number;
-  stage: 'H2';
-  decision: 'APPROVED' | 'REJECTED';
-  note?: string;
+  stage: "H2";
+  decision: "APPROVED" | "REJECTED";
+  note?: string | null;
   decidedBy: string;
-  slrRole?: string;
+  slrRole?: string | null;
   decidedAt: string;
   targetHash: string;
 }
 
+export type ApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
+
+export interface DraftVersionSummary {
+  id: string;
+  version: number;
+  generator: string;
+  contentHash: string;
+  createdBy: string;
+  createdAt: string;
+}
+
 export interface SectionDraftView {
   sectionKey: string;
-  title: string;
-  latestRevision: DraftRevision | null;
-  approval: SectionApproval | null;
-  approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
-  revisionsCount: number;
+  revision: DraftRevision;
+  approval: { status: ApprovalStatus; decision: SectionApproval | null };
+  versions: DraftVersionSummary[];
 }
 
 export interface GenerateDraftResponse {
   revision: DraftRevision;
-  usedCitations?: string[];
+  created: boolean;
 }
 
 export interface DecideRevisionResponse {
   approval: SectionApproval;
+  created: boolean;
 }
-

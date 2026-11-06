@@ -4,6 +4,7 @@ import {
   createParagraphPlans,
   getParagraphPlans,
 } from "@/features/paragraph-plans/api/paragraph-plans.api";
+import { ApiError } from "@/shared/lib/api-client";
 import { ParagraphPlanCard } from "@/features/paragraph-plans/components/ParagraphPlanCard";
 import type { ParagraphPlanView } from "@/features/paragraph-plans/model/paragraph-plan.types";
 import type { SnapshotSummary } from "@/features/snapshots/model/snapshot.types";
@@ -32,9 +33,10 @@ export function ParagraphPlansWorkspace({
       const data = await getParagraphPlans(projectId, snapshot.id);
       setView(data);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to load paragraph plans";
-      setError(msg);
       setView(null);
+      if (!(err instanceof ApiError && err.status === 404)) {
+        setError(err instanceof Error ? err.message : "Failed to load paragraph plans");
+      }
     } finally {
       setLoading(false);
     }
@@ -48,8 +50,8 @@ export function ParagraphPlansWorkspace({
     setGenerating(true);
     setError(null);
     try {
-      const result = await createParagraphPlans(projectId, snapshot.id);
-      setView(result);
+      await createParagraphPlans(projectId, snapshot.id);
+      setView(await getParagraphPlans(projectId, snapshot.id));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to generate paragraph plans");
     } finally {
@@ -57,10 +59,18 @@ export function ParagraphPlansWorkspace({
     }
   };
 
-  const sectionsList = view?.revision.sections ? Object.keys(view.revision.sections) : [];
-  const filteredParagraphs = view?.revision.paragraphs.filter((p) =>
+  const allPlans = view?.revision.content.plans ?? [];
+  const sectionStats = new Map<string, { count: number; ready: number }>();
+  for (const plan of allPlans) {
+    const info = sectionStats.get(plan.sectionKey) ?? { count: 0, ready: 0 };
+    info.count += 1;
+    if (plan.status === "READY_TO_DRAFT") info.ready += 1;
+    sectionStats.set(plan.sectionKey, info);
+  }
+  const sectionsList = [...sectionStats.keys()];
+  const filteredParagraphs = allPlans.filter((p) =>
     activeSection === "all" ? true : p.sectionKey === activeSection,
-  ) || [];
+  );
 
   return (
     <div className="space-y-6">
@@ -109,11 +119,11 @@ export function ParagraphPlansWorkspace({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-3 text-center">
               <div className="bg-muted/40 p-3 rounded-lg border border-border/40">
                 <span className="text-xs text-muted-foreground uppercase tracking-wider block font-medium">Total Paragraphs</span>
-                <span className="text-2xl font-bold text-foreground mt-0.5 block">{view.revision.totalParagraphs}</span>
+                <span className="text-2xl font-bold text-foreground mt-0.5 block">{view.stats.totalParagraphs}</span>
               </div>
               <div className="bg-muted/40 p-3 rounded-lg border border-border/40">
                 <span className="text-xs text-muted-foreground uppercase tracking-wider block font-medium">Ready to Draft</span>
-                <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 block">{view.revision.readyParagraphs}</span>
+                <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 block">{view.stats.readyParagraphs}</span>
               </div>
               <div className="bg-muted/40 p-3 rounded-lg border border-border/40">
                 <span className="text-xs text-muted-foreground uppercase tracking-wider block font-medium">Sections Planned</span>
@@ -135,6 +145,29 @@ export function ParagraphPlansWorkspace({
           <span>{error}</span>
           <Button variant="ghost" size="sm" onClick={() => setError(null)}>Dismiss</Button>
         </div>
+      )}
+
+      {view && view.issues.length > 0 && (
+        <Card className="border border-amber-500/40 bg-amber-500/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">
+              {view.readyToDraft ? "Notes" : "Not ready to draft"} ({view.issues.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1.5 text-xs">
+            {view.issues.map((issue, idx) => (
+              <div key={`${issue.code}-${issue.ref ?? idx}`} className="flex items-start gap-2">
+                <Badge variant={issue.severity === "BLOCKING" ? "destructive" : "warning"} className="text-[10px] shrink-0">
+                  {issue.severity}
+                </Badge>
+                <span>
+                  <span className="font-mono text-muted-foreground">{issue.code}</span> — {issue.message}
+                  {issue.ref ? <span className="font-mono text-muted-foreground"> ({issue.ref})</span> : null}
+                </span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       )}
 
       {/* When no plans exist yet */}
@@ -170,10 +203,10 @@ export function ParagraphPlansWorkspace({
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
               }`}
             >
-              All Sections ({view.revision.paragraphs.length})
+              All Sections ({allPlans.length})
             </button>
             {sectionsList.map((sec) => {
-              const info = view.revision.sections[sec];
+              const info = sectionStats.get(sec);
               return (
                 <button
                   key={sec}
@@ -195,7 +228,7 @@ export function ParagraphPlansWorkspace({
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredParagraphs.map((item, idx) => (
-              <MotionReveal key={item.id || item.paragraphKey}>
+              <MotionReveal key={item.id}>
                 <ParagraphPlanCard item={item} index={idx} />
               </MotionReveal>
             ))}
