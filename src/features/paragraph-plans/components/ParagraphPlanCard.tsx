@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { ParagraphPlanItem } from "@/features/paragraph-plans/model/paragraph-plan.types";
 import { Badge } from "@/shared/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
@@ -22,6 +23,8 @@ function statusVariant(status: string): "default" | "secondary" | "outline" | "s
 }
 
 export function ParagraphPlanCard({ item, index }: { item: ParagraphPlanItem; index: number }) {
+  const { t } = useTranslation();
+
   return (
     <Card className="border border-border/80 shadow-xs hover:border-primary/40 transition-colors">
       <CardHeader className="pb-3 flex flex-row items-start justify-between space-y-0">
@@ -31,41 +34,42 @@ export function ParagraphPlanCard({ item, index }: { item: ParagraphPlanItem; in
             <CardTitle className="text-base font-semibold">{item.id}</CardTitle>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Section: <span className="font-medium text-foreground">{item.sectionKey}</span>
+            {t("plans.card.section")}:{" "}
+            <span className="font-medium text-foreground">{t(`plans.sectionName.${item.sectionKey}`, { defaultValue: item.sectionKey })}</span>
             <span className="font-mono"> · {item.subsectionId}</span>
           </p>
         </div>
         <div className="flex items-center gap-1.5 flex-wrap justify-end">
           <Badge variant={statusVariant(item.status)} className="text-[11px]">
-            {item.status.replace(/_/g, " ")}
+            {t(`plans.status.${item.status}`)}
           </Badge>
           <Badge variant={claimStrengthVariant(item.claimStrength)} className="text-[11px]">
-            {item.claimStrength}
+            {t(`plans.strength.${item.claimStrength}`)}
           </Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
         <div>
-          <span className="text-xs font-medium text-muted-foreground block mb-1">Rhetorical Move</span>
+          <span className="text-xs font-medium text-muted-foreground block mb-1">{t("plans.card.rhetoricalMove")}</span>
           <Badge variant={rhetoricalMoveVariant(item.rhetoricalMove)} className="font-mono text-xs font-normal">
-            {item.rhetoricalMove}
+            {t(`plans.move.${item.rhetoricalMove}`)}
           </Badge>
           {item.conditionsRequired && (
-            <Badge variant="outline" className="ml-1.5 text-[11px] font-normal">conditions required</Badge>
+            <Badge variant="outline" className="ml-1.5 text-[11px] font-normal">{t("plans.card.conditionsRequired")}</Badge>
           )}
         </div>
 
         <div>
-          <span className="text-xs font-medium text-muted-foreground block mb-1">Claims &amp; sentence slots</span>
+          <span className="text-xs font-medium text-muted-foreground block mb-1">{t("plans.card.claimsAndSlots")}</span>
           <p className="text-xs font-mono bg-muted/50 p-2 rounded-md border border-border/50 text-foreground break-all">
-            {item.claimIds.length > 0 ? item.claimIds.join(", ") : "(No claim)"}
+            {item.claimIds.length > 0 ? item.claimIds.join(", ") : t("plans.card.noClaim")}
           </p>
-          <p className="text-[11px] text-muted-foreground mt-1">{item.sentenceSlots.join(" → ")}</p>
+          <p className="text-[11px] text-muted-foreground mt-1">{item.sentenceSlots.map((slot) => t(`plans.slot.${slot}`)).join(" → ")}</p>
         </div>
 
         <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/40 text-xs">
           <div>
-            <span className="text-muted-foreground block mb-1 font-medium">Target Evidence ({item.evidenceIds.length})</span>
+            <span className="text-muted-foreground block mb-1 font-medium">{t("plans.card.targetEvidence")} ({item.evidenceIds.length})</span>
             {item.evidenceIds.length > 0 ? (
               <div className="flex flex-wrap gap-1">
                 {item.evidenceIds.map((ev) => (
@@ -75,11 +79,11 @@ export function ParagraphPlanCard({ item, index }: { item: ParagraphPlanItem; in
                 ))}
               </div>
             ) : (
-              <span className="text-muted-foreground italic text-[11px]">None assigned</span>
+              <span className="text-muted-foreground italic text-[11px]">{t("plans.card.noneAssigned")}</span>
             )}
           </div>
           <div>
-            <span className="text-muted-foreground block mb-1 font-medium">Target Findings ({item.findingIds.length})</span>
+            <span className="text-muted-foreground block mb-1 font-medium">{t("plans.card.targetFindings")} ({item.findingIds.length})</span>
             {item.findingIds.length > 0 ? (
               <div className="flex flex-wrap gap-1">
                 {item.findingIds.map((f) => (
@@ -89,7 +93,7 @@ export function ParagraphPlanCard({ item, index }: { item: ParagraphPlanItem; in
                 ))}
               </div>
             ) : (
-              <span className="text-muted-foreground italic text-[11px]">None assigned</span>
+              <span className="text-muted-foreground italic text-[11px]">{t("plans.card.noneAssigned")}</span>
             )}
           </div>
         </div>

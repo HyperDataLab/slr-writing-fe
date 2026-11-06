@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useStableT } from "@/shared/i18n/use-stable-t";
 import {
   ArrowPathIcon,
   CheckCircleIcon,
@@ -23,6 +25,8 @@ export function VerificationWorkspace({
   projectId: string;
   snapshot: SnapshotSummary;
 }) {
+  const { t } = useTranslation();
+  const stableT = useStableT();
   const [report, setReport] = useState<VerificationReportView | null>(null);
   const [loading, setLoading] = useState(true);
   const [auditing, setAuditing] = useState(false);
@@ -37,12 +41,12 @@ export function VerificationWorkspace({
     } catch (err: unknown) {
       setReport(null);
       if (!(err instanceof ApiError && err.status === 404)) {
-        setError(err instanceof Error ? err.message : "Failed to load verification report");
+        setError(err instanceof Error ? err.message : stableT("verify.loadError"));
       }
     } finally {
       setLoading(false);
     }
-  }, [projectId, snapshot.id]);
+  }, [projectId, snapshot.id, stableT]);
 
   useEffect(() => {
     void loadData();
@@ -55,7 +59,7 @@ export function VerificationWorkspace({
       const { report: newReport } = await runVerification(projectId, snapshot.id);
       setReport(newReport);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Verification audit failed");
+      setError(err instanceof Error ? err.message : t("verify.runError"));
     } finally {
       setAuditing(false);
     }
@@ -76,7 +80,7 @@ export function VerificationWorkspace({
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
           <div>
             <div className="flex items-center gap-2">
-              <CardTitle className="text-xl">Quality Gates Verification Engine (G1–G7)</CardTitle>
+              <CardTitle className="text-xl">{t("verify.title")}</CardTitle>
               {report && (
                 <Badge variant="outline" className="font-mono text-xs">
                   v{report.version}
@@ -84,7 +88,7 @@ export function VerificationWorkspace({
               )}
             </div>
             <CardDescription className="mt-1">
-              Automated scientific rigor audits ensuring 100% verified citations, verbatim quotes, PRISMA flow reconciliation, and ungrounded number rejection.
+              {t("verify.description")}
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -96,7 +100,7 @@ export function VerificationWorkspace({
               className="gap-1.5"
             >
               <ArrowPathIcon className={`size-4 ${loading ? "animate-spin" : ""}`} />
-              Refresh
+              {t("workflow.refresh")}
             </Button>
             <Button
               variant="default"
@@ -106,7 +110,7 @@ export function VerificationWorkspace({
               className="gap-1.5"
             >
               <ShieldCheckIcon className="size-4" />
-              {auditing ? "Auditing G1–G7..." : report ? "Re-run Quality Gates" : "Run Verification Audit"}
+              {auditing ? t("verify.auditing") : report ? t("verify.rerun") : t("verify.run")}
             </Button>
           </div>
         </CardHeader>
@@ -116,38 +120,38 @@ export function VerificationWorkspace({
           <CardContent className="pt-0 border-t border-border/60">
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 py-3 text-center">
               <div className="bg-muted/40 p-3 rounded-lg border border-border/40">
-                <span className="text-[11px] text-muted-foreground uppercase tracking-wider block font-medium">Overall Status</span>
+                <span className="text-[11px] text-muted-foreground uppercase tracking-wider block font-medium">{t("verify.overallStatus")}</span>
                 <div className="mt-1 flex items-center justify-center">
                   <Badge variant={statusVariant} className="gap-1 text-xs">
                     {report.status === "FAILED" ? <ExclamationCircleIcon className="size-3.5" /> : <CheckCircleIcon className="size-3.5" />}
-                    {report.status.replace(/_/g, " ")}
+                    {t(`verify.overall.${report.status}`)}
                   </Badge>
                 </div>
               </div>
 
               <div className="bg-muted/40 p-3 rounded-lg border border-border/40">
-                <span className="text-[11px] text-muted-foreground uppercase tracking-wider block font-medium">Gates Passed</span>
+                <span className="text-[11px] text-muted-foreground uppercase tracking-wider block font-medium">{t("verify.gatesPassed")}</span>
                 <span className="text-xl font-bold text-foreground mt-0.5 block">
                   {summary?.passed ?? 0}/{summary?.totalGates ?? 7}
                 </span>
               </div>
 
               <div className="bg-muted/40 p-3 rounded-lg border border-border/40">
-                <span className="text-[11px] text-muted-foreground uppercase tracking-wider block font-medium">Warnings</span>
+                <span className="text-[11px] text-muted-foreground uppercase tracking-wider block font-medium">{t("verify.warnings")}</span>
                 <span className={`text-xl font-bold mt-0.5 block ${(summary?.warnings ?? 0) > 0 ? "text-amber-500" : "text-muted-foreground"}`}>
                   {summary?.warnings ?? 0}
                 </span>
               </div>
 
               <div className="bg-muted/40 p-3 rounded-lg border border-border/40">
-                <span className="text-[11px] text-muted-foreground uppercase tracking-wider block font-medium">Blocking Issues</span>
+                <span className="text-[11px] text-muted-foreground uppercase tracking-wider block font-medium">{t("verify.blockingIssues")}</span>
                 <span className={`text-xl font-bold mt-0.5 block ${(summary?.blockingIssues ?? 0) > 0 ? "text-destructive" : "text-emerald-600"}`}>
                   {summary?.blockingIssues ?? 0}
                 </span>
               </div>
 
               <div className="bg-muted/40 p-3 rounded-lg border border-border/40 col-span-2 sm:col-span-1">
-                <span className="text-[11px] text-muted-foreground uppercase tracking-wider block font-medium">Not run / N/A</span>
+                <span className="text-[11px] text-muted-foreground uppercase tracking-wider block font-medium">{t("verify.notRunNa")}</span>
                 <span className={`text-xl font-bold mt-0.5 block ${(summary?.notRun ?? 0) > 0 ? "text-amber-500" : "text-muted-foreground"}`}>
                   {summary?.notRun ?? 0} / {summary?.notApplicable ?? 0}
                 </span>
@@ -160,7 +164,7 @@ export function VerificationWorkspace({
       {error && (
         <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm p-4 rounded-lg flex items-center justify-between">
           <span>{error}</span>
-          <Button variant="ghost" size="sm" onClick={() => setError(null)}>Dismiss</Button>
+          <Button variant="ghost" size="sm" onClick={() => setError(null)}>{t("workflow.dismiss")}</Button>
         </div>
       )}
 
@@ -174,7 +178,7 @@ export function VerificationWorkspace({
               : "bg-muted text-muted-foreground hover:bg-muted/80"
           }`}
         >
-          Quality Gates (G1–G7)
+          {t("verify.tabGates")}
         </button>
         <button
           onClick={() => setActiveTab("manifest")}
@@ -184,14 +188,14 @@ export function VerificationWorkspace({
               : "bg-muted text-muted-foreground hover:bg-muted/80"
           }`}
         >
-          Citation Manifest {manifest ? `(${manifest.items.length})` : ""}
+          {t("verify.tabManifest")} {manifest ? `(${manifest.items.length})` : ""}
         </button>
       </div>
 
       {/* When no report exists yet */}
       {loading ? (
         <div className="text-center py-12 text-sm text-muted-foreground animate-pulse">
-          Loading verification reports...
+          {t("verify.loading")}
         </div>
       ) : !report ? (
         <Card className="text-center py-12 border-dashed">
@@ -200,14 +204,14 @@ export function VerificationWorkspace({
               <ShieldCheckIcon className="size-6" />
             </div>
             <div>
-              <h3 className="text-base font-semibold">No Verification Report Run Yet</h3>
+              <h3 className="text-base font-semibold">{t("verify.noReportTitle")}</h3>
               <p className="text-sm text-muted-foreground max-w-md mx-auto mt-1">
-                Execute the 7 automated Quality Gates audits to inspect citation integrity, quote hashes, and numerical grounding.
+                {t("verify.noReportDescription")}
               </p>
             </div>
             <Button onClick={handleRunAudit} disabled={auditing} className="gap-2">
               <ShieldCheckIcon className="size-4" />
-              {auditing ? "Auditing..." : "Run Quality Gates Audit (G1–G7)"}
+              {auditing ? t("verify.auditingShort") : t("verify.runFull")}
             </Button>
           </CardContent>
         </Card>

@@ -37,7 +37,6 @@ React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui source components with Rad
 
 - Manual edit of paragraph plans (the BE `PUT` route exists). Manual edit of drafts is done.
 - Picker for approved SLR runs (import currently takes a typed `runId`).
-- Translate `paragraph-plans`, `drafting`, `verification`, and `export` into both locales.
 - Firebase `auth`: token via `setApiTokenProvider`, protected routes.
 - A run with real evidence to exercise G2/G5.
 

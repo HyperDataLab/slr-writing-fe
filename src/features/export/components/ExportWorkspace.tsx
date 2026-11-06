@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useStableT } from "@/shared/i18n/use-stable-t";
 import {
   ArrowDownTrayIcon,
   ArrowPathIcon,
@@ -19,6 +21,7 @@ import {
 import { H3DecisionModal } from "@/features/export/components/H3DecisionModal";
 import { LineageExplorer } from "@/features/export/components/LineageExplorer";
 import type { ExportPackageView, H3StatusView } from "@/features/export/model/export.types";
+import { ApiError } from "@/shared/lib/api-client";
 import type { SnapshotSummary } from "@/features/snapshots/model/snapshot.types";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -31,6 +34,8 @@ export function ExportWorkspace({
   projectId: string;
   snapshot: SnapshotSummary;
 }) {
+  const { t } = useTranslation();
+  const stableT = useStableT();
   const [h3Status, setH3Status] = useState<H3StatusView | null>(null);
   const [exportPackage, setExportPackage] = useState<ExportPackageView | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,17 +53,26 @@ export function ExportWorkspace({
     setError(null);
     try {
       const [h3, pkg] = await Promise.all([
-        getH3Status(projectId, snapshot.id).catch(() => null),
-        getLatestExportPackage(projectId, snapshot.id).catch(() => null),
+        // No manuscript row yet (nothing generated for this snapshot) is a normal, blocked state, not an error.
+        getH3Status(projectId, snapshot.id).catch((err: unknown) => {
+          if (err instanceof ApiError && err.status === 404 && err.code === "MANUSCRIPT_NOT_FOUND") return null;
+          throw err;
+        }),
+        getLatestExportPackage(projectId, snapshot.id).catch((err: unknown) => {
+          if (err instanceof ApiError && err.status === 404) return null;
+          throw err;
+        }),
       ]);
       setH3Status(h3);
       setExportPackage(pkg);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load submission data");
+      setH3Status(null);
+      setExportPackage(null);
+      setError(err instanceof Error ? err.message : stableT("exportPkg.loadError"));
     } finally {
       setLoading(false);
     }
-  }, [projectId, snapshot.id]);
+  }, [projectId, snapshot.id, stableT]);
 
   useEffect(() => {
     void loadData();
@@ -86,7 +100,7 @@ export function ExportWorkspace({
       const pkg = await createExportPackage(projectId, snapshot.id);
       setExportPackage(pkg);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to create export package");
+      setError(err instanceof Error ? err.message : t("exportPkg.createError"));
     } finally {
       setExporting(false);
     }
@@ -105,7 +119,7 @@ export function ExportWorkspace({
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to download ZIP file");
+      setError(err instanceof Error ? err.message : t("exportPkg.downloadError"));
     } finally {
       setDownloading(false);
     }
@@ -121,7 +135,7 @@ export function ExportWorkspace({
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
           <div>
             <div className="flex items-center gap-2">
-              <CardTitle className="text-xl">Submission Export & H3 Human Approval Center</CardTitle>
+              <CardTitle className="text-xl">{t("exportPkg.title")}</CardTitle>
               {exportPackage && (
                 <Badge variant="outline" className="font-mono text-xs">
                   v{exportPackage.version}
@@ -129,7 +143,7 @@ export function ExportWorkspace({
               )}
             </div>
             <CardDescription className="mt-1">
-              Stage M9: Final human oversight (H3), PKZIP 2.0 bundle compilation (7 academic files), and reverse lineage queries.
+              {t("exportPkg.description")}
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -141,7 +155,7 @@ export function ExportWorkspace({
               className="gap-1.5"
             >
               <ArrowPathIcon className={`size-4 ${loading ? "animate-spin" : ""}`} />
-              Refresh
+              {t("workflow.refresh")}
             </Button>
           </div>
         </CardHeader>
@@ -156,7 +170,7 @@ export function ExportWorkspace({
                 : "bg-muted text-muted-foreground hover:bg-muted/80"
             }`}
           >
-            Submission Checklist & Export
+            {t("exportPkg.tabExport")}
           </button>
           <button
             onClick={() => setActiveTab("lineage")}
@@ -166,7 +180,7 @@ export function ExportWorkspace({
                 : "bg-muted text-muted-foreground hover:bg-muted/80"
             }`}
           >
-            Reverse Lineage Explorer
+            {t("exportPkg.tabLineage")}
           </button>
         </div>
       </Card>
@@ -174,13 +188,13 @@ export function ExportWorkspace({
       {error && (
         <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm p-4 rounded-lg flex items-center justify-between">
           <span>{error}</span>
-          <Button variant="ghost" size="sm" onClick={() => setError(null)}>Dismiss</Button>
+          <Button variant="ghost" size="sm" onClick={() => setError(null)}>{t("workflow.dismiss")}</Button>
         </div>
       )}
 
       {loading ? (
         <div className="text-center py-12 text-sm text-muted-foreground animate-pulse">
-          Loading submission package status...
+          {t("exportPkg.loading")}
         </div>
       ) : activeTab === "lineage" ? (
         <LineageExplorer projectId={projectId} snapshotId={snapshot.id} />
@@ -190,7 +204,7 @@ export function ExportWorkspace({
           <Card className="border border-border/80">
             <CardHeader className="py-3 px-4 border-b border-border/40 bg-muted/20 flex flex-row items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Pre-submission Integrity Checklist
+                {t("exportPkg.checklist")}
               </span>
               <Badge
                 variant={isH3Approved ? "success" : canApprove ? "default" : "destructive"}
@@ -198,15 +212,15 @@ export function ExportWorkspace({
               >
                 {isH3Approved ? (
                   <>
-                    <CheckBadgeIcon className="size-3.5" /> H3 APPROVED
+                    <CheckBadgeIcon className="size-3.5" /> {t("exportPkg.badgeApproved")}
                   </>
                 ) : canApprove ? (
                   <>
-                    <CheckCircleIcon className="size-3.5" /> READY FOR H3
+                    <CheckCircleIcon className="size-3.5" /> {t("exportPkg.badgeReady")}
                   </>
                 ) : (
                   <>
-                    <ExclamationCircleIcon className="size-3.5" /> BLOCKED
+                    <ExclamationCircleIcon className="size-3.5" /> {t("exportPkg.badgeBlocked")}
                   </>
                 )}
               </Badge>
@@ -217,7 +231,7 @@ export function ExportWorkspace({
               {h3Status?.blockingReasons && h3Status.blockingReasons.length > 0 && (
                 <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs space-y-1">
                   <div className="font-semibold flex items-center gap-1.5">
-                    <ExclamationCircleIcon className="size-4" /> Export Prerequisites Incomplete ({h3Status.blockingReasons.length}):
+                    <ExclamationCircleIcon className="size-4" /> {t("exportPkg.prerequisites")} ({h3Status.blockingReasons.length}):
                   </div>
                   <ul className="list-disc list-inside space-y-0.5 pl-2">
                     {h3Status.blockingReasons.map((reason, idx) => (
@@ -229,48 +243,52 @@ export function ExportWorkspace({
 
               {h3Status && h3Status.omittedSections.length > 0 && (
                 <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs">
-                  Not part of this export (the engine cannot draft them yet): {h3Status.omittedSections.join(", ")}.
+                  {t("exportPkg.omitted", { sections: h3Status.omittedSections.map((key) => t(`plans.sectionName.${key}`, { defaultValue: key })).join(", ") })}
                 </div>
               )}
 
               {/* Status Points */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                 <div className="bg-muted/30 p-3 rounded-lg border border-border/40">
-                  <span className="text-muted-foreground block text-[11px] mb-1">Human Oversight H3</span>
+                  <span className="text-muted-foreground block text-[11px] mb-1">{t("exportPkg.humanOversight")}</span>
                   <div className="font-semibold text-foreground flex items-center gap-1.5">
                     {isH3Approved ? (
-                      <span className="text-emerald-600 dark:text-emerald-400">Approved by Owner</span>
+                      <span className="text-emerald-600 dark:text-emerald-400">{t("exportPkg.approvedByOwner")}</span>
                     ) : (
-                      <span className="text-amber-500">Pending Decision</span>
+                      <span className="text-amber-500">{t("exportPkg.pendingDecision")}</span>
                     )}
                   </div>
                   {h3Status?.latestApproval && (
                     <p className="text-[10px] text-muted-foreground mt-1 truncate">
-                      by {h3Status.latestApproval.decidedBy} (seq: {h3Status.latestApproval.seq})
+                      {t("draft.by")} {h3Status.latestApproval.decidedBy} (seq: {h3Status.latestApproval.seq})
                     </p>
                   )}
                 </div>
 
                 <div className="bg-muted/30 p-3 rounded-lg border border-border/40">
-                  <span className="text-muted-foreground block text-[11px] mb-1">Quality Gates (G1–G7)</span>
+                  <span className="text-muted-foreground block text-[11px] mb-1">{t("exportPkg.qualityGates")}</span>
                   <div className="font-semibold text-foreground flex items-center gap-1.5">
                     {h3Status?.verificationSummary?.status === "PASSED" ? (
-                      <span className="text-emerald-600 dark:text-emerald-400">PASSED (All Gates)</span>
+                      <span className="text-emerald-600 dark:text-emerald-400">{t("exportPkg.gatesPassedAll")}</span>
                     ) : (
-                      <span className="text-destructive">{h3Status?.verificationSummary?.status || "NOT RUN"}</span>
+                      <span className="text-destructive">
+                        {h3Status?.verificationSummary?.status
+                          ? t(`verify.overall.${h3Status.verificationSummary.status}`, { defaultValue: h3Status.verificationSummary.status })
+                          : t("verify.gateStatus.NOT_RUN")}
+                      </span>
                     )}
                   </div>
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    Passed: {h3Status?.verificationSummary?.passed ?? 0}/7 • Blocking: {h3Status?.verificationSummary?.blockingIssuesCount ?? 0}
+                    {t("exportPkg.passedCount", { passed: h3Status?.verificationSummary?.passed ?? 0 })} • {t("exportPkg.blockingCount", { count: h3Status?.verificationSummary?.blockingIssuesCount ?? 0 })}
                   </p>
                 </div>
 
                 <div className="bg-muted/30 p-3 rounded-lg border border-border/40">
-                  <span className="text-muted-foreground block text-[11px] mb-1">Composite Target Hash</span>
+                  <span className="text-muted-foreground block text-[11px] mb-1">{t("exportPkg.compositeHash")}</span>
                   <div className="font-mono text-muted-foreground truncate text-[11px] mt-1" title={h3Status?.compositeTargetHash}>
-                    {h3Status?.compositeTargetHash ? `${h3Status.compositeTargetHash.slice(0, 18)}...` : "N/A"}
+                    {h3Status?.compositeTargetHash ? `${h3Status.compositeTargetHash.slice(0, 18)}...` : "—"}
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-1">Immutable manuscript fingerprint</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">{t("exportPkg.fingerprint")}</p>
                 </div>
               </div>
 
@@ -278,10 +296,10 @@ export function ExportWorkspace({
               <div className="flex items-center justify-between pt-3 border-t border-border/40">
                 <p className="text-xs text-muted-foreground">
                   {isH3Approved
-                    ? "Manuscript has received final human approval. You may generate or download the submission package."
+                    ? t("exportPkg.hintApproved")
                     : canApprove
-                    ? "All prerequisites are satisfied. As the SLR Owner, you can authorize final submission approval."
-                    : "Address blocking reasons above before approving H3."}
+                    ? t("exportPkg.hintReady")
+                    : t("exportPkg.hintBlocked")}
                 </p>
 
                 <div className="flex items-center gap-2">
@@ -292,7 +310,7 @@ export function ExportWorkspace({
                     disabled={isH3Approved}
                     onClick={() => setModalAction("reject")}
                   >
-                    Reject H3
+                    {t("exportPkg.rejectH3")}
                   </Button>
                   <Button
                     variant="default"
@@ -302,7 +320,7 @@ export function ExportWorkspace({
                     onClick={() => setModalAction("approve")}
                   >
                     <ShieldCheckIcon className="size-4 mr-1.5" />
-                    Authorize H3 Approval
+                    {t("exportPkg.authorizeH3")}
                   </Button>
                 </div>
               </div>
@@ -313,9 +331,9 @@ export function ExportWorkspace({
           <Card className="border border-border/80">
             <CardHeader className="py-3 px-4 border-b border-border/40 bg-muted/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <CardTitle className="text-base">Submission Package & PKZIP Bundle</CardTitle>
+                <CardTitle className="text-base">{t("exportPkg.packageTitle")}</CardTitle>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Compilation of 7 academic submission files into a standalone PKZIP archive.
+                  {t("exportPkg.packageDescription")}
                 </p>
               </div>
 
@@ -328,7 +346,7 @@ export function ExportWorkspace({
                   className="gap-1.5 text-xs"
                 >
                   <DocumentArrowDownIcon className="size-4" />
-                  {exporting ? "Compiling..." : exportPackage ? "Re-compile Package" : "Create Package v1"}
+                  {exporting ? t("exportPkg.compiling") : exportPackage ? t("exportPkg.recompile") : t("exportPkg.create")}
                 </Button>
                 <Button
                   variant="default"
@@ -338,7 +356,7 @@ export function ExportWorkspace({
                   className="gap-1.5 text-xs"
                 >
                   <ArrowDownTrayIcon className="size-4" />
-                  {downloading ? "Downloading..." : "Download Submission (.zip)"}
+                  {downloading ? t("exportPkg.downloading") : t("exportPkg.download")}
                 </Button>
               </div>
             </CardHeader>
@@ -346,16 +364,16 @@ export function ExportWorkspace({
             <CardContent className="p-4 space-y-4">
               {!exportPackage ? (
                 <div className="text-center py-8 text-xs text-muted-foreground">
-                  <p>No export package compiled yet. Ensure H3 is approved, then click &ldquo;Create Package v1&rdquo;.</p>
+                  <p>{t("exportPkg.noPackage")}</p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {/* Package Metadata */}
                   <div className="p-3 bg-muted/30 rounded-lg border border-border/40 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
-                      <span className="text-muted-foreground">Package Revision:</span>{" "}
+                      <span className="text-muted-foreground">{t("exportPkg.packageRevision")}:</span>{" "}
                       <strong className="font-mono text-foreground">v{exportPackage.version}</strong> •{" "}
-                      <span className="text-muted-foreground">Exported by:</span>{" "}
+                      <span className="text-muted-foreground">{t("exportPkg.exportedBy")}:</span>{" "}
                       <strong className="text-foreground">{exportPackage.exportedBy}</strong> (
                       {new Date(exportPackage.exportedAt).toLocaleString()})
                     </div>
@@ -369,9 +387,9 @@ export function ExportWorkspace({
                     <table className="w-full text-left text-xs">
                       <thead className="bg-muted/40 text-muted-foreground font-medium uppercase tracking-wider text-[11px] border-b border-border/60">
                         <tr>
-                          <th className="py-2 px-3">File</th>
-                          <th className="py-2 px-3">Description</th>
-                          <th className="py-2 px-3">Size</th>
+                          <th className="py-2 px-3">{t("exportPkg.file")}</th>
+                          <th className="py-2 px-3">{t("exportPkg.fileDescription")}</th>
+                          <th className="py-2 px-3">{t("exportPkg.size")}</th>
                           <th className="py-2 px-3">SHA-256</th>
                         </tr>
                       </thead>

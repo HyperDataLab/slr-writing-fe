@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useStableT } from "@/shared/i18n/use-stable-t";
 import { Link } from "react-router";
 import {
   ArrowPathIcon,
@@ -28,10 +29,10 @@ import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 
 const DEFAULT_SECTIONS = [
-  { key: "results", label: "Results (M7)" },
-  { key: "methods", label: "Methods (M2)" },
-  { key: "discussion", label: "Discussion" },
-  { key: "introduction", label: "Introduction" },
+  { key: "results", label: "draft.tab.results" },
+  { key: "methods", label: "draft.tab.methods" },
+  { key: "discussion", label: "draft.tab.discussion" },
+  { key: "introduction", label: "draft.tab.introduction" },
 ];
 
 export function DraftingWorkspace({
@@ -47,6 +48,7 @@ export function DraftingWorkspace({
   const [drafting, setDrafting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { t } = useTranslation();
+  const stableT = useStableT();
   const [editing, setEditing] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   // Whether the latest verification report still describes the current sections; false while loading or when none exists (fail-closed).
@@ -82,12 +84,12 @@ export function DraftingWorkspace({
       if (seq !== loadSeq.current) return;
       setDraftView(null);
       if (!(err instanceof ApiError && err.status === 404)) {
-        setError(err instanceof Error ? err.message : "Failed to load section draft");
+        setError(err instanceof Error ? err.message : stableT("draft.loadError"));
       }
     } finally {
       if (seq === loadSeq.current) setLoading(false);
     }
-  }, [projectId, snapshot.id]);
+  }, [projectId, snapshot.id, stableT]);
 
   useEffect(() => {
     setNotice(null);
@@ -101,7 +103,7 @@ export function DraftingWorkspace({
       await generateSectionDraft(projectId, snapshot.id, activeSection);
       await loadDraft(activeSection);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Section drafting failed");
+      setError(err instanceof Error ? err.message : t("draft.draftError"));
     } finally {
       setDrafting(false);
     }
@@ -144,6 +146,7 @@ export function DraftingWorkspace({
     : [];
   // Methods comes from the fixed template (Methods page), never from the LLM drafter.
   const canDraft = activeSection !== "methods";
+  const sectionLabel = t(`plans.sectionName.${draftView?.sectionKey ?? activeSection}`, { defaultValue: activeSection });
   // A hand edit keeps the old evidence facts, so the new version must be re-verified before H2 can approve it.
   const verificationFailed = verifiedStatus === "FAILED";
   // The BE decides what is current (it compares section content, not clocks) and also enforces this lock on approve.
@@ -172,7 +175,7 @@ export function DraftingWorkspace({
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
           <div>
             <div className="flex items-center gap-2">
-              <CardTitle className="text-xl">Section Drafting & Grounding Review (H2)</CardTitle>
+              <CardTitle className="text-xl">{t("draft.title")}</CardTitle>
               {latest && (
                 <Badge variant="outline" className="font-mono text-xs">
                   v{latest.version}
@@ -180,7 +183,7 @@ export function DraftingWorkspace({
               )}
             </div>
             <CardDescription className="mt-1">
-              AI section drafting constrained by paragraph plans, verbatim quotes, and human-in-the-loop oversight (H2).
+              {t("draft.description")}
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -192,18 +195,18 @@ export function DraftingWorkspace({
               className="gap-1.5"
             >
               <ArrowPathIcon className={`size-4 ${loading ? "animate-spin" : ""}`} />
-              Refresh
+              {t("workflow.refresh")}
             </Button>
             <Button
               variant="default"
               size="sm"
               onClick={handleGenerate}
               disabled={drafting || editing || !canDraft}
-              title={canDraft ? undefined : "Methods is generated on the Methods page"}
+              title={canDraft ? undefined : t("draft.methodsOnOwnPage")}
               className="gap-1.5"
             >
               <SparklesIcon className="size-4" />
-              {drafting ? "Drafting with AI..." : latest ? "Re-draft Section" : "Draft Section with AI"}
+              {drafting ? t("draft.drafting") : latest ? t("draft.redraft") : t("draft.draftWithAi")}
             </Button>
           </div>
         </CardHeader>
@@ -221,7 +224,7 @@ export function DraftingWorkspace({
                   : "bg-muted/70 text-muted-foreground hover:bg-muted"
               }`}
             >
-              {sec.label}
+              {t(sec.label)}
             </button>
           ))}
         </div>
@@ -231,7 +234,7 @@ export function DraftingWorkspace({
           <CardContent className="py-3 bg-muted/20 border-b border-border/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs">
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-1.5">
-                <span className="text-muted-foreground font-medium">H2 Decision:</span>
+                <span className="text-muted-foreground font-medium">{t("draft.h2Decision")}:</span>
                 <Badge
                   variant={
                     status === "APPROVED"
@@ -245,13 +248,13 @@ export function DraftingWorkspace({
                   {status === "APPROVED" && <CheckCircleIcon className="size-3.5" />}
                   {status === "REJECTED" && <XCircleIcon className="size-3.5" />}
                   {status === "PENDING" && <ExclamationTriangleIcon className="size-3.5" />}
-                  {status}
+                  {t(`draft.approval.${status}`)}
                 </Badge>
               </div>
 
               {approval && (
                 <span className="text-muted-foreground text-[11px]">
-                  by <strong className="text-foreground">{approval.decidedBy}</strong>{" "}
+                  {t("draft.by")} <strong className="text-foreground">{approval.decidedBy}</strong>{" "}
                   {approval.slrRole && `(${approval.slrRole})`} • seq: {approval.seq}
                 </span>
               )}
@@ -271,7 +274,7 @@ export function DraftingWorkspace({
                 onClick={() => setModalAction("reject")}
                 disabled={drafting || loading || editing || status === "REJECTED"}
               >
-                Reject H2
+                {t("draft.rejectH2")}
               </Button>
               <Button
                 variant="default"
@@ -281,7 +284,7 @@ export function DraftingWorkspace({
                 disabled={drafting || loading || editing || needsReverify || status === "APPROVED"}
               >
                 <CheckBadgeIcon className="size-4 mr-1" />
-                Approve H2
+                {t("draft.approveH2")}
               </Button>
             </div>
           </CardContent>
@@ -291,7 +294,7 @@ export function DraftingWorkspace({
       {error && (
         <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm p-4 rounded-lg flex items-center justify-between">
           <span>{error}</span>
-          <Button variant="ghost" size="sm" onClick={() => setError(null)}>Dismiss</Button>
+          <Button variant="ghost" size="sm" onClick={() => setError(null)}>{t("workflow.dismiss")}</Button>
         </div>
       )}
 
@@ -319,7 +322,7 @@ export function DraftingWorkspace({
       {/* Main Drafting Workspace View */}
       {loading ? (
         <div className="text-center py-12 text-sm text-muted-foreground animate-pulse">
-          Loading section draft...
+          {t("draft.loading")}
         </div>
       ) : !latest ? (
         <Card className="text-center py-12 border-dashed">
@@ -328,14 +331,14 @@ export function DraftingWorkspace({
               <SparklesIcon className="size-6" />
             </div>
             <div>
-              <h3 className="text-base font-semibold">No Draft for '{activeSection}' yet</h3>
+              <h3 className="text-base font-semibold">{t("draft.noDraftTitle", { section: sectionLabel })}</h3>
               <p className="text-sm text-muted-foreground max-w-md mx-auto mt-1">
-                Trigger live LLM drafting to generate evidence-grounded prose for this section.
+                {t("draft.noDraftDescription")}
               </p>
             </div>
             <Button onClick={handleGenerate} disabled={drafting || !canDraft} className="gap-2">
               <SparklesIcon className="size-4" />
-              {drafting ? "Drafting with AI..." : `Draft '${activeSection}' Section Now`}
+              {drafting ? t("draft.drafting") : t("draft.draftNow", { section: sectionLabel })}
             </Button>
           </CardContent>
         </Card>
@@ -353,11 +356,11 @@ export function DraftingWorkspace({
             <Card className={`border border-border/80 ${editing ? "hidden" : ""}`}>
               <CardHeader className="py-3 px-4 border-b border-border/40 bg-muted/30 flex flex-row items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Drafted Prose (Markdown)
+                  {t("draft.prose")}
                 </span>
                 <span className="flex items-center gap-3">
                   <span className="text-xs font-mono text-muted-foreground">
-                    {latest.markdown.length} chars • {latest.generator}
+                    {t("draft.chars", { count: latest.markdown.length })} • {latest.generator}
                   </span>
                   {canDraft ? (
                     <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => setEditing(true)} disabled={drafting || loading}>
@@ -399,7 +402,7 @@ export function DraftingWorkspace({
                                   ? "bg-primary text-primary-foreground ring-2 ring-primary/40"
                                   : "bg-primary/10 text-primary hover:bg-primary/20"
                               }`}
-                              title={`Click to inspect evidence anchor ${marker}`}
+                              title={t("draft.inspectAnchor", { marker })}
                             >
                               {part}
                             </button>
@@ -419,7 +422,7 @@ export function DraftingWorkspace({
             <Card className="border border-border/80 sticky top-4">
               <CardHeader className="py-3 px-4 border-b border-border/40 bg-muted/30">
                 <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Evidence Grounding Inspector
+                  {t("draft.inspector")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 space-y-4 text-xs">
@@ -427,25 +430,25 @@ export function DraftingWorkspace({
                   <div className="space-y-3 bg-muted/40 p-3 rounded-lg border border-border/60">
                     <div className="flex items-center justify-between">
                       <span className="font-mono font-bold text-primary">[{selectedCitation}]</span>
-                      <Badge variant="outline" className="text-[10px]">Anchor</Badge>
+                      <Badge variant="outline" className="text-[10px]">{t("draft.anchor")}</Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Checks whether this marker is part of the evidence pack recorded for the draft. Run Verification for the full registry and quote check.
+                      {t("draft.anchorExplain")}
                     </p>
                     <div className="pt-2 border-t border-border/40 text-[11px] text-muted-foreground space-y-1 font-mono">
                       <div>
-                        Evidence pack:{" "}
+                        {t("draft.evidencePack")}:{" "}
                         {citingParagraphs.length > 0 ? (
-                          <span className="text-emerald-600 font-medium">cited in {citingParagraphs.length} paragraph(s)</span>
+                          <span className="text-emerald-600 font-medium">{t("draft.citedIn", { count: citingParagraphs.length })}</span>
                         ) : (
-                          <span className="text-destructive font-medium">not found in any paragraph's evidence</span>
+                          <span className="text-destructive font-medium">{t("draft.notInEvidence")}</span>
                         )}
                       </div>
                     </div>
                   </div>
                 ) : (
                   <div className="text-center py-6 text-muted-foreground">
-                    <p className="mb-2">Click any citation marker in the draft (e.g. <span className="font-mono bg-muted px-1 rounded">[E-01]</span>) to inspect its source anchor.</p>
+                    <p className="mb-2">{t("draft.clickMarkerHint")}</p>
                   </div>
                 )}
 
@@ -453,17 +456,17 @@ export function DraftingWorkspace({
                 {paragraphFacts.length > 0 && (
                   <div className="space-y-2 pt-2 border-t border-border/60">
                     <span className="font-medium text-muted-foreground block text-xs">
-                      Section Paragraph Facts ({paragraphFacts.length})
+                      {t("draft.paragraphFacts")} ({paragraphFacts.length})
                     </span>
                     <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                       {paragraphFacts.map((p, pIdx) => (
                         <div key={pIdx} className="p-2 bg-muted/30 rounded border border-border/40 text-[11px] space-y-1">
                           <div className="font-mono font-semibold text-foreground truncate">
-                            {p.paragraphId || `Para ${pIdx + 1}`}
+                            {p.paragraphId || t("draft.paragraphN", { n: pIdx + 1 })}
                           </div>
                           <div className="text-muted-foreground flex items-center gap-2">
-                            <span>Ev: {p.usedEvidenceIds?.length || 0}</span>
-                            <span>Findings: {p.usedFindingIds?.length || 0}</span>
+                            <span>{t("draft.evShort")}: {p.usedEvidenceIds?.length || 0}</span>
+                            <span>{t("draft.findingsShort")}: {p.usedFindingIds?.length || 0}</span>
                           </div>
                         </div>
                       ))}

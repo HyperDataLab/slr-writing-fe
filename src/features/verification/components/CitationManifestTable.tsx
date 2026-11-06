@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { useTranslation } from "react-i18next";
 import type { CitationManifestView } from "@/features/verification/model/verification.types";
 import { Badge } from "@/shared/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 
 export function CitationManifestTable({ manifest }: { manifest: CitationManifestView }) {
+  const { t } = useTranslation();
   const [filter, setFilter] = useState("");
 
   const filtered = manifest.items.filter((e) => {
@@ -21,10 +23,10 @@ export function CitationManifestTable({ manifest }: { manifest: CitationManifest
     <Card className="border border-border/80">
       <CardHeader className="py-3 px-4 border-b border-border/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <CardTitle className="text-base">Citation Manifest Registry</CardTitle>
+          <CardTitle className="text-base">{t("verify.manifest.title")}</CardTitle>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {manifest.resolvedCitations}/{manifest.totalCitations} citations resolved against the snapshot registry.
-            {manifest.unresolvedCitations.length > 0 ? ` ${manifest.unresolvedCitations.length} unresolved.` : ""}
+            {t("verify.manifest.summary", { resolved: manifest.resolvedCitations, total: manifest.totalCitations })}
+            {manifest.unresolvedCitations.length > 0 ? ` ${t("verify.manifest.unresolvedCount", { count: manifest.unresolvedCitations.length })}` : ""}
           </p>
         </div>
         <div className="relative w-full sm:w-64">
@@ -33,7 +35,7 @@ export function CitationManifestTable({ manifest }: { manifest: CitationManifest
             type="text"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            placeholder="Search marker, title, ID..."
+            placeholder={t("verify.manifest.search")}
             className="w-full pl-8 pr-3 py-1.5 bg-background border border-border rounded-md text-xs focus:outline-hidden focus:ring-2 focus:ring-primary"
           />
         </div>
@@ -43,18 +45,18 @@ export function CitationManifestTable({ manifest }: { manifest: CitationManifest
           <table className="w-full text-left text-xs">
             <thead className="bg-muted/40 border-b border-border/60 text-muted-foreground font-medium uppercase tracking-wider text-[11px]">
               <tr>
-                <th className="py-2.5 px-4">Marker</th>
-                <th className="py-2.5 px-4">Status</th>
-                <th className="py-2.5 px-4">Location</th>
-                <th className="py-2.5 px-4">Study / Quote</th>
-                <th className="py-2.5 px-4">Year</th>
+                <th className="py-2.5 px-4">{t("verify.manifest.marker")}</th>
+                <th className="py-2.5 px-4">{t("verify.manifest.status")}</th>
+                <th className="py-2.5 px-4">{t("verify.manifest.location")}</th>
+                <th className="py-2.5 px-4">{t("verify.manifest.studyQuote")}</th>
+                <th className="py-2.5 px-4">{t("verify.manifest.year")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-8 text-center text-muted-foreground">
-                    No citation markers matched your search.
+                    {t("verify.manifest.noMatch")}
                   </td>
                 </tr>
               ) : (
@@ -63,11 +65,11 @@ export function CitationManifestTable({ manifest }: { manifest: CitationManifest
                     <td className="py-2.5 px-4 font-mono font-bold text-primary whitespace-nowrap">{item.citationId}</td>
                     <td className="py-2.5 px-4 whitespace-nowrap">
                       <Badge variant={item.isResolved ? "success" : "destructive"} className="text-[10px]">
-                        {item.isResolved ? "resolved" : "unresolved"}
+                        {item.isResolved ? t("verify.manifest.resolved") : t("verify.manifest.unresolved")}
                       </Badge>
                       {item.isResolved && !item.quoteHashVerified && (
                         <Badge variant="warning" className="text-[10px] ml-1">
-                          quote unverified
+                          {t("verify.manifest.quoteUnverified")}
                         </Badge>
                       )}
                     </td>
@@ -89,7 +91,7 @@ export function CitationManifestTable({ manifest }: { manifest: CitationManifest
         </div>
         {manifest.unresolvedCitations.length > 0 && (
           <div className="border-t border-border/60 p-4 space-y-1 text-xs text-destructive">
-            <span className="font-semibold block">Unresolved citations</span>
+            <span className="font-semibold block">{t("verify.manifest.unresolvedTitle")}</span>
             {manifest.unresolvedCitations.map((u, idx) => (
               <div key={`${u.marker}-${idx}`}>
                 <span className="font-mono">{u.marker}</span> @ {u.location} — {u.reason}
