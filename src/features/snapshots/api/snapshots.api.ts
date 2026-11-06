@@ -2,6 +2,7 @@ import { apiRequest } from "@/shared/lib/api-client";
 import type {
   ImportSnapshotInput,
   SnapshotDetail,
+  SlrRunSummary,
   SnapshotImportResponse,
   SnapshotSummary,
 } from "@/features/snapshots/model/snapshot.types";
@@ -14,6 +15,10 @@ export function importSnapshotFromSlr(projectId: string, input: ImportSnapshotIn
       body: JSON.stringify(input),
     },
   );
+}
+
+export function listSlrRuns(projectId: string): Promise<SlrRunSummary[]> {
+  return apiRequest<SlrRunSummary[]>("/projects/" + encodeURIComponent(projectId) + "/slr-runs");
 }
 
 export function listSnapshots(projectId: string): Promise<SnapshotSummary[]> {

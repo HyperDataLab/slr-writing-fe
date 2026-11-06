@@ -14,7 +14,7 @@ React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui source components with Rad
 | --- | --- | --- |
 | `auth` | Hold the signed-in user session, pass the Firebase ID token, and protect authenticated routes. | M1 |
 | `projects` | List, create, and open writing projects linked to an SLR project. | Existing project API; M1 permission check |
-| `snapshots` | Import a run, show immutable snapshot history/details, and present readiness issues and stale state. | M0, M10 |
+| `snapshots` | Pick a run from the linked SLR project (or type a run id) and import it, show immutable snapshot history/details, and present readiness issues and stale state. | M0, M10 |
 | `methods` | Generate and review deterministic Methods revisions from a READY snapshot; show PRISMA facts, source paths, and missing-data warnings. | M2 |
 | `journal-profiles` | List and view read-only journal profiles, preserve section order and expected sources, and clearly label verification status and suggested word budgets. | M3 |
 | `outline` | Generate and version a manuscript blueprint from a READY snapshot and Journal Profile; assign snapshot claims, show RQ coverage and backend issues, and request H1 approval. Profile section order is fixed; subsections can be reordered. OWNER authorization is enforced by the backend. | M5 |
@@ -36,7 +36,6 @@ React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui source components with Rad
 ## Open items
 
 - Manual edit of paragraph plans (the BE `PUT` route exists). Manual edit of drafts is done.
-- Picker for approved SLR runs (import currently takes a typed `runId`).
 - Firebase `auth`: token via `setApiTokenProvider`, protected routes.
 - A run with real evidence to exercise G2/G5.
 

@@ -52,6 +52,22 @@ export interface SnapshotDetail extends SnapshotSummary {
   };
 }
 
+export type MvpArtifactState = "approved" | "unreviewed" | "needs_human_review" | "rejected" | "missing";
+
+/** One run of the linked SLR project, from `GET /projects/:projectId/slr-runs`. */
+export interface SlrRunSummary {
+  runId: string;
+  generatedAt: string;
+  generatedBy: string | null;
+  corpusHash: string;
+  /** Review state of the artifacts the writing MVP reads. */
+  mvpArtifacts: Record<string, MvpArtifactState>;
+  /** All four MVP artifacts approved on slr-be. Informational; readiness at import stays authoritative. */
+  mvpApproved: boolean;
+  /** Snapshots of this project already imported from the run. */
+  snapshots: Array<{ id: string; status: string }>;
+}
+
 export interface SnapshotImportResponse {
   snapshot: SnapshotSummary;
   created: boolean;
