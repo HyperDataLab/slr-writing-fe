@@ -84,5 +84,7 @@ export interface VerificationReportView {
   issues: ReviewIssue[];
   runBy: string;
   runAt: string;
+  /** True while no section changed since this report ran; a stale report must be re-run. */
+  isCurrent: boolean;
   versions: VerificationVersionRow[];
 }
