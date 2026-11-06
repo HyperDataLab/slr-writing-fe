@@ -3,7 +3,7 @@ import {
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
-import type { GateResultView, GateStatus } from "@/features/verification/model/verification.types";
+import type { GateStatus, QualityGateResult, ReviewIssue } from "@/features/verification/model/verification.types";
 import { Badge } from "@/shared/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 
@@ -25,10 +25,11 @@ function statusBadge(status: GateStatus) {
           <CheckCircleIcon className="size-3.5" /> PASS
         </Badge>
       );
-    case "WARN":
+    case "WARNING":
+    case "NEEDS_REVIEW":
       return (
         <Badge variant="warning" className="gap-1">
-          <ExclamationTriangleIcon className="size-3.5" /> WARN
+          <ExclamationTriangleIcon className="size-3.5" /> {status.replace("_", " ")}
         </Badge>
       );
     case "FAIL":
@@ -37,14 +38,20 @@ function statusBadge(status: GateStatus) {
           <ExclamationCircleIcon className="size-3.5" /> FAIL
         </Badge>
       );
+    case "NOT_RUN":
+      // NOT_RUN is never a pass: keep it visibly distinct from PASS.
+      return (
+        <Badge variant="outline" className="gap-1 border-dashed">
+          NOT RUN
+        </Badge>
+      );
     default:
-      return <Badge variant="secondary">{status}</Badge>;
+      return <Badge variant="secondary">{status.replace("_", " ")}</Badge>;
   }
 }
 
-export function GateAuditCard({ gate }: { gate: GateResultView }) {
-  const meta = GATE_TITLES[gate.gateId] || { title: `Gate ${gate.gateId}`, subtitle: "Audit Check" };
-  const hasIssues = gate.issues && gate.issues.length > 0;
+export function GateAuditCard({ gate, issues }: { gate: QualityGateResult; issues: ReviewIssue[] }) {
+  const meta = GATE_TITLES[gate.gateId] || { title: gate.name, subtitle: "Audit Check" };
 
   return (
     <Card className="border border-border/80 shadow-xs hover:border-primary/40 transition-colors">
@@ -62,40 +69,50 @@ export function GateAuditCard({ gate }: { gate: GateResultView }) {
       </CardHeader>
 
       <CardContent className="space-y-3 text-xs">
-        {/* Message */}
         <p className="bg-muted/40 p-2.5 rounded-md border border-border/50 text-foreground leading-relaxed">
           {gate.message}
         </p>
 
-        {/* Metrics */}
-        {gate.metrics && Object.keys(gate.metrics).length > 0 && (
+        {gate.details && Object.keys(gate.details).length > 0 && (
           <div className="flex flex-wrap gap-2 pt-1 border-t border-border/40 text-[11px] font-mono text-muted-foreground">
-            {Object.entries(gate.metrics).map(([k, v]) => (
-              <span key={k} className="bg-muted px-2 py-0.5 rounded">
-                {k}: <strong className="text-foreground">{String(v)}</strong>
+            {Object.entries(gate.details).map(([k, v]) => (
+              <span key={k} className="bg-muted px-2 py-0.5 rounded max-w-full break-all">
+                {k}:{" "}
+                <strong className="text-foreground">
+                  {typeof v === "object" && v !== null ? JSON.stringify(v) : String(v)}
+                </strong>
               </span>
             ))}
           </div>
         )}
 
-        {/* Issues List */}
-        {hasIssues && (
+        {issues.length > 0 && (
           <div className="space-y-1.5 pt-1 border-t border-border/40">
-            <span className="font-medium text-destructive block">Issues Detected ({gate.issues.length}):</span>
+            <span className="font-medium text-foreground block">Issues ({issues.length}):</span>
             <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
-              {gate.issues.map((issue, idx) => (
+              {issues.map((issue) => (
                 <div
-                  key={idx}
-                  className="p-2 rounded bg-destructive/10 border border-destructive/20 text-destructive text-[11px] space-y-0.5"
+                  key={issue.id}
+                  className={`p-2 rounded border text-[11px] space-y-0.5 ${
+                    issue.severity === "BLOCKING"
+                      ? "bg-destructive/10 border-destructive/20 text-destructive"
+                      : "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400"
+                  }`}
                 >
                   <div className="flex items-center justify-between font-semibold">
-                    <span>{issue.code}</span>
-                    <Badge variant="destructive" className="text-[10px] py-0 px-1.5">
+                    <span>
+                      {issue.sectionKey} · {issue.target}
+                    </span>
+                    <Badge
+                      variant={issue.severity === "BLOCKING" ? "destructive" : "warning"}
+                      className="text-[10px] py-0 px-1.5"
+                    >
                       {issue.severity}
                     </Badge>
                   </div>
                   <p>{issue.message}</p>
-                  {issue.location && <p className="text-[10px] font-mono opacity-80">Location: {issue.location}</p>}
+                  {issue.evidenceExcerpt && <p className="text-[10px] italic opacity-80">&ldquo;{issue.evidenceExcerpt}&rdquo;</p>}
+                  {issue.suggestedRemedy && <p className="text-[10px] opacity-80">Remedy: {issue.suggestedRemedy}</p>}
                 </div>
               ))}
             </div>

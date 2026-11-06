@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowPathIcon,
   CheckBadgeIcon,
@@ -13,6 +13,7 @@ import {
   getSectionDraft,
   rejectSectionRevision,
 } from "@/features/drafting/api/drafting.api";
+import { ApiError } from "@/shared/lib/api-client";
 import { H2DecisionDialog } from "@/features/drafting/components/H2DecisionDialog";
 import type { SectionDraftView } from "@/features/drafting/model/drafting.types";
 import type { SnapshotSummary } from "@/features/snapshots/model/snapshot.types";
@@ -45,19 +46,26 @@ export function DraftingWorkspace({
   const [submittingDecision, setSubmittingDecision] = useState(false);
   const [selectedCitation, setSelectedCitation] = useState<string | null>(null);
 
+  // Only the latest request may update the view; an older, slower response must not show another section's draft.
+  const loadSeq = useRef(0);
+
   const loadDraft = useCallback(async (secKey: string) => {
+    const seq = ++loadSeq.current;
     setLoading(true);
     setError(null);
     setSelectedCitation(null);
+    setDraftView(null);
     try {
       const data = await getSectionDraft(projectId, snapshot.id, secKey);
-      setDraftView(data);
+      if (seq === loadSeq.current) setDraftView(data);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to load section draft";
-      setError(msg);
+      if (seq !== loadSeq.current) return;
       setDraftView(null);
+      if (!(err instanceof ApiError && err.status === 404)) {
+        setError(err instanceof Error ? err.message : "Failed to load section draft");
+      }
     } finally {
-      setLoading(false);
+      if (seq === loadSeq.current) setLoading(false);
     }
   }, [projectId, snapshot.id]);
 
@@ -79,35 +87,42 @@ export function DraftingWorkspace({
   };
 
   const handleDecisionConfirm = async (note?: string) => {
-    if (!draftView?.latestRevision || !modalAction) return;
+    if (!draftView?.revision || !modalAction || loading) return;
+    const decidedSection = draftView.sectionKey;
     setSubmittingDecision(true);
     try {
       if (modalAction === "approve") {
         await approveSectionRevision(
           projectId,
           snapshot.id,
-          activeSection,
-          draftView.latestRevision.version,
+          decidedSection,
+          draftView.revision.version,
           note,
         );
       } else {
         await rejectSectionRevision(
           projectId,
           snapshot.id,
-          activeSection,
-          draftView.latestRevision.version,
+          decidedSection,
+          draftView.revision.version,
           note || "",
         );
       }
-      await loadDraft(activeSection);
+      await loadDraft(decidedSection);
     } finally {
       setSubmittingDecision(false);
     }
   };
 
-  const latest = draftView?.latestRevision;
-  const approval = draftView?.approval;
-  const status = draftView?.approvalStatus || "PENDING";
+  const latest = draftView?.revision;
+  const approval = draftView?.approval.decision;
+  const status = draftView?.approval.status ?? "PENDING";
+  const paragraphFacts = latest && !Array.isArray(latest.facts) ? (latest.facts.paragraphs ?? []) : [];
+  const citingParagraphs = selectedCitation
+    ? paragraphFacts.filter((p) => p.usedEvidenceIds?.includes(selectedCitation))
+    : [];
+  // Methods comes from the fixed template (Methods page), never from the LLM drafter.
+  const canDraft = activeSection !== "methods";
 
   return (
     <div className="space-y-6">
@@ -142,7 +157,8 @@ export function DraftingWorkspace({
               variant="default"
               size="sm"
               onClick={handleGenerate}
-              disabled={drafting}
+              disabled={drafting || !canDraft}
+              title={canDraft ? undefined : "Methods is generated on the Methods page"}
               className="gap-1.5"
             >
               <SparklesIcon className="size-4" />
@@ -211,7 +227,7 @@ export function DraftingWorkspace({
                 size="sm"
                 className="text-xs h-8 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border-rose-200 dark:border-rose-900"
                 onClick={() => setModalAction("reject")}
-                disabled={drafting || status === "REJECTED"}
+                disabled={drafting || loading || status === "REJECTED"}
               >
                 Reject H2
               </Button>
@@ -220,7 +236,7 @@ export function DraftingWorkspace({
                 size="sm"
                 className="text-xs h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
                 onClick={() => setModalAction("approve")}
-                disabled={drafting || status === "APPROVED"}
+                disabled={drafting || loading || status === "APPROVED"}
               >
                 <CheckBadgeIcon className="size-4 mr-1" />
                 Approve H2
@@ -254,7 +270,7 @@ export function DraftingWorkspace({
                 Trigger live LLM drafting to generate evidence-grounded prose for this section.
               </p>
             </div>
-            <Button onClick={handleGenerate} disabled={drafting} className="gap-2">
+            <Button onClick={handleGenerate} disabled={drafting || !canDraft} className="gap-2">
               <SparklesIcon className="size-4" />
               {drafting ? "Drafting with AI..." : `Draft '${activeSection}' Section Now`}
             </Button>
@@ -334,11 +350,17 @@ export function DraftingWorkspace({
                       <Badge variant="outline" className="text-[10px]">Anchor</Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      This citation anchor maps directly to validated evidence in the SLR Snapshot.
+                      Checks whether this marker is part of the evidence pack recorded for the draft. Run Verification for the full registry and quote check.
                     </p>
                     <div className="pt-2 border-t border-border/40 text-[11px] text-muted-foreground space-y-1 font-mono">
-                      <div>Status: <span className="text-emerald-600 font-medium">Verified Grounded</span></div>
-                      <div>Source: <span className="text-foreground">Review Corpus Registry</span></div>
+                      <div>
+                        Evidence pack:{" "}
+                        {citingParagraphs.length > 0 ? (
+                          <span className="text-emerald-600 font-medium">cited in {citingParagraphs.length} paragraph(s)</span>
+                        ) : (
+                          <span className="text-destructive font-medium">not found in any paragraph's evidence</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -348,16 +370,16 @@ export function DraftingWorkspace({
                 )}
 
                 {/* Facts Summary */}
-                {latest.facts?.paragraphs && (
+                {paragraphFacts.length > 0 && (
                   <div className="space-y-2 pt-2 border-t border-border/60">
                     <span className="font-medium text-muted-foreground block text-xs">
-                      Section Paragraph Facts ({latest.facts.paragraphs.length})
+                      Section Paragraph Facts ({paragraphFacts.length})
                     </span>
                     <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                      {latest.facts.paragraphs.map((p, pIdx) => (
+                      {paragraphFacts.map((p, pIdx) => (
                         <div key={pIdx} className="p-2 bg-muted/30 rounded border border-border/40 text-[11px] space-y-1">
                           <div className="font-mono font-semibold text-foreground truncate">
-                            {p.paragraphKey || p.paragraphId || `Para ${pIdx + 1}`}
+                            {p.paragraphId || `Para ${pIdx + 1}`}
                           </div>
                           <div className="text-muted-foreground flex items-center gap-2">
                             <span>Ev: {p.usedEvidenceIds?.length || 0}</span>

@@ -2,6 +2,8 @@ export interface H3StatusView {
   h3Status: 'PENDING' | 'APPROVED' | 'REJECTED';
   canApprove: boolean;
   blockingReasons: string[];
+  requiredSections: string[];
+  omittedSections: string[];
   compositeTargetHash: string;
   latestApproval: {
     id: string;
