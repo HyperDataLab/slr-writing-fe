@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Link } from "react-router";
 import {
   ArrowPathIcon,
   CheckBadgeIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
+  PencilSquareIcon,
   SparklesIcon,
   XCircleIcon,
 } from "@heroicons/react/24/outline";
@@ -12,8 +15,11 @@ import {
   generateSectionDraft,
   getSectionDraft,
   rejectSectionRevision,
+  saveSectionDraft,
 } from "@/features/drafting/api/drafting.api";
 import { ApiError } from "@/shared/lib/api-client";
+import { DraftEditor } from "@/features/drafting/components/DraftEditor";
+import { getLatestVerification } from "@/features/verification/api/verification.api";
 import { H2DecisionDialog } from "@/features/drafting/components/H2DecisionDialog";
 import type { SectionDraftView } from "@/features/drafting/model/drafting.types";
 import type { SnapshotSummary } from "@/features/snapshots/model/snapshot.types";
@@ -40,6 +46,11 @@ export function DraftingWorkspace({
   const [loading, setLoading] = useState(true);
   const [drafting, setDrafting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { t } = useTranslation();
+  const [editing, setEditing] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  // When the latest verification report ran; null while loading or when none exists (fail-closed).
+  const [verifiedAt, setVerifiedAt] = useState<string | null>(null);
 
   // Decision Modal State
   const [modalAction, setModalAction] = useState<"approve" | "reject" | null>(null);
@@ -55,9 +66,13 @@ export function DraftingWorkspace({
     setError(null);
     setSelectedCitation(null);
     setDraftView(null);
+    setEditing(false);
+    setVerifiedAt(null);
     try {
       const data = await getSectionDraft(projectId, snapshot.id, secKey);
       if (seq === loadSeq.current) setDraftView(data);
+      const report = await getLatestVerification(projectId, snapshot.id).catch(() => null);
+      if (seq === loadSeq.current) setVerifiedAt(report?.runAt ?? null);
     } catch (err: unknown) {
       if (seq !== loadSeq.current) return;
       setDraftView(null);
@@ -123,6 +138,26 @@ export function DraftingWorkspace({
     : [];
   // Methods comes from the fixed template (Methods page), never from the LLM drafter.
   const canDraft = activeSection !== "methods";
+  // A hand edit keeps the old evidence facts, so the new version must be re-verified before H2 can approve it.
+  const needsReverify =
+    !!latest &&
+    latest.generator === "manual-edit" &&
+    !(verifiedAt && Date.parse(verifiedAt) > Date.parse(latest.createdAt));
+  const verificationLink = `/verification?projectId=${encodeURIComponent(projectId)}&snapshotId=${encodeURIComponent(snapshot.id)}`;
+
+  const handleSaveEdit = async (markdown: string) => {
+    if (!draftView) return;
+    const result = await saveSectionDraft(projectId, snapshot.id, draftView.sectionKey, {
+      baseVersion: draftView.revision.version,
+      markdown,
+    });
+    setNotice(
+      result.created
+        ? t("draftEdit.saved", { version: result.revision.version })
+        : t("draftEdit.unchanged"),
+    );
+    await loadDraft(draftView.sectionKey);
+  };
 
   return (
     <div className="space-y-6">
@@ -236,7 +271,8 @@ export function DraftingWorkspace({
                 size="sm"
                 className="text-xs h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
                 onClick={() => setModalAction("approve")}
-                disabled={drafting || loading || status === "APPROVED"}
+                disabled={drafting || loading || needsReverify || status === "APPROVED"}
+                title={needsReverify ? t("draftEdit.reverifyBody") : undefined}
               >
                 <CheckBadgeIcon className="size-4 mr-1" />
                 Approve H2
@@ -250,6 +286,25 @@ export function DraftingWorkspace({
         <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm p-4 rounded-lg flex items-center justify-between">
           <span>{error}</span>
           <Button variant="ghost" size="sm" onClick={() => setError(null)}>Dismiss</Button>
+        </div>
+      )}
+
+      {notice && (
+        <div role="status" className="bg-primary/10 border border-primary/20 text-sm p-3 rounded-lg flex items-center justify-between">
+          <span>{notice}</span>
+          <Button variant="ghost" size="sm" onClick={() => setNotice(null)}>OK</Button>
+        </div>
+      )}
+
+      {needsReverify && !loading && (
+        <div role="alert" className="bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-sm p-4 rounded-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <div className="font-semibold">{t("draftEdit.reverifyTitle")}</div>
+            <div className="text-xs mt-0.5">{t("draftEdit.reverifyBody")}</div>
+          </div>
+          <Button asChild variant="outline" size="sm">
+            <Link to={verificationLink}>{t("draftEdit.reverifyAction")}</Link>
+          </Button>
         </div>
       )}
 
@@ -280,13 +335,30 @@ export function DraftingWorkspace({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Pane: Drafted Prose (2 Cols) */}
           <div className="lg:col-span-2 space-y-4">
-            <Card className="border border-border/80">
+            {editing && (
+              <DraftEditor
+                initialMarkdown={latest.markdown}
+                onSave={handleSaveEdit}
+                onCancel={() => setEditing(false)}
+              />
+            )}
+            <Card className={`border border-border/80 ${editing ? "hidden" : ""}`}>
               <CardHeader className="py-3 px-4 border-b border-border/40 bg-muted/30 flex flex-row items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Drafted Prose (Markdown)
                 </span>
-                <span className="text-xs font-mono text-muted-foreground">
-                  {latest.markdown.length} chars • {latest.generator}
+                <span className="flex items-center gap-3">
+                  <span className="text-xs font-mono text-muted-foreground">
+                    {latest.markdown.length} chars • {latest.generator}
+                  </span>
+                  {canDraft ? (
+                    <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => setEditing(true)} disabled={drafting || loading}>
+                      <PencilSquareIcon className="size-3.5" />
+                      {t("draftEdit.edit")}
+                    </Button>
+                  ) : (
+                    <span className="text-[11px] text-muted-foreground">{t("draftEdit.methodsHint")}</span>
+                  )}
                 </span>
               </CardHeader>
               <CardContent className="p-5 font-serif leading-relaxed text-foreground text-sm space-y-4">

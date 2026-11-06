@@ -19,7 +19,7 @@ React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui source components with Rad
 | `journal-profiles` | List and view read-only journal profiles, preserve section order and expected sources, and clearly label verification status and suggested word budgets. | M3 |
 | `outline` | Generate and version a manuscript blueprint from a READY snapshot and Journal Profile; assign snapshot claims, show RQ coverage and backend issues, and request H1 approval. Profile section order is fixed; subsections can be reordered. OWNER authorization is enforced by the backend. | M5 |
 | `paragraph-plans` | Generate and show paragraph plans from the approved blueprint, with per-section status and the backend's readiness issues. Implemented as its own feature, not under `manuscripts`. | M6 |
-| `drafting` | Draft a section from READY plans, show markdown with evidence markers, record OWNER H2. Methods is excluded (it has its own page). | M7 |
+| `drafting` | Draft a section from READY plans, edit it by hand (new version, H2 approve locked until re-verified), show markdown with evidence markers, record OWNER H2. Methods is excluded (it has its own page). | M7 |
 | `verification` | Run and show G1–G7 (`NOT_RUN` and `NOT_APPLICABLE` stay distinct from `PASS`), review issues, and the citation manifest. | M8 |
 | `approvals` | Not a feature folder: H1 lives in `outline`, H2 in `drafting`, H3 in `export`. Each presents the OWNER decision with its recorded provenance. | Cross-cutting workflow |
 | `export` | Show H3 readiness (`blockingReasons`, `requiredSections`, `omittedSections`), record H3, create and download the package, and query evidence lineage. | M9 |
@@ -35,7 +35,7 @@ React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui source components with Rad
 
 ## Open items
 
-- Manual edit of a draft and of paragraph plans (the BE `PUT` routes exist).
+- Manual edit of paragraph plans (the BE `PUT` route exists). Manual edit of drafts is done.
 - Picker for approved SLR runs (import currently takes a typed `runId`).
 - Translate `paragraph-plans`, `drafting`, `verification`, and `export` into both locales.
 - Firebase `auth`: token via `setApiTokenProvider`, protected routes.

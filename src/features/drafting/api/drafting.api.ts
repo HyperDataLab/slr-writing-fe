@@ -27,6 +27,18 @@ export function generateSectionDraft(
   });
 }
 
+export function saveSectionDraft(
+  projectId: string,
+  snapshotId: string,
+  sectionKey: string,
+  input: { baseVersion: number; markdown: string },
+): Promise<GenerateDraftResponse> {
+  return apiRequest<GenerateDraftResponse>(sectionPath(projectId, snapshotId, sectionKey), {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
 export function getSectionRevision(
   projectId: string,
   snapshotId: string,

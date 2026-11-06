@@ -1,6 +1,24 @@
 export const resources = {
   vi: {
     translation: {
+      draftEdit: {
+        edit: "Sửa tay",
+        editorLabel: "Nội dung Markdown của phần",
+        save: "Lưu thành phiên bản mới",
+        saving: "Đang lưu...",
+        cancel: "Hủy",
+        unsavedHint: "Có thay đổi chưa lưu",
+        emptyError: "Nội dung không được để trống.",
+        conflictError: "Bản nháp đã đổi ở nơi khác. Hãy tải lại rồi sửa tiếp.",
+        saveError: "Không lưu được bản nháp.",
+        saved: "Đã lưu thành phiên bản v{{version}}. Cần chạy lại kiểm chứng trước khi duyệt H2.",
+        unchanged: "Nội dung không thay đổi, không tạo phiên bản mới.",
+        warning: "Lưu sẽ tạo phiên bản mới ở trạng thái chờ duyệt H2. Trích dẫn và số liệu trong văn bản sẽ được kiểm lại khi chạy kiểm chứng; hệ thống không sửa dữ liệu khoa học thay bạn.",
+        reverifyTitle: "Bản nháp đã được sửa tay, chưa kiểm chứng lại",
+        reverifyBody: "Chạy lại kiểm chứng (G1–G7) cho phiên bản này trước khi duyệt H2. Nút duyệt H2 bị khóa cho tới khi đó.",
+        reverifyAction: "Đi tới Kiểm chứng",
+        methodsHint: "Phần Methods được tạo từ mẫu ở trang Methods, không sửa tay ở đây.",
+      },
       common: {
         language: "Ngôn ngữ",
         workspace: "Không gian làm việc",
@@ -419,6 +437,24 @@ export const resources = {
   },
   en: {
     translation: {
+      draftEdit: {
+        edit: "Edit manually",
+        editorLabel: "Section Markdown",
+        save: "Save as new version",
+        saving: "Saving...",
+        cancel: "Cancel",
+        unsavedHint: "Unsaved changes",
+        emptyError: "The text cannot be empty.",
+        conflictError: "The draft changed elsewhere. Reload and edit again.",
+        saveError: "The draft could not be saved.",
+        saved: "Saved as version v{{version}}. Run verification again before approving H2.",
+        unchanged: "The text did not change, so no new version was created.",
+        warning: "Saving creates a new version that is pending H2. Citations and figures in the text are re-checked when you run verification; the system does not change scientific data for you.",
+        reverifyTitle: "This draft was edited by hand and has not been re-verified",
+        reverifyBody: "Run verification (G1–G7) for this version before approving H2. The H2 approve button stays locked until then.",
+        reverifyAction: "Go to Verification",
+        methodsHint: "Methods is generated from a template on the Methods page and is not edited by hand here.",
+      },
       common: {
         language: "Language",
         workspace: "Workspace",
