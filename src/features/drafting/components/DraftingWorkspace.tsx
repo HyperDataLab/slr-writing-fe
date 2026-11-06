@@ -28,11 +28,16 @@ import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 
+/** Written last, from the sections a person has approved (H2), not from paragraph plans. */
+const SYNTHESIS_SECTIONS = ["abstract", "conclusion"];
+
 const DEFAULT_SECTIONS = [
-  { key: "results", label: "draft.tab.results" },
-  { key: "methods", label: "draft.tab.methods" },
-  { key: "discussion", label: "draft.tab.discussion" },
+  { key: "abstract", label: "draft.tab.abstract" },
   { key: "introduction", label: "draft.tab.introduction" },
+  { key: "methods", label: "draft.tab.methods" },
+  { key: "results", label: "draft.tab.results" },
+  { key: "discussion", label: "draft.tab.discussion" },
+  { key: "conclusion", label: "draft.tab.conclusion" },
 ];
 
 export function DraftingWorkspace({
@@ -103,7 +108,12 @@ export function DraftingWorkspace({
       await generateSectionDraft(projectId, snapshot.id, activeSection);
       await loadDraft(activeSection);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t("draft.draftError"));
+      if (err instanceof ApiError && err.code === "SOURCE_SECTIONS_NOT_APPROVED") {
+        const list = (err.details as { sections?: Array<{ sectionKey: string }> } | undefined)?.sections ?? [];
+        setError(t("draft.sourcesNotApproved", { sections: list.map((s) => t(`plans.sectionName.${s.sectionKey}`, { defaultValue: s.sectionKey })).join(", ") }));
+      } else {
+        setError(err instanceof Error ? err.message : t("draft.draftError"));
+      }
     } finally {
       setDrafting(false);
     }
@@ -146,6 +156,7 @@ export function DraftingWorkspace({
     : [];
   // Methods comes from the fixed template (Methods page), never from the LLM drafter.
   const canDraft = activeSection !== "methods";
+  const isSynthesis = SYNTHESIS_SECTIONS.includes(activeSection);
   const sectionLabel = t(`plans.sectionName.${draftView?.sectionKey ?? activeSection}`, { defaultValue: activeSection });
   // A hand edit keeps the old evidence facts, so the new version must be re-verified before H2 can approve it.
   const verificationFailed = verifiedStatus === "FAILED";
@@ -333,7 +344,7 @@ export function DraftingWorkspace({
             <div>
               <h3 className="text-base font-semibold">{t("draft.noDraftTitle", { section: sectionLabel })}</h3>
               <p className="text-sm text-muted-foreground max-w-md mx-auto mt-1">
-                {t("draft.noDraftDescription")}
+                {isSynthesis ? t("draft.synthesisHint") : t("draft.noDraftDescription")}
               </p>
             </div>
             <Button onClick={handleGenerate} disabled={drafting || !canDraft} className="gap-2">

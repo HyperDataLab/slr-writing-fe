@@ -101,12 +101,12 @@ Mở đầu: "Hệ thống biến kết quả tổng quan SLR đã duyệt thàn
 | 9 | **Xuất bản** (lần đầu) | **Bị chặn**, nêu lý do: chưa duyệt H2, chưa kiểm chứng |
 | 10 | **Sửa tay** bản nháp Kết quả | Tạo phiên bản mới; nút Duyệt H2 **bị khóa** tới khi kiểm chứng lại |
 | 11 | **Cổng chất lượng**: chạy G1–G7, xem danh mục trích dẫn | 7/7 đạt, mọi trích dẫn khớp registry |
-| 12 | Quay lại Soạn thảo, **Duyệt H2** cả 4 section | Nút duyệt đã mở khóa |
+| 12 | Quay lại Soạn thảo, **Duyệt H2** Kết quả, Thảo luận, Mở đầu, Phương pháp; rồi soạn **Tóm tắt** và **Kết luận** từ các section đã duyệt và duyệt H2; chạy lại kiểm chứng | Abstract/Conclusion viết sau cùng, không thêm số liệu hay trích dẫn mới; có section mới nên báo cáo cũ phải chạy lại |
 | 13 | **Xuất bản**: Duyệt H3, Tạo gói v1, tab Truy vết ngược | Gói ZIP 7 tệp; truy từ một câu về bằng chứng, nghiên cứu và vị trí nguồn |
 
 Câu chốt: "Không thể xuất bản thảo thiếu section, chưa duyệt đủ H1/H2/H3 hoặc có kiểm chứng đã cũ. Hệ thống dừng và nói rõ lý do."
 
-Nên chủ động nói trước: gói nộp ghi rõ **Tóm tắt và Kết luận không có trong bản này** vì engine chưa soạn được hai phần đó.
+Gói nộp có đủ sáu section (Tóm tắt, Mở đầu, Phương pháp, Kết quả, Thảo luận, Kết luận) cùng phần tài liệu tham khảo.
 
 ## Dọn dẹp
 
