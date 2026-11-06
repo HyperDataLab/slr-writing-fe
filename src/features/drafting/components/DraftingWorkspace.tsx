@@ -49,8 +49,8 @@ export function DraftingWorkspace({
   const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  // When the latest verification report ran; null while loading or when none exists (fail-closed).
-  const [verifiedAt, setVerifiedAt] = useState<string | null>(null);
+  // Whether the latest verification report still describes the current sections; false while loading or when none exists (fail-closed).
+  const [verifiedCurrent, setVerifiedCurrent] = useState(false);
   const [verifiedStatus, setVerifiedStatus] = useState<string | null>(null);
 
   // Decision Modal State
@@ -68,14 +68,14 @@ export function DraftingWorkspace({
     setSelectedCitation(null);
     setDraftView(null);
     setEditing(false);
-    setVerifiedAt(null);
+    setVerifiedCurrent(false);
     setVerifiedStatus(null);
     try {
       const data = await getSectionDraft(projectId, snapshot.id, secKey);
       if (seq === loadSeq.current) setDraftView(data);
       const report = await getLatestVerification(projectId, snapshot.id).catch(() => null);
       if (seq === loadSeq.current) {
-        setVerifiedAt(report?.runAt ?? null);
+        setVerifiedCurrent(report?.isCurrent === true);
         setVerifiedStatus(report?.status ?? null);
       }
     } catch (err: unknown) {
@@ -146,7 +146,8 @@ export function DraftingWorkspace({
   const canDraft = activeSection !== "methods";
   // A hand edit keeps the old evidence facts, so the new version must be re-verified before H2 can approve it.
   const verificationFailed = verifiedStatus === "FAILED";
-  const reportCoversVersion = !!latest && !!verifiedAt && Date.parse(verifiedAt) > Date.parse(latest.createdAt);
+  // The BE decides what is current (it compares section content, not clocks) and also enforces this lock on approve.
+  const reportCoversVersion = verifiedCurrent;
   const needsReverify = !!latest && latest.generator === "manual-edit" && !(reportCoversVersion && !verificationFailed);
   const verificationLink = `/verification?projectId=${encodeURIComponent(projectId)}&snapshotId=${encodeURIComponent(snapshot.id)}`;
 
