@@ -43,7 +43,7 @@ export function ProjectsPage() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{t("projects.sectionLabel")}</p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-tight">{t("projects.title")}</h2>
+            <h2 className="slrw-page-title mt-1 tracking-tight">{t("projects.title")}</h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               {t("projects.description")}
             </p>

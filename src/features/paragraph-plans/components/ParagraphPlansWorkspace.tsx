@@ -132,7 +132,7 @@ export function ParagraphPlansWorkspace({
               </div>
               <div className="bg-muted/40 p-3 rounded-lg border border-border/40">
                 <span className="text-xs text-muted-foreground uppercase tracking-wider block font-medium">{t("plans.readyToDraft")}</span>
-                <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 block">{view.stats.readyParagraphs}</span>
+                <span className="text-2xl font-bold text-success mt-0.5 block">{view.stats.readyParagraphs}</span>
               </div>
               <div className="bg-muted/40 p-3 rounded-lg border border-border/40">
                 <span className="text-xs text-muted-foreground uppercase tracking-wider block font-medium">{t("plans.sectionsPlanned")}</span>
@@ -157,7 +157,7 @@ export function ParagraphPlansWorkspace({
       )}
 
       {view && view.issues.length > 0 && (
-        <Card className="border border-amber-500/40 bg-amber-500/5">
+        <Card className="border border-warning-border bg-warning-soft0/5">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">
               {view.readyToDraft ? t("plans.notes") : t("plans.notReady")} ({view.issues.length})
