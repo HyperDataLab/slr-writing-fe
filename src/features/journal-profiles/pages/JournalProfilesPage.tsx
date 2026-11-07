@@ -113,7 +113,7 @@ export function JournalProfilesPage() {
       <MotionReveal>
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{t("journalProfiles.step")}</p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight">{t("journalProfiles.title")}</h2>
+          <h2 className="slrw-page-title mt-1 tracking-tight">{t("journalProfiles.title")}</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{t("journalProfiles.description")}</p>
         </div>
       </MotionReveal>
@@ -175,7 +175,7 @@ export function JournalProfilesPage() {
                   <Badge variant="secondary">v{profile.version}</Badge>
                   <Badge
                     variant={profile.verification.status === "verified" ? "default" : "outline"}
-                    className={profile.verification.status === "unverified" ? "border-amber-300 bg-amber-50 text-amber-900" : undefined}
+                    className={profile.verification.status === "unverified" ? "border-warning-border bg-warning-soft text-warning" : undefined}
                   >
                     {t(`journalProfiles.status.${profile.verification.status}`)}
                   </Badge>
@@ -188,7 +188,7 @@ export function JournalProfilesPage() {
             </CardHeader>
             <CardContent className="space-y-5">
               {profile.notice && (
-                <div className="flex items-start gap-3 rounded-lg border border-amber-300/70 bg-amber-50/70 p-4 text-amber-950">
+                <div className="flex items-start gap-3 rounded-lg border border-warning-border bg-warning-soft p-4 text-warning">
                   <ExclamationTriangleIcon className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
                   <div>
                     <p className="text-sm font-semibold">{t("journalProfiles.noticeTitle")}</p>

@@ -98,7 +98,7 @@ export function ParagraphPlanCard({ item, index }: { item: ParagraphPlanItem; in
           </div>
         </div>
         {item.limitations.length > 0 && (
-          <ul className="list-disc pl-4 text-[11px] text-amber-700 dark:text-amber-400 space-y-0.5">
+          <ul className="list-disc pl-4 text-[11px] text-warning space-y-0.5">
             {item.limitations.map((l) => (
               <li key={l}>{l}</li>
             ))}

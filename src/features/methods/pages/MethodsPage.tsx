@@ -110,7 +110,7 @@ export function MethodsPage() {
       <MotionReveal>
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{t("methods.step")}</p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight">{t("methods.title")}</h2>
+          <h2 className="slrw-page-title mt-1 tracking-tight">{t("methods.title")}</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{t("methods.description")}</p>
         </div>
       </MotionReveal>

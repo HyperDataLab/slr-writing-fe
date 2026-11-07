@@ -1,14 +1,37 @@
 :root {
   color-scheme: light;
-
   --slr-primary: #0071bc;
   --slr-primary-hover: #005f9e;
-  --slr-blue-tint: #f0f7fc;
+  --slr-primary-dark: #044a79;
+  --slr-primary-soft: #f0f7fc;
+  --slr-primary-light: #e2f0fe;
   --slr-ink: #122331;
   --slr-muted-ink: #647381;
+  --slr-disabled-ink: #8b9aa4;
   --slr-canvas: #f7f9fa;
   --slr-surface: #ffffff;
   --slr-border: #dce4e9;
+  --slr-border-strong: #c6d0d6;
+  --slr-night: #0b1720;
+  --slr-night-border: #3c4c58;
+  --slr-success: #117035;
+  --slr-success-soft: #ecf8ef;
+  --slr-warning: #92400e;
+  --slr-warning-soft: #fef3c7;
+  --slr-warning-border: #fcd34d;
+  --slr-danger: #dc2626;
+  --slr-danger-soft: #fef2f2;
+  --slr-danger-border: #fecaca;
+
+  --slr-type-page-title: 1.875rem;
+  --slr-type-section-title: 1.125rem;
+  --slr-type-body: 1rem;
+  --slr-type-body-small: 0.875rem;
+  --slr-type-caption: 0.75rem;
+  --slr-weight-regular: 400;
+  --slr-weight-medium: 500;
+  --slr-weight-semibold: 600;
+  --slr-weight-bold: 700;
 
   --background: var(--slr-canvas);
   --foreground: var(--slr-ink);
@@ -18,15 +41,16 @@
   --popover-foreground: var(--slr-ink);
   --primary: var(--slr-primary);
   --primary-foreground: #ffffff;
-  --secondary: var(--slr-blue-tint);
+  --secondary: #eef2f5;
   --secondary-foreground: var(--slr-ink);
-  --muted: var(--slr-blue-tint);
+  --muted: #eef2f5;
   --muted-foreground: var(--slr-muted-ink);
-  --accent: var(--slr-blue-tint);
+  --accent: var(--slr-primary-soft);
   --accent-foreground: var(--slr-ink);
   --border: var(--slr-border);
-  --input: var(--slr-border);
+  --input: var(--slr-border-strong);
   --ring: var(--slr-primary);
+  --destructive: var(--slr-danger);
+  --destructive-foreground: #ffffff;
   --radius: 0.875rem;
 }
-

@@ -93,7 +93,7 @@ export function GateAuditCard({ gate, issues }: { gate: QualityGateResult; issue
                   className={`p-2 rounded border text-[11px] space-y-0.5 ${
                     issue.severity === "BLOCKING"
                       ? "bg-destructive/10 border-destructive/20 text-destructive"
-                      : "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400"
+                      : "bg-warning-soft border-warning-border text-warning"
                   }`}
                 >
                   <div className="flex items-center justify-between font-semibold">

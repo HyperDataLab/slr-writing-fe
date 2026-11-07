@@ -55,7 +55,7 @@ export function DraftEditor({
         </span>
       </CardHeader>
       <CardContent className="p-4 space-y-3">
-        <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-md p-2.5">
+        <p className="text-xs text-warning bg-warning-soft border border-warning-border rounded-md p-2.5">
           {t("draftEdit.warning")}
         </p>
         <textarea

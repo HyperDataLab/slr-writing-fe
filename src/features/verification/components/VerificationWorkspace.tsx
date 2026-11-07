@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useStableT } from "@/shared/i18n/use-stable-t";
 import {
@@ -27,11 +28,25 @@ export function VerificationWorkspace({
 }) {
   const { t } = useTranslation();
   const stableT = useStableT();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [report, setReport] = useState<VerificationReportView | null>(null);
   const [loading, setLoading] = useState(true);
   const [auditing, setAuditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"gates" | "manifest">("gates");
+  const [activeTab, setActiveTab] = useState<"gates" | "manifest">(
+    searchParams.get("tab") === "manifest" ? "manifest" : "gates",
+  );
+
+  useEffect(() => {
+    setActiveTab(searchParams.get("tab") === "manifest" ? "manifest" : "gates");
+  }, [searchParams]);
+
+  const selectTab = (tab: "gates" | "manifest") => {
+    setActiveTab(tab);
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", tab);
+    setSearchParams(next, { replace: true });
+  };
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -138,21 +153,21 @@ export function VerificationWorkspace({
 
               <div className="bg-muted/40 p-3 rounded-lg border border-border/40">
                 <span className="text-[11px] text-muted-foreground uppercase tracking-wider block font-medium">{t("verify.warnings")}</span>
-                <span className={`text-xl font-bold mt-0.5 block ${(summary?.warnings ?? 0) > 0 ? "text-amber-500" : "text-muted-foreground"}`}>
+                <span className={`text-xl font-bold mt-0.5 block ${(summary?.warnings ?? 0) > 0 ? "text-warning" : "text-muted-foreground"}`}>
                   {summary?.warnings ?? 0}
                 </span>
               </div>
 
               <div className="bg-muted/40 p-3 rounded-lg border border-border/40">
                 <span className="text-[11px] text-muted-foreground uppercase tracking-wider block font-medium">{t("verify.blockingIssues")}</span>
-                <span className={`text-xl font-bold mt-0.5 block ${(summary?.blockingIssues ?? 0) > 0 ? "text-destructive" : "text-emerald-600"}`}>
+                <span className={`text-xl font-bold mt-0.5 block ${(summary?.blockingIssues ?? 0) > 0 ? "text-destructive" : "text-success"}`}>
                   {summary?.blockingIssues ?? 0}
                 </span>
               </div>
 
               <div className="bg-muted/40 p-3 rounded-lg border border-border/40 col-span-2 sm:col-span-1">
                 <span className="text-[11px] text-muted-foreground uppercase tracking-wider block font-medium">{t("verify.notRunNa")}</span>
-                <span className={`text-xl font-bold mt-0.5 block ${(summary?.notRun ?? 0) > 0 ? "text-amber-500" : "text-muted-foreground"}`}>
+                <span className={`text-xl font-bold mt-0.5 block ${(summary?.notRun ?? 0) > 0 ? "text-warning" : "text-muted-foreground"}`}>
                   {summary?.notRun ?? 0} / {summary?.notApplicable ?? 0}
                 </span>
               </div>
@@ -171,7 +186,7 @@ export function VerificationWorkspace({
       {/* Tabs navigation */}
       <div className="flex items-center gap-2 border-b border-border/60 pb-2">
         <button
-          onClick={() => setActiveTab("gates")}
+          onClick={() => selectTab("gates")}
           className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
             activeTab === "gates"
               ? "bg-primary text-primary-foreground"
@@ -181,7 +196,7 @@ export function VerificationWorkspace({
           {t("verify.tabGates")}
         </button>
         <button
-          onClick={() => setActiveTab("manifest")}
+          onClick={() => selectTab("manifest")}
           className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
             activeTab === "manifest"
               ? "bg-primary text-primary-foreground"
