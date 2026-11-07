@@ -1,19 +1,26 @@
 import { lazy, Suspense, type ReactNode } from "react";
-import { BrowserRouter, Route, Routes } from "react-router";
+import { BrowserRouter, Navigate, Route, Routes, useSearchParams } from "react-router";
 import { AppShell } from "@/app/layouts/AppShell";
+import { RequireAuth } from "@/features/auth/RequireAuth";
 import { NotFoundPage } from "@/shared/ui/NotFoundPage";
 import { RouteLoading } from "@/shared/ui/RouteLoading";
 
+const LoginPage = lazy(() =>
+  import("@/features/auth/LoginPage").then((module) => ({ default: module.LoginPage })),
+);
 const OverviewPage = lazy(() =>
   import("@/features/projects/pages/OverviewPage").then((module) => ({ default: module.OverviewPage })),
 );
-const ProjectsPage = lazy(() =>
-  import("@/features/projects/pages/ProjectsPage").then((module) => ({ default: module.ProjectsPage })),
+const ImportProjectPage = lazy(() =>
+  import("@/features/projects/pages/ImportProjectPage").then((module) => ({ default: module.ImportProjectPage })),
 );
 const SnapshotReadinessPage = lazy(() =>
   import("@/features/snapshots/pages/SnapshotReadinessPage").then((module) => ({
     default: module.SnapshotReadinessPage,
   })),
+);
+const EvidenceRegistryPage = lazy(() =>
+  import("@/features/evidence/pages/EvidenceRegistryPage").then((module) => ({ default: module.EvidenceRegistryPage })),
 );
 const JournalProfilesPage = lazy(() =>
   import("@/features/journal-profiles/pages/JournalProfilesPage").then((module) => ({ default: module.JournalProfilesPage })),
@@ -37,6 +44,17 @@ const ExportPage = lazy(() =>
   import("@/features/export/pages/ExportPage").then((module) => ({ default: module.ExportPage })),
 );
 
+function SnapshotRoute() {
+  const [searchParams] = useSearchParams();
+  if (searchParams.get("mode") === "import") {
+    const next = new URLSearchParams(searchParams);
+    next.delete("mode");
+    next.delete("snapshotId");
+    const query = next.toString();
+    return <Navigate to={query ? `/import?${query}` : "/import"} replace />;
+  }
+  return <PageSuspense><SnapshotReadinessPage /></PageSuspense>;
+}
 function PageSuspense({ children }: { children: ReactNode }) {
   return <Suspense fallback={<RouteLoading />}>{children}</Suspense>;
 }
@@ -45,10 +63,14 @@ export function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="login" element={<PageSuspense><LoginPage /></PageSuspense>} />
+        <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
           <Route index element={<PageSuspense><OverviewPage /></PageSuspense>} />
-          <Route path="projects" element={<PageSuspense><ProjectsPage /></PageSuspense>} />
-          <Route path="snapshots" element={<PageSuspense><SnapshotReadinessPage /></PageSuspense>} />
+          <Route path="projects" element={<Navigate to="/import?newProject=1" replace />} />
+          <Route path="import" element={<PageSuspense><ImportProjectPage /></PageSuspense>} />
+          <Route path="evidence" element={<PageSuspense><EvidenceRegistryPage /></PageSuspense>} />
+          <Route path="snapshots" element={<SnapshotRoute />} />
           <Route path="journal-profiles" element={<PageSuspense><JournalProfilesPage /></PageSuspense>} />
           <Route path="methods" element={<PageSuspense><MethodsPage /></PageSuspense>} />
           <Route path="outline" element={<PageSuspense><OutlinePage /></PageSuspense>} />
@@ -57,6 +79,7 @@ export function AppRouter() {
           <Route path="verification" element={<PageSuspense><VerificationPage /></PageSuspense>} />
           <Route path="export" element={<PageSuspense><ExportPage /></PageSuspense>} />
           <Route path="*" element={<NotFoundPage />} />
+        </Route>
         </Route>
       </Routes>
     </BrowserRouter>

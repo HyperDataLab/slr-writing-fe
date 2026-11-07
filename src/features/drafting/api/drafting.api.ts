@@ -1,7 +1,6 @@
 import { apiRequest } from "@/shared/lib/api-client";
 import type {
   DecideRevisionResponse,
-  DraftRevision,
   GenerateDraftResponse,
   SectionDraftView,
 } from "@/features/drafting/model/drafting.types";
@@ -28,13 +27,25 @@ export function generateSectionDraft(
   });
 }
 
+export function saveSectionDraft(
+  projectId: string,
+  snapshotId: string,
+  sectionKey: string,
+  input: { baseVersion: number; markdown: string },
+): Promise<GenerateDraftResponse> {
+  return apiRequest<GenerateDraftResponse>(sectionPath(projectId, snapshotId, sectionKey), {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
 export function getSectionRevision(
   projectId: string,
   snapshotId: string,
   sectionKey: string,
   version: number,
-): Promise<DraftRevision> {
-  return apiRequest<DraftRevision>(`${sectionPath(projectId, snapshotId, sectionKey)}/revisions/${version}`);
+): Promise<SectionDraftView> {
+  return apiRequest<SectionDraftView>(`${sectionPath(projectId, snapshotId, sectionKey)}/revisions/${version}`);
 }
 
 export function approveSectionRevision(

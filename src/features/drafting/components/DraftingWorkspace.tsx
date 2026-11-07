@@ -1,9 +1,15 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useStableT } from "@/shared/i18n/use-stable-t";
+import { Link } from "react-router";
 import {
   ArrowPathIcon,
+  CircleStackIcon,
   CheckBadgeIcon,
   CheckCircleIcon,
+  DocumentTextIcon,
   ExclamationTriangleIcon,
+  PencilSquareIcon,
   SparklesIcon,
   XCircleIcon,
 } from "@heroicons/react/24/outline";
@@ -12,19 +18,23 @@ import {
   generateSectionDraft,
   getSectionDraft,
   rejectSectionRevision,
+  saveSectionDraft,
 } from "@/features/drafting/api/drafting.api";
+import { ApiError } from "@/shared/lib/api-client";
+import { DraftEditor } from "@/features/drafting/components/DraftEditor";
+import { getLatestVerification } from "@/features/verification/api/verification.api";
 import { H2DecisionDialog } from "@/features/drafting/components/H2DecisionDialog";
 import type { SectionDraftView } from "@/features/drafting/model/drafting.types";
 import type { SnapshotSummary } from "@/features/snapshots/model/snapshot.types";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
+import { Card, CardContent } from "@/shared/ui/card";
 
 const DEFAULT_SECTIONS = [
-  { key: "results", label: "Results (M7)" },
-  { key: "methods", label: "Methods (M2)" },
-  { key: "discussion", label: "Discussion" },
-  { key: "introduction", label: "Introduction" },
+  { key: "introduction", label: "draft.tab.introduction" },
+  { key: "methods", label: "draft.tab.methods" },
+  { key: "results", label: "draft.tab.results" },
+  { key: "discussion", label: "draft.tab.discussion" },
 ];
 
 export function DraftingWorkspace({
@@ -34,34 +44,58 @@ export function DraftingWorkspace({
   projectId: string;
   snapshot: SnapshotSummary;
 }) {
-  const [activeSection, setActiveSection] = useState<string>("results");
+  const [activeSection, setActiveSection] = useState<string>("introduction");
   const [draftView, setDraftView] = useState<SectionDraftView | null>(null);
   const [loading, setLoading] = useState(true);
   const [drafting, setDrafting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { t } = useTranslation();
+  const stableT = useStableT();
+  const [editing, setEditing] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  // Whether the latest verification report still describes the current sections; false while loading or when none exists (fail-closed).
+  const [verifiedCurrent, setVerifiedCurrent] = useState(false);
+  const [verifiedStatus, setVerifiedStatus] = useState<string | null>(null);
 
   // Decision Modal State
   const [modalAction, setModalAction] = useState<"approve" | "reject" | null>(null);
   const [submittingDecision, setSubmittingDecision] = useState(false);
   const [selectedCitation, setSelectedCitation] = useState<string | null>(null);
+  const [inspectorTab, setInspectorTab] = useState<"evidence" | "checks">("evidence");
+
+  // Only the latest request may update the view; an older, slower response must not show another section's draft.
+  const loadSeq = useRef(0);
 
   const loadDraft = useCallback(async (secKey: string) => {
+    const seq = ++loadSeq.current;
     setLoading(true);
     setError(null);
     setSelectedCitation(null);
+    setDraftView(null);
+    setEditing(false);
+    setVerifiedCurrent(false);
+    setVerifiedStatus(null);
     try {
       const data = await getSectionDraft(projectId, snapshot.id, secKey);
-      setDraftView(data);
+      if (seq === loadSeq.current) setDraftView(data);
+      const report = await getLatestVerification(projectId, snapshot.id).catch(() => null);
+      if (seq === loadSeq.current) {
+        setVerifiedCurrent(report?.isCurrent === true);
+        setVerifiedStatus(report?.status ?? null);
+      }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to load section draft";
-      setError(msg);
+      if (seq !== loadSeq.current) return;
       setDraftView(null);
+      if (!(err instanceof ApiError && err.status === 404)) {
+        setError(err instanceof Error ? err.message : stableT("draft.loadError"));
+      }
     } finally {
-      setLoading(false);
+      if (seq === loadSeq.current) setLoading(false);
     }
-  }, [projectId, snapshot.id]);
+  }, [projectId, snapshot.id, stableT]);
 
   useEffect(() => {
+    setNotice(null);
     void loadDraft(activeSection);
   }, [activeSection, loadDraft]);
 
@@ -72,315 +106,416 @@ export function DraftingWorkspace({
       await generateSectionDraft(projectId, snapshot.id, activeSection);
       await loadDraft(activeSection);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Section drafting failed");
+      setError(err instanceof Error ? err.message : t("draft.draftError"));
     } finally {
       setDrafting(false);
     }
   };
 
   const handleDecisionConfirm = async (note?: string) => {
-    if (!draftView?.latestRevision || !modalAction) return;
+    if (!draftView?.revision || !modalAction || loading) return;
+    const decidedSection = draftView.sectionKey;
     setSubmittingDecision(true);
     try {
       if (modalAction === "approve") {
         await approveSectionRevision(
           projectId,
           snapshot.id,
-          activeSection,
-          draftView.latestRevision.version,
+          decidedSection,
+          draftView.revision.version,
           note,
         );
       } else {
         await rejectSectionRevision(
           projectId,
           snapshot.id,
-          activeSection,
-          draftView.latestRevision.version,
+          decidedSection,
+          draftView.revision.version,
           note || "",
         );
       }
-      await loadDraft(activeSection);
+      await loadDraft(decidedSection);
     } finally {
       setSubmittingDecision(false);
     }
   };
 
-  const latest = draftView?.latestRevision;
-  const approval = draftView?.approval;
-  const status = draftView?.approvalStatus || "PENDING";
+  const latest = draftView?.revision;
+  const approval = draftView?.approval.decision;
+  const status = draftView?.approval.status ?? "PENDING";
+  const paragraphFacts = latest && !Array.isArray(latest.facts) ? (latest.facts.paragraphs ?? []) : [];
+  const citingParagraphs = selectedCitation
+    ? paragraphFacts.filter((p) => p.usedEvidenceIds?.includes(selectedCitation))
+    : [];
+  // Methods comes from the fixed template (Methods page), never from the LLM drafter.
+  const canDraft = activeSection !== "methods";
+  const sectionLabel = t(`plans.sectionName.${draftView?.sectionKey ?? activeSection}`, { defaultValue: activeSection });
+  // A hand edit keeps the old evidence facts, so the new version must be re-verified before H2 can approve it.
+  const verificationFailed = verifiedStatus === "FAILED";
+  // The BE decides what is current (it compares section content, not clocks) and also enforces this lock on approve.
+  const reportCoversVersion = verifiedCurrent;
+  const needsReverify = !!latest && latest.generator === "manual-edit" && !(reportCoversVersion && !verificationFailed);
+  const verificationLink = `/verification?projectId=${encodeURIComponent(projectId)}&snapshotId=${encodeURIComponent(snapshot.id)}`;
+
+  const handleSaveEdit = async (markdown: string) => {
+    if (!draftView) return;
+    const result = await saveSectionDraft(projectId, snapshot.id, draftView.sectionKey, {
+      baseVersion: draftView.revision.version,
+      markdown,
+    });
+    setNotice(
+      result.created
+        ? t("draftEdit.saved", { version: result.revision.version })
+        : t("draftEdit.unchanged"),
+    );
+    await loadDraft(draftView.sectionKey);
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Top Banner Card */}
-      <Card className="border border-border/80">
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <CardTitle className="text-xl">Section Drafting & Grounding Review (H2)</CardTitle>
-              {latest && (
-                <Badge variant="outline" className="font-mono text-xs">
-                  v{latest.version}
-                </Badge>
-              )}
-            </div>
-            <CardDescription className="mt-1">
-              AI section drafting constrained by paragraph plans, verbatim quotes, and human-in-the-loop oversight (H2).
-            </CardDescription>
+    <div className="draft-workspace-shell">
+      {latest && (
+        <div className="draft-review-toolbar" aria-label={t("draft.h2Decision")}>
+          <div className="draft-review-state">
+            <span className="draft-review-label">{t("draft.h2Decision")}</span>
+            <Badge
+              variant={
+                status === "APPROVED"
+                  ? "success"
+                  : status === "REJECTED"
+                  ? "destructive"
+                  : "secondary"
+              }
+              className="gap-1"
+            >
+              {status === "APPROVED" && <CheckCircleIcon className="size-3.5" />}
+              {status === "REJECTED" && <XCircleIcon className="size-3.5" />}
+              {status === "PENDING" && <ExclamationTriangleIcon className="size-3.5" />}
+              {t(`draft.approval.${status}`)}
+            </Badge>
+            {approval && (
+              <span className="draft-review-byline">
+                {t("draft.by")} <strong>{approval.decidedBy}</strong>
+                {approval.slrRole && ` (${approval.slrRole})`} · seq {approval.seq}
+              </span>
+            )}
+            {approval?.note && <span className="draft-review-note" title={approval.note}>“{approval.note}”</span>}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="draft-review-actions">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => loadDraft(activeSection)}
-              disabled={loading || drafting}
-              className="gap-1.5"
+              className="text-xs h-8 text-destructive hover:bg-destructive/5 border-destructive/25"
+              onClick={() => setModalAction("reject")}
+              disabled={drafting || loading || editing || status === "REJECTED"}
             >
-              <ArrowPathIcon className={`size-4 ${loading ? "animate-spin" : ""}`} />
-              Refresh
+              {t("draft.rejectH2")}
             </Button>
             <Button
               variant="default"
               size="sm"
-              onClick={handleGenerate}
-              disabled={drafting}
-              className="gap-1.5"
+              className="text-xs h-8 bg-primary hover:bg-primary-hover text-white"
+              onClick={() => setModalAction("approve")}
+              disabled={drafting || loading || editing || needsReverify || status === "APPROVED"}
             >
-              <SparklesIcon className="size-4" />
-              {drafting ? "Drafting with AI..." : latest ? "Re-draft Section" : "Draft Section with AI"}
+              <CheckBadgeIcon className="size-4 mr-1" />
+              {t("draft.approveH2")}
             </Button>
           </div>
-        </CardHeader>
-
-        {/* Section Tabs */}
-        <div className="px-6 pb-3 pt-0 border-b border-border/60 flex items-center gap-2 overflow-x-auto">
-          {DEFAULT_SECTIONS.map((sec) => (
-            <button
-              key={sec.key}
-              onClick={() => setActiveSection(sec.key)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                activeSection === sec.key
-                  ? "bg-primary text-primary-foreground shadow-xs"
-                  : "bg-muted/70 text-muted-foreground hover:bg-muted"
-              }`}
-            >
-              {sec.label}
-            </button>
-          ))}
         </div>
-
-        {/* Status & Oversight Bar */}
-        {latest && (
-          <CardContent className="py-3 bg-muted/20 border-b border-border/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs">
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-1.5">
-                <span className="text-muted-foreground font-medium">H2 Decision:</span>
-                <Badge
-                  variant={
-                    status === "APPROVED"
-                      ? "success"
-                      : status === "REJECTED"
-                      ? "destructive"
-                      : "secondary"
-                  }
-                  className="gap-1"
-                >
-                  {status === "APPROVED" && <CheckCircleIcon className="size-3.5" />}
-                  {status === "REJECTED" && <XCircleIcon className="size-3.5" />}
-                  {status === "PENDING" && <ExclamationTriangleIcon className="size-3.5" />}
-                  {status}
-                </Badge>
-              </div>
-
-              {approval && (
-                <span className="text-muted-foreground text-[11px]">
-                  by <strong className="text-foreground">{approval.decidedBy}</strong>{" "}
-                  {approval.slrRole && `(${approval.slrRole})`} • seq: {approval.seq}
-                </span>
-              )}
-
-              {approval?.note && (
-                <span className="italic text-muted-foreground truncate max-w-xs" title={approval.note}>
-                  &ldquo;{approval.note}&rdquo;
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs h-8 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border-rose-200 dark:border-rose-900"
-                onClick={() => setModalAction("reject")}
-                disabled={drafting || status === "REJECTED"}
-              >
-                Reject H2
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                className="text-xs h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
-                onClick={() => setModalAction("approve")}
-                disabled={drafting || status === "APPROVED"}
-              >
-                <CheckBadgeIcon className="size-4 mr-1" />
-                Approve H2
-              </Button>
-            </div>
-          </CardContent>
-        )}
-      </Card>
+      )}
 
       {error && (
         <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm p-4 rounded-lg flex items-center justify-between">
           <span>{error}</span>
-          <Button variant="ghost" size="sm" onClick={() => setError(null)}>Dismiss</Button>
+          <Button variant="ghost" size="sm" onClick={() => setError(null)}>{t("workflow.dismiss")}</Button>
         </div>
       )}
 
-      {/* Main Drafting Workspace View */}
-      {loading ? (
-        <div className="text-center py-12 text-sm text-muted-foreground animate-pulse">
-          Loading section draft...
+      {notice && (
+        <div role="status" className="bg-primary/10 border border-primary/20 text-sm p-3 rounded-lg flex items-center justify-between">
+          <span>{notice}</span>
+          <Button variant="ghost" size="sm" onClick={() => setNotice(null)}>OK</Button>
         </div>
-      ) : !latest ? (
-        <Card className="text-center py-12 border-dashed">
-          <CardContent className="space-y-4">
-            <div className="size-12 rounded-full bg-primary/10 text-primary mx-auto flex items-center justify-center">
-              <SparklesIcon className="size-6" />
+      )}
+
+      {needsReverify && !loading && (
+        <div role="status" className="bg-warning-soft border border-warning-border text-warning text-sm p-4 rounded-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <div className="font-semibold">{t("draftEdit.reverifyTitle")}</div>
+            <div className="text-xs mt-0.5">
+              {reportCoversVersion && verificationFailed ? t("draftEdit.reverifyFailedBody") : t("draftEdit.reverifyBody")}
             </div>
+          </div>
+          <Button asChild variant="outline" size="sm">
+            <Link to={verificationLink}>{t("draftEdit.reverifyAction")}</Link>
+          </Button>
+        </div>
+      )}
+
+      {/* Three-pane manuscript workspace */}
+      <div className="draft-studio-grid">
+        <aside className="draft-section-rail" aria-label={t("draft.manuscriptOutline")}>
+          <div className="draft-rail-heading">{t("draft.manuscriptOutline")}</div>
+          <div className="draft-section-list">
+            {DEFAULT_SECTIONS.map((section, index) => (
+              <button
+                key={section.key}
+                type="button"
+                onClick={() => setActiveSection(section.key)}
+                disabled={editing}
+                aria-pressed={activeSection === section.key}
+                className={activeSection === section.key ? "draft-section-link is-active" : "draft-section-link"}
+              >
+                <span className="draft-section-index">{String(index + 1).padStart(2, "0")}</span>
+                <span>{t(section.label)}</span>
+              </button>
+            ))}
+          </div>
+          <div className="draft-rail-snapshot">
+            <span>{t("workflow.snapshot")}</span>
+            <strong title={snapshot.id}>{snapshot.id.slice(0, 10)}</strong>
+          </div>
+        </aside>
+
+        <section className="draft-paper-column" aria-label={sectionLabel}>
+          <div className="draft-center-toolbar">
+            <div className="draft-toolbar-context">
+              <span className="draft-toolbar-label">{t("draft.prose")}</span>
+              {latest && <span className="draft-toolbar-project">{latest.generator}</span>}
+            </div>
+            <div className="draft-center-actions">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => loadDraft(activeSection)}
+                disabled={loading || drafting || editing}
+                className="gap-1.5"
+              >
+                <ArrowPathIcon className={`size-4 ${loading ? "animate-spin" : ""}`} aria-hidden="true" />
+                {t("workflow.refresh")}
+              </Button>
+              {latest && canDraft && !editing && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditing(true)}
+                  disabled={drafting || loading}
+                  className="gap-1.5"
+                >
+                  <PencilSquareIcon aria-hidden="true" />
+                  {t("draftEdit.edit")}
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                onClick={handleGenerate}
+                disabled={drafting || editing || !canDraft}
+                title={canDraft ? undefined : t("draft.methodsOnOwnPage")}
+                className="gap-1.5"
+              >
+                <SparklesIcon className="size-4" aria-hidden="true" />
+                {drafting ? t("draft.drafting") : latest ? t("draft.redraft") : t("draft.draftWithAi")}
+              </Button>
+            </div>
+          </div>
+          <div className="draft-paper-heading">
             <div>
-              <h3 className="text-base font-semibold">No Draft for '{activeSection}' yet</h3>
-              <p className="text-sm text-muted-foreground max-w-md mx-auto mt-1">
-                Trigger live LLM drafting to generate evidence-grounded prose for this section.
-              </p>
+              <p className="draft-paper-kicker">{t("draft.pageTitle")}</p>
+              <h2>{sectionLabel}</h2>
+              <p>{t("draft.description")}</p>
             </div>
-            <Button onClick={handleGenerate} disabled={drafting} className="gap-2">
-              <SparklesIcon className="size-4" />
-              {drafting ? "Drafting with AI..." : `Draft '${activeSection}' Section Now`}
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Pane: Drafted Prose (2 Cols) */}
-          <div className="lg:col-span-2 space-y-4">
-            <Card className="border border-border/80">
-              <CardHeader className="py-3 px-4 border-b border-border/40 bg-muted/30 flex flex-row items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Drafted Prose (Markdown)
-                </span>
-                <span className="text-xs font-mono text-muted-foreground">
-                  {latest.markdown.length} chars • {latest.generator}
-                </span>
-              </CardHeader>
-              <CardContent className="p-5 font-serif leading-relaxed text-foreground text-sm space-y-4">
-                {latest.markdown.split(/\n\n+/).map((para, idx) => {
-                  const isHeading = para.startsWith("#");
-                  if (isHeading) {
-                    const level = para.match(/^#+/)?.[0].length || 1;
-                    const text = para.replace(/^#+\s*/, "");
-                    if (level === 1) return <h2 key={idx} className="text-xl font-bold font-sans mt-4 text-foreground">{text}</h2>;
-                    if (level === 2) return <h3 key={idx} className="text-lg font-semibold font-sans mt-3 text-foreground">{text}</h3>;
-                    return <h4 key={idx} className="text-base font-medium font-sans mt-2 text-foreground">{text}</h4>;
-                  }
+            {latest && (
+              <div className="draft-paper-version">
+                <Badge variant="outline">v{latest.version}</Badge>
+                <span>{t("draft.chars", { count: latest.markdown.length })}</span>
+              </div>
+            )}
+          </div>
 
-                  // Highlight citation markers like [E-01], [E-02], [demo_paper...]
-                  const parts = para.split(/(\[[a-zA-Z0-9_\-:]+\])/g);
-
-                  return (
-                    <p key={idx} className="text-justify leading-7 text-[15px] border-l-2 border-transparent hover:border-primary/40 pl-3 -ml-3 transition-colors">
-                      {parts.map((part, pIdx) => {
-                        const isCitation = part.startsWith("[") && part.endsWith("]");
-                        if (isCitation) {
+          {loading ? (
+            <div className="draft-paper-state" role="status">{t("draft.loading")}</div>
+          ) : !latest ? (
+            <Card className="draft-empty-card">
+              <CardContent className="space-y-4">
+                <div className="size-12 rounded-xl bg-primary/10 text-primary mx-auto flex items-center justify-center">
+                  <SparklesIcon className="size-6" aria-hidden="true" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold">{t("draft.noDraftTitle", { section: sectionLabel })}</h3>
+                  <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">{t("draft.noDraftDescription")}</p>
+                </div>
+                <Button type="button" onClick={handleGenerate} disabled={drafting || !canDraft} className="gap-2">
+                  <SparklesIcon aria-hidden="true" />
+                  {drafting ? t("draft.drafting") : t("draft.draftNow", { section: sectionLabel })}
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              {editing && (
+                <DraftEditor
+                  initialMarkdown={latest.markdown}
+                  onSave={handleSaveEdit}
+                  onCancel={() => setEditing(false)}
+                />
+              )}
+              <Card className={editing ? "draft-manuscript-card hidden" : "draft-manuscript-card"}>
+                <CardContent className="draft-manuscript">
+                  {latest.markdown.split(/\n\n+/).map((para, idx) => {
+                    const isHeading = para.startsWith("#");
+                    if (isHeading) {
+                      const level = para.match(/^#+/)?.[0].length || 1;
+                      const text = para.replace(/^#+\s*/, "");
+                      if (level === 1) return <h2 key={idx}>{text}</h2>;
+                      if (level === 2) return <h3 key={idx}>{text}</h3>;
+                      return <h4 key={idx}>{text}</h4>;
+                    }
+                    const parts = para.split(/(\[[a-zA-Z0-9_\-:]+\])/g);
+                    return (
+                      <p key={idx}>
+                        {parts.map((part, pIdx) => {
+                          const isCitation = part.startsWith("[") && part.endsWith("]");
+                          if (!isCitation) return <span key={pIdx}>{part}</span>;
                           const marker = part.slice(1, -1);
                           const isSelected = selectedCitation === marker;
                           return (
                             <button
                               key={pIdx}
-                              onClick={() => setSelectedCitation(marker)}
-                              className={`inline-flex items-center font-mono font-medium text-xs px-1.5 py-0.2 mx-0.5 rounded cursor-pointer transition-all ${
-                                isSelected
-                                  ? "bg-primary text-primary-foreground ring-2 ring-primary/40"
-                                  : "bg-primary/10 text-primary hover:bg-primary/20"
-                              }`}
-                              title={`Click to inspect evidence anchor ${marker}`}
+                              type="button"
+                              aria-pressed={isSelected}
+                              onClick={() => { setSelectedCitation(marker); setInspectorTab("evidence"); }}
+                              className={isSelected ? "draft-citation is-selected" : "draft-citation"}
+                              title={t("draft.inspectAnchor", { marker })}
                             >
                               {part}
                             </button>
                           );
-                        }
-                        return <span key={pIdx}>{part}</span>;
-                      })}
-                    </p>
-                  );
-                })}
-              </CardContent>
-            </Card>
-          </div>
+                        })}
+                      </p>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </section>
 
-          {/* Right Pane: Evidence Grounding Inspector (1 Col) */}
-          <div className="space-y-4">
-            <Card className="border border-border/80 sticky top-4">
-              <CardHeader className="py-3 px-4 border-b border-border/40 bg-muted/30">
-                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Evidence Grounding Inspector
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 space-y-4 text-xs">
-                {selectedCitation ? (
-                  <div className="space-y-3 bg-muted/40 p-3 rounded-lg border border-border/60">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono font-bold text-primary">[{selectedCitation}]</span>
-                      <Badge variant="outline" className="text-[10px]">Anchor</Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      This citation anchor maps directly to validated evidence in the SLR Snapshot.
-                    </p>
-                    <div className="pt-2 border-t border-border/40 text-[11px] text-muted-foreground space-y-1 font-mono">
-                      <div>Status: <span className="text-emerald-600 font-medium">Verified Grounded</span></div>
-                      <div>Source: <span className="text-foreground">Review Corpus Registry</span></div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-6 text-muted-foreground">
-                    <p className="mb-2">Click any citation marker in the draft (e.g. <span className="font-mono bg-muted px-1 rounded">[E-01]</span>) to inspect its source anchor.</p>
-                  </div>
-                )}
-
-                {/* Facts Summary */}
-                {latest.facts?.paragraphs && (
-                  <div className="space-y-2 pt-2 border-t border-border/60">
-                    <span className="font-medium text-muted-foreground block text-xs">
-                      Section Paragraph Facts ({latest.facts.paragraphs.length})
-                    </span>
-                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                      {latest.facts.paragraphs.map((p, pIdx) => (
-                        <div key={pIdx} className="p-2 bg-muted/30 rounded border border-border/40 text-[11px] space-y-1">
-                          <div className="font-mono font-semibold text-foreground truncate">
-                            {p.paragraphKey || p.paragraphId || `Para ${pIdx + 1}`}
-                          </div>
-                          <div className="text-muted-foreground flex items-center gap-2">
-                            <span>Ev: {p.usedEvidenceIds?.length || 0}</span>
-                            <span>Findings: {p.usedFindingIds?.length || 0}</span>
-                          </div>
+        <aside className="draft-inspector-pane" aria-label={t("draft.inspector")}>
+          {latest ? (
+            <Card className="draft-inspector-card">
+              <div className="draft-inspector-tabs" role="tablist" aria-label={t("draft.inspector")}>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={inspectorTab === "evidence"}
+                  className={inspectorTab === "evidence" ? "draft-inspector-tab is-active" : "draft-inspector-tab"}
+                  onClick={() => setInspectorTab("evidence")}
+                >
+                  <CircleStackIcon aria-hidden="true" />
+                  {t("draft.inspectorEvidenceTab")}
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={inspectorTab === "checks"}
+                  className={inspectorTab === "checks" ? "draft-inspector-tab is-active" : "draft-inspector-tab"}
+                  onClick={() => setInspectorTab("checks")}
+                >
+                  <SparklesIcon aria-hidden="true" />
+                  {t("draft.inspectorChecksTab")}
+                </button>
+              </div>
+              <CardContent className="draft-inspector-content">
+                {inspectorTab === "evidence" ? (
+                  <>
+                    {selectedCitation ? (
+                      <div className="draft-citation-detail">
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono font-bold text-primary">[{selectedCitation}]</span>
+                          <Badge variant="outline" className="text-[10px]">{t("draft.anchor")}</Badge>
                         </div>
-                      ))}
+                        <p>{t("draft.anchorExplain")}</p>
+                        <div className="draft-citation-usage">
+                          <span>{t("draft.evidencePack")}</span>
+                          {citingParagraphs.length > 0 ? (
+                            <strong>{t("draft.citedIn", { count: citingParagraphs.length })}</strong>
+                          ) : (
+                            <strong className="text-destructive">{t("draft.notInEvidence")}</strong>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="draft-inspector-hint">{t("draft.clickMarkerHint")}</p>
+                    )}
+
+                    {paragraphFacts.length > 0 ? (
+                      <div className="draft-facts">
+                        <h3>{t("draft.paragraphFacts")} <span>({paragraphFacts.length})</span></h3>
+                        <div>
+                          {paragraphFacts.map((fact, index) => (
+                            <div className="draft-fact-row" key={fact.paragraphId || index}>
+                              <strong>{fact.paragraphId || t("draft.paragraphN", { n: index + 1 })}</strong>
+                              <span>{t("draft.evShort")}: {fact.usedEvidenceIds?.length || 0}</span>
+                              <span>{t("draft.findingsShort")}: {fact.usedFindingIds?.length || 0}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="draft-inspector-hint">{t("draft.noParagraphEvidence")}</p>
+                    )}
+                  </>
+                ) : (
+                  <div className="draft-writing-checks">
+                    <div className="draft-check-row">
+                      <div>
+                        <strong>{t("draft.verificationStatus")}</strong>
+                        <p>{t("draft.verificationDescription")}</p>
+                      </div>
+                      <Badge variant={verificationFailed ? "destructive" : verifiedCurrent ? "success" : "secondary"}>
+                        {verificationFailed ? t("draft.verificationFailed") : verifiedCurrent ? t("draft.verified") : t("draft.needsVerification")}
+                      </Badge>
                     </div>
+                    <div className="draft-check-row">
+                      <div>
+                        <strong>{t("draft.h2Decision")}</strong>
+                        <p>{approval ? t("draft.approvedBy", { name: approval.decidedBy }) : t("draft.awaitingH2")}</p>
+                      </div>
+                      <Badge variant={status === "APPROVED" ? "success" : status === "REJECTED" ? "destructive" : "secondary"}>
+                        {t(`draft.approval.${status}`)}
+                      </Badge>
+                    </div>
+                    {needsReverify && (
+                      <div className="draft-check-action">
+                        <p>{reportCoversVersion && verificationFailed ? t("draftEdit.reverifyFailedBody") : t("draftEdit.reverifyBody")}</p>
+                        <Button asChild variant="outline" size="sm">
+                          <Link to={verificationLink}>{t("draftEdit.reverifyAction")}</Link>
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
             </Card>
-          </div>
-        </div>
-      )}
-
+          ) : (
+            <div className="draft-inspector-placeholder">
+              <DocumentTextIcon className="size-6" aria-hidden="true" />
+              <p>{t("draft.inspector")}</p>
+            </div>
+          )}
+        </aside>
+      </div>
       {/* Decision Dialog Modal */}
       {modalAction && latest && (
         <H2DecisionDialog
           isOpen={true}
           onClose={() => setModalAction(null)}
           action={modalAction}
-          sectionKey={activeSection}
+          sectionKey={draftView?.sectionKey ?? activeSection}
           version={latest.version}
           contentHash={latest.contentHash}
           onConfirm={handleDecisionConfirm}

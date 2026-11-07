@@ -14,6 +14,10 @@ Contributors and AI agents should read [`docs/spec.md`](docs/spec.md) first for 
 
 The development server proxies `/api` to `http://localhost:5100` by default. API requests use the envelope documented by the writing backend. Firebase authentication will provide the bearer token through `setApiTokenProvider` when the auth feature is implemented.
 
+## Demo
+
+[`docs/demo`](docs/demo/README.md) has a scripted live demo that drives the whole writing flow in a real Chrome window (fake slr-be, mock LLM, Firebase Auth emulator), with the talking points for each step.
+
 ## Languages
 
 The interface supports Vietnamese (`vi`, default) and English (`en`). Use the language selector in the app header; the selected language is saved in browser storage and applied to the document language.

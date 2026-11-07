@@ -1,24 +1,107 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { ArrowRightIcon, DocumentArrowUpIcon } from "@heroicons/react/24/outline";
+import {
+  ArrowRightIcon,
+  CheckCircleIcon,
+  CircleStackIcon,
+  ClockIcon,
+  DocumentArrowUpIcon,
+  ExclamationTriangleIcon,
+  PlusIcon,
+  PencilSquareIcon,
+} from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router";
 import { useProjects } from "@/features/projects/hooks/use-projects";
 import { Button } from "@/shared/ui/button";
+import { Badge } from "@/shared/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/ui/dialog";
 import { ReadinessSummary } from "@/features/snapshots/components/ReadinessSummary";
+import { SlrRunPicker } from "@/features/snapshots/components/SlrRunPicker";
 import { getSnapshot, listSnapshots } from "@/features/snapshots/api/snapshots.api";
 import { useSnapshotImport } from "@/features/snapshots/hooks/use-snapshot-import";
 import { MotionListItem, MotionReveal } from "@/shared/ui/motion";
+import { cn } from "@/shared/utils/cn";
 import type {
   ReadinessReport,
   SnapshotDetail,
+  SnapshotStatus,
   SnapshotSummary,
 } from "@/features/snapshots/model/snapshot.types";
+
+function formatDate(value: string, locale: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(date);
+}
+
+function statusVariant(status: SnapshotStatus): "success" | "warning" | "destructive" | "outline" {
+  if (status === "READY") return "success";
+  if (status === "BLOCKED") return "destructive";
+  if (status === "STALE") return "warning";
+  return "outline";
+}
+
+function SnapshotHistoryRow({
+  snapshot,
+  selected,
+  latest,
+  locale,
+  onSelect,
+}: {
+  snapshot: SnapshotSummary;
+  selected: boolean;
+  latest: boolean;
+  locale: string;
+  onSelect: () => void;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-pressed={selected}
+        className={cn(
+          "flex w-full items-center gap-4 rounded-xl border px-4 py-4 text-left transition-colors",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+          selected ? "border-primary/20 bg-secondary/55" : "border-transparent hover:bg-muted/50",
+        )}
+      >
+        <span className={cn(
+          "flex size-11 shrink-0 items-center justify-center rounded-xl",
+          selected ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+        )}>
+          <CircleStackIcon className="size-5" aria-hidden="true" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="max-w-full truncate text-sm font-semibold text-foreground">{snapshot.sourceRunId}</span>
+            {latest && <Badge variant="success">{t("snapshots.latest")}</Badge>}
+          </span>
+          <span className="mt-1 block text-xs text-muted-foreground">
+            {formatDate(snapshot.importedAt, locale)} <span aria-hidden="true">·</span> {snapshot.corpusVersion}
+          </span>
+        </span>
+        <Badge variant={statusVariant(snapshot.status)}>{t("snapshots.status." + snapshot.status)}</Badge>
+      </button>
+    </li>
+  );
+}
 
 export function SnapshotReadinessPage() {
   const { t, i18n } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const selectedProjectId = searchParams.get("projectId") ?? "";
+  const selectedProjectId = searchParams.get("projectId")
+    || (typeof window !== "undefined" ? localStorage.getItem("slrw_selected_project_id") : null)
+    || "";
   const { projects, isLoading: projectsLoading, error: projectsError, load: loadProjects } = useProjects();
   const {
     isImporting,
@@ -28,10 +111,16 @@ export function SnapshotReadinessPage() {
     reset: resetImport,
   } = useSnapshotImport();
   const [runId, setRunId] = useState("");
+  const [importOpen, setImportOpen] = useState(false);
   const [snapshots, setSnapshots] = useState<SnapshotSummary[]>([]);
+  const [snapshotsProjectId, setSnapshotsProjectId] = useState("");
   const [snapshotsLoading, setSnapshotsLoading] = useState(false);
   const [snapshotsError, setSnapshotsError] = useState<string | null>(null);
-  const [selectedSnapshotId, setSelectedSnapshotId] = useState("");
+  const [selectedSnapshotId, setSelectedSnapshotId] = useState(
+    () => searchParams.get("snapshotId")
+      || (typeof window !== "undefined" ? localStorage.getItem("slrw_selected_snapshot_id") : null)
+      || "",
+  );
   const [snapshotDetail, setSnapshotDetail] = useState<SnapshotDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
@@ -45,9 +134,14 @@ export function SnapshotReadinessPage() {
   useEffect(() => {
     let cancelled = false;
 
+    setSnapshots([]);
+    setSnapshotsProjectId("");
+    setSelectedSnapshotId("");
+    setSnapshotDetail(null);
+    setSelectedReadiness(null);
+    setSnapshotsError(null);
+
     if (!selectedProjectId) {
-      setSnapshots([]);
-      setSnapshotsError(null);
       setSnapshotsLoading(false);
       return () => {
         cancelled = true;
@@ -55,19 +149,22 @@ export function SnapshotReadinessPage() {
     }
 
     setSnapshotsLoading(true);
-    setSnapshotsError(null);
     void listSnapshots(selectedProjectId)
       .then((items) => {
         if (cancelled) return;
         setSnapshots(items);
+        setSnapshotsProjectId(selectedProjectId);
         setSelectedSnapshotId((current) =>
-          items.some((snapshot) => snapshot.id === current) ? current : (items[0]?.id ?? ""),
+          items.some((snapshot) => snapshot.id === current)
+            ? current
+            : (items[0]?.id ?? ""),
         );
       })
       .catch((error: unknown) => {
         if (cancelled) return;
         setSnapshotsError(error instanceof Error ? error.message : t("snapshots.loadError"));
         setSnapshots([]);
+        setSnapshotsProjectId(selectedProjectId);
       })
       .finally(() => {
         if (!cancelled) setSnapshotsLoading(false);
@@ -87,6 +184,7 @@ export function SnapshotReadinessPage() {
       setDetailLoading(true);
       setDetailError(null);
       setSnapshotDetail(null);
+      setSelectedReadiness(null);
     }
 
     try {
@@ -110,31 +208,83 @@ export function SnapshotReadinessPage() {
   useEffect(() => {
     let cancelled = false;
 
-    if (!selectedProjectId || !selectedSnapshotId) {
+    if (!selectedProjectId || !selectedSnapshotId || snapshotsProjectId !== selectedProjectId) {
       setSnapshotDetail(null);
-      setSelectedReadiness(null);
       setDetailError(null);
       setDetailLoading(false);
-      return;
+      return () => {
+        cancelled = true;
+      };
     }
 
     void loadSnapshotDetail(selectedProjectId, selectedSnapshotId, () => !cancelled);
     return () => {
       cancelled = true;
     };
-  }, [loadSnapshotDetail, selectedProjectId, selectedSnapshotId]);
+  }, [loadSnapshotDetail, selectedProjectId, selectedSnapshotId, snapshotsProjectId]);
 
-  function handleProjectChange(projectId: string) {
-    const nextParams = new URLSearchParams(searchParams);
-    if (projectId) nextParams.set("projectId", projectId);
-    else nextParams.delete("projectId");
-    setSearchParams(nextParams, { replace: true });
-    setRunId("");
-    setSelectedSnapshotId("");
-    setSnapshotDetail(null);
-    setSelectedReadiness(null);
+  useEffect(() => {
+    if (snapshotsLoading || snapshotsProjectId !== selectedProjectId) return;
+
+    const selectionIsValid = snapshots.some((snapshot) => snapshot.id === selectedSnapshotId);
+    if (!selectionIsValid) {
+      if (selectedSnapshotId) setSelectedSnapshotId("");
+      const next = new URLSearchParams(searchParams);
+      if (next.has("snapshotId")) {
+        next.delete("snapshotId");
+        setSearchParams(next, { replace: true });
+      }
+      if (typeof window !== "undefined") localStorage.removeItem("slrw_selected_snapshot_id");
+      return;
+    }
+
+    if (typeof window !== "undefined") localStorage.setItem("slrw_selected_snapshot_id", selectedSnapshotId);
+    if (searchParams.get("snapshotId") !== selectedSnapshotId) {
+      const next = new URLSearchParams(searchParams);
+      next.set("snapshotId", selectedSnapshotId);
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, selectedProjectId, selectedSnapshotId, setSearchParams, snapshots, snapshotsLoading, snapshotsProjectId]);
+
+
+  const activeProject = projects.find((project) => project.id === selectedProjectId);
+  useEffect(() => {
+    if (searchParams.get("mode") !== "import" || !activeProject) return;
+    setImportOpen(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete("mode");
+    setSearchParams(next, { replace: true });
+  }, [activeProject, searchParams, setSearchParams]);
+  const readiness = selectedReadiness ?? importReadiness;
+  const locale = i18n.resolvedLanguage ?? "vi";
+  const openEditorUrl = selectedProjectId && selectedSnapshotId
+    ? "/drafting?projectId=" + encodeURIComponent(selectedProjectId) + "&snapshotId=" + encodeURIComponent(selectedSnapshotId)
+    : "/drafting";
+  const canOpenEditor = snapshotDetail?.status === "READY";
+  const primaryMetrics = snapshotDetail
+    ? [
+        { label: t("snapshots.counts.studies"), value: snapshotDetail._count.studies },
+        { label: t("snapshots.counts.evidence"), value: snapshotDetail._count.evidence },
+      ]
+    : [];
+  const secondaryMetrics = snapshotDetail
+    ? [
+        { label: t("snapshots.counts.researchQuestions"), value: snapshotDetail._count.researchQuestions },
+        { label: t("snapshots.counts.documents"), value: snapshotDetail._count.documents },
+        { label: t("snapshots.counts.findings"), value: snapshotDetail._count.findings },
+        { label: t("snapshots.counts.claims"), value: snapshotDetail._count.claims },
+      ]
+    : [];
+
+  function handleSnapshotSelect(snapshotId: string) {
+    setSelectedSnapshotId(snapshotId);
     setDetailError(null);
+    setSelectedReadiness(null);
     resetImport();
+    const next = new URLSearchParams(searchParams);
+    if (snapshotId) next.set("snapshotId", snapshotId);
+    else next.delete("snapshotId");
+    setSearchParams(next, { replace: true });
   }
 
   async function handleImport(event: FormEvent<HTMLFormElement>) {
@@ -148,228 +298,262 @@ export function SnapshotReadinessPage() {
       setSelectedSnapshotId(imported.snapshot.id);
       setSelectedReadiness({ status: "READY", issues: imported.warnings });
       setSnapshotRefreshKey((current) => current + 1);
+      setImportOpen(false);
     }
   }
 
-  const readiness = selectedReadiness ?? importReadiness;
-  const activeProject = projects.find((project) => project.id === selectedProjectId);
+  function handleImportDialogChange(open: boolean) {
+    setImportOpen(open);
+    if (!open && !isImporting) {
+      setRunId("");
+      resetImport();
+    }
+  }
 
   return (
     <div className="space-y-7">
       <MotionReveal>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{t("snapshots.step")}</p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight">{t("snapshots.title")}</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            {t("snapshots.description")}
-          </p>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{t("snapshots.step")}</p>
+            <h2 className="slrw-page-title mt-1 tracking-tight">{t("snapshots.title")}</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{t("snapshots.description")}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {canOpenEditor ? (
+              <Button asChild variant="outline">
+                <Link to={openEditorUrl}>
+                  <PencilSquareIcon aria-hidden="true" />
+                  {t("snapshots.openEditor")}
+                </Link>
+              </Button>
+            ) : (
+              <Button type="button" variant="outline" disabled>
+                <PencilSquareIcon aria-hidden="true" />
+                {t("snapshots.openEditor")}
+              </Button>
+            )}
+            <Button
+              type="button"
+              onClick={() => setImportOpen(true)}
+              disabled={!activeProject || projectsLoading}
+            >
+              <PlusIcon aria-hidden="true" />
+              {t("snapshots.importCta")}
+            </Button>
+          </div>
         </div>
       </MotionReveal>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.8fr)]">
-        <MotionReveal className="space-y-5" effect="fade">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("snapshots.projectAndImportTitle")}</CardTitle>
-              <CardDescription>{t("snapshots.projectAndImportDescription")}</CardDescription>
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.12fr)_minmax(22rem,0.92fr)]">
+        <MotionReveal effect="fade">
+          <Card className="overflow-hidden">
+            <CardHeader className="flex-row items-start justify-between gap-4 border-b border-border">
+              <div>
+                <CardTitle>{t("snapshots.historyTitle")}</CardTitle>
+                <CardDescription className="mt-1">
+                  {t("snapshots.historyDescription")}
+                </CardDescription>
+              </div>
+              {snapshotsProjectId === selectedProjectId && (
+                <Badge variant="outline">{t("snapshots.historyCount", { count: snapshots.length })}</Badge>
+              )}
             </CardHeader>
-            <CardContent className="space-y-5">
+            <CardContent className="p-3">
               {projectsLoading ? (
-                <p role="status" className="text-sm text-muted-foreground">{t("snapshots.loadingProjects")}</p>
+                <p role="status" className="px-3 py-8 text-center text-sm text-muted-foreground">{t("snapshots.loadingProjects")}</p>
               ) : projectsError ? (
-                <div className="space-y-3">
+                <div className="space-y-3 px-3 py-8 text-center">
                   <p role="alert" className="text-sm text-destructive">{projectsError}</p>
                   <Button type="button" variant="outline" size="sm" onClick={() => void loadProjects()}>
                     {t("common.retry")}
                   </Button>
                 </div>
               ) : projects.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-border p-5 text-center">
-                  <p className="text-sm text-muted-foreground">{t("snapshots.noProjects")}</p>
-                  <Button asChild variant="outline" size="sm" className="mt-4">
-                    <Link to="/projects">
-                      {t("snapshots.openProjects")}
-                      <ArrowRightIcon aria-hidden="true" />
-                    </Link>
+                <div className="rounded-xl border border-dashed border-border px-6 py-12 text-center">
+                  <CircleStackIcon className="mx-auto size-9 text-muted-foreground" aria-hidden="true" />
+                  <p className="mt-3 text-sm font-semibold">{t("snapshots.noProjects")}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{t("snapshots.noProjectsBody")}</p>
+                  <Button asChild variant="outline" className="mt-4">
+                    <Link to="/projects">{t("snapshots.openProjects")}<ArrowRightIcon aria-hidden="true" /></Link>
+                  </Button>
+                </div>
+              ) : !activeProject ? (
+                <div className="rounded-xl border border-dashed border-border px-6 py-12 text-center">
+                  <CircleStackIcon className="mx-auto size-9 text-muted-foreground" aria-hidden="true" />
+                  <p className="mt-3 text-sm font-semibold">{t("snapshots.chooseProjectTitle")}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{t("snapshots.chooseProjectBody")}</p>
+                </div>
+              ) : snapshotsLoading || snapshotsProjectId !== selectedProjectId ? (
+                <p role="status" className="px-3 py-8 text-center text-sm text-muted-foreground">{t("snapshots.loadingSnapshots")}</p>
+              ) : snapshotsError ? (
+                <div className="space-y-3 px-3 py-8 text-center">
+                  <p role="alert" className="text-sm text-destructive">{snapshotsError}</p>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setSnapshotRefreshKey((value) => value + 1)}>
+                    {t("common.retry")}
+                  </Button>
+                </div>
+              ) : snapshots.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-border px-6 py-12 text-center">
+                  <DocumentArrowUpIcon className="mx-auto size-9 text-muted-foreground" aria-hidden="true" />
+                  <p className="mt-3 text-sm font-semibold">{t("snapshots.emptyHistory")}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{t("snapshots.emptyHistoryBody")}</p>
+                  <Button type="button" variant="outline" className="mt-4" onClick={() => setImportOpen(true)}>
+                    <PlusIcon aria-hidden="true" />{t("snapshots.importCta")}
                   </Button>
                 </div>
               ) : (
-                <>
-                  <div className="space-y-2">
-                    <label htmlFor="snapshot-project" className="text-sm font-medium text-foreground">
-                      {t("snapshots.projectLabel")}
-                    </label>
-                    <select
-                      id="snapshot-project"
-                      value={selectedProjectId}
-                      onChange={(event) => handleProjectChange(event.target.value)}
-                      className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors focus-visible:border-foreground/40"
-                    >
-                      <option value="">{t("snapshots.chooseProject")}</option>
-                      {projects.map((project) => (
-                        <option key={project.id} value={project.id}>{project.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {activeProject && (
-                    <form className="space-y-3" onSubmit={handleImport}>
-                      <div className="space-y-2">
-                        <label htmlFor="snapshot-run-id" className="text-sm font-medium text-foreground">
-                          {t("snapshots.runIdLabel")}
-                        </label>
-                        <input
-                          id="snapshot-run-id"
-                          autoComplete="off"
-                          maxLength={128}
-                          required
-                          value={runId}
-                          onChange={(event) => setRunId(event.target.value)}
-                          className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-foreground/40"
-                          placeholder={t("snapshots.runIdPlaceholder")}
-                        />
-                        <p className="text-xs leading-5 text-muted-foreground">
-                          {t("snapshots.runIdHelp", { project: activeProject.name })}
-                        </p>
-                      </div>
-                      {importError && <p role="alert" className="text-sm text-destructive">{importError}</p>}
-                      <Button type="submit" disabled={isImporting}>
-                        <DocumentArrowUpIcon aria-hidden="true" />
-                        {t(isImporting ? "snapshots.importing" : "snapshots.importAction")}
-                      </Button>
-                    </form>
-                  )}
-                </>
+                <ul className="max-h-[42rem] space-y-1 overflow-y-auto" aria-label={t("snapshots.historyTitle")}>
+                  {snapshots.map((snapshot, index) => (
+                    <MotionListItem key={snapshot.id} delay={index * 0.025}>
+                      <SnapshotHistoryRow
+                        snapshot={snapshot}
+                        selected={snapshot.id === selectedSnapshotId}
+                        latest={index === 0}
+                        locale={locale}
+                        onSelect={() => handleSnapshotSelect(snapshot.id)}
+                      />
+                    </MotionListItem>
+                  ))}
+                </ul>
               )}
             </CardContent>
           </Card>
-
-          {selectedProjectId && (
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("snapshots.historyTitle")}</CardTitle>
-                <CardDescription>{t("snapshots.historyDescription")}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {snapshotsLoading ? (
-                  <p role="status" className="py-4 text-sm text-muted-foreground">{t("snapshots.loadingSnapshots")}</p>
-                ) : snapshotsError ? (
-                  <div className="space-y-3 py-2">
-                    <p role="alert" className="text-sm text-destructive">{snapshotsError}</p>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setSnapshotRefreshKey((value) => value + 1)}>
-                      {t("common.retry")}
-                    </Button>
-                  </div>
-                ) : snapshots.length === 0 ? (
-                  <p className="py-4 text-sm text-muted-foreground">{t("snapshots.emptyHistory")}</p>
-                ) : (
-                  <ul className="divide-y divide-border">
-                    {snapshots.map((snapshot, index) => (
-                      <MotionListItem key={snapshot.id} delay={index * 0.035} className="py-3 first:pt-0 last:pb-0">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedSnapshotId(snapshot.id)}
-                          aria-pressed={selectedSnapshotId === snapshot.id}
-                          className="flex w-full flex-wrap items-center justify-between gap-3 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-foreground/25"
-                        >
-                          <span className="min-w-0">
-                            <span className="block truncate text-sm font-medium text-foreground">{snapshot.sourceRunId}</span>
-                            <span className="mt-1 block text-xs text-muted-foreground">
-                              {new Date(snapshot.importedAt).toLocaleString(i18n.resolvedLanguage ?? "vi")}
-                            </span>
-                          </span>
-                          <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold text-secondary-foreground">
-                            {t(`snapshots.status.${snapshot.status}`)}
-                          </span>
-                        </button>
-                      </MotionListItem>
-                    ))}
-                  </ul>
-                )}
-              </CardContent>
-            </Card>
-          )}
         </MotionReveal>
 
-        <MotionReveal delay={0.07} className="space-y-5" effect="fade">
+        <MotionReveal delay={0.06} effect="fade" className="space-y-5">
           {detailLoading ? (
-            <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">{t("snapshots.loadingDetail")}</CardContent></Card>
+            <Card><CardContent className="py-14 text-center text-sm text-muted-foreground">{t("snapshots.loadingDetail")}</CardContent></Card>
           ) : detailError ? (
-            <Card><CardContent className="py-6"><p role="alert" className="text-sm text-destructive">{detailError}</p></CardContent></Card>
+            <Card><CardContent className="py-7"><p role="alert" className="text-sm text-destructive">{detailError}</p></CardContent></Card>
+          ) : snapshotDetail ? (
+            <Card className="overflow-hidden">
+              <CardHeader className="space-y-4 border-b border-border pb-5">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="flex size-11 items-center justify-center rounded-xl bg-secondary text-primary">
+                    <CircleStackIcon className="size-5" aria-hidden="true" />
+                  </span>
+                  <Badge variant={statusVariant(snapshotDetail.status)}>{t("snapshots.status." + snapshotDetail.status)}</Badge>
+                </div>
+                <div>
+                  <CardTitle className="break-all text-xl">{snapshotDetail.sourceRunId}</CardTitle>
+                  <CardDescription className="mt-1.5">
+                    {t("snapshots.importedOn", { date: formatDate(snapshotDetail.importedAt, locale) })}
+
+                  </CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-5 pt-5">
+                <div className="grid grid-cols-2 gap-3">
+                  {primaryMetrics.map((metric) => (
+                    <div key={metric.label} className="rounded-xl bg-secondary/55 p-4">
+                      <p className="text-2xl font-bold tabular-nums text-foreground">{metric.value.toLocaleString(locale)}</p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">{metric.label}</p>
+                    </div>
+                  ))}
+                </div>
+                <dl className="grid grid-cols-2 gap-x-5 gap-y-3">
+                  {secondaryMetrics.map((metric) => (
+                    <div key={metric.label} className="flex items-baseline justify-between gap-2 border-b border-border/70 pb-2">
+                      <dt className="text-xs text-muted-foreground">{metric.label}</dt>
+                      <dd className="text-sm font-semibold tabular-nums text-foreground">{metric.value.toLocaleString(locale)}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <div className="rounded-lg border border-border px-3.5 py-3">
+                  <p className="text-xs font-semibold text-foreground">{t("snapshots.sourceRun")}</p>
+                  <p className="mt-1 break-all text-xs leading-5 text-muted-foreground">{snapshotDetail.sourceSystem} · {snapshotDetail.corpusVersion}</p>
+                  <p className="mt-2 break-all font-mono text-[11px] text-muted-foreground">
+                    {t("snapshots.integrityHash", { hash: snapshotDetail.integrityHash })}
+                  </p>
+                </div>
+                {canOpenEditor ? (
+                  <Button asChild variant="outline" className="w-full">
+                    <Link to={openEditorUrl}>
+                      <CheckCircleIcon aria-hidden="true" />{t("snapshots.openEditor")}
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button type="button" variant="outline" className="w-full" disabled>
+                    <ExclamationTriangleIcon aria-hidden="true" />{t("snapshots.editorLocked")}
+                  </Button>
+                )}
+                <p className="text-xs leading-5 text-muted-foreground">{t("snapshots.immutableNote")}</p>
+              </CardContent>
+            </Card>
           ) : readiness ? (
             <ReadinessSummary report={readiness} />
           ) : (
-            <Card className="flex min-h-64 items-center justify-center">
+            <Card className="flex min-h-[30rem] items-center justify-center">
               <CardContent className="max-w-sm px-6 py-10 text-center">
                 <span className="mx-auto flex size-12 items-center justify-center rounded-xl bg-secondary text-primary">
-                  <DocumentArrowUpIcon className="size-6" aria-hidden="true" />
+                  {projects.length === 0
+                    ? <CircleStackIcon className="size-6" aria-hidden="true" />
+                    : <ClockIcon className="size-6" aria-hidden="true" />}
                 </span>
-                <p className="mt-4 text-sm leading-6 text-muted-foreground">{t("snapshots.readinessPrompt")}</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {snapshotDetail && (
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("snapshots.detailTitle")}</CardTitle>
-                <CardDescription>{snapshotDetail.sourceRunId}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <dl className="grid grid-cols-2 gap-3 text-sm">
-                  {Object.entries(snapshotDetail._count).map(([key, value], index) => (
-                    <MotionReveal key={key} delay={index * 0.035} className="rounded-lg bg-secondary/70 p-3">
-                      <dt className="text-xs text-muted-foreground">{t(`snapshots.counts.${key}`)}</dt>
-                      <dd className="mt-1 font-semibold text-foreground">{value}</dd>
-                    </MotionReveal>
-                  ))}
-                </dl>
-                <p className="break-all text-xs text-muted-foreground">
-                  {t("snapshots.integrityHash", { hash: snapshotDetail.integrityHash })}
+                <p className="mt-4 text-base font-semibold text-foreground">
+                  {projects.length === 0 ? t("snapshots.noProjectDetailTitle") : t("snapshots.noSelectionTitle")}
                 </p>
-                {snapshotDetail.status === "READY" && (
-                  <div className="flex flex-wrap gap-2">
-                    <Button asChild className="w-full sm:w-auto">
-                      <Link to={`/methods?projectId=${encodeURIComponent(snapshotDetail.projectId)}&snapshotId=${encodeURIComponent(snapshotDetail.id)}`}>
-                        {t("snapshots.openMethods")}
-                        <ArrowRightIcon aria-hidden="true" />
-                      </Link>
-                    </Button>
-                    <Button asChild variant="outline" className="w-full sm:w-auto">
-                      <Link to={`/outline?projectId=${encodeURIComponent(snapshotDetail.projectId)}&snapshotId=${encodeURIComponent(snapshotDetail.id)}`}>
-                        {t("snapshots.openOutline")}
-                        <ArrowRightIcon aria-hidden="true" />
-                      </Link>
-                    </Button>
-                  </div>
-                )}
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  {projects.length === 0 ? t("snapshots.noProjectDetailBody") : t("snapshots.readinessPrompt")}
+                </p>
               </CardContent>
             </Card>
           )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("snapshots.checksTitle")}</CardTitle>
-              <CardDescription>{t("snapshots.checksDescription")}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-4">
-                {Array.from({ length: 4 }, (_, index) => (
-                  <MotionListItem key={index} delay={index * 0.04} className="flex items-start gap-3">
-                    <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border border-border text-[10px] font-semibold text-muted-foreground">
-                      {index + 1}
-                    </span>
-                    <span className="text-sm leading-5 text-muted-foreground">{t(`snapshots.requirements.${index}`)}</span>
-                  </MotionListItem>
-                ))}
-              </ul>
-              <div className="mt-6 rounded-lg border border-primary/15 bg-secondary/60 p-3.5">
-                <p className="text-xs leading-5 text-muted-foreground">{t("snapshots.missingInfo")}</p>
-              </div>
-            </CardContent>
-          </Card>
+          {snapshotDetail && readiness && (
+            <ReadinessSummary report={readiness} />
+          )}
         </MotionReveal>
       </div>
+
+      <Dialog open={importOpen} onOpenChange={handleImportDialogChange}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader className="pr-8 text-left">
+            <DialogTitle>{t("snapshots.importDialogTitle")}</DialogTitle>
+            <DialogDescription>{t("snapshots.importDialogDescription", { project: activeProject?.name ?? "" })}</DialogDescription>
+          </DialogHeader>
+          {activeProject ? (
+            <form className="space-y-4" onSubmit={handleImport}>
+              <SlrRunPicker
+                key={selectedProjectId}
+                projectId={selectedProjectId}
+                selectedRunId={runId}
+                onSelect={setRunId}
+                refreshKey={snapshotRefreshKey}
+              />
+              <div className="space-y-2 border-t border-border pt-4">
+                <label htmlFor="snapshot-run-id" className="text-sm font-medium text-foreground">
+                  {t("snapshots.runIdLabelManual")}
+                </label>
+                <input
+                  id="snapshot-run-id"
+                  autoComplete="off"
+                  maxLength={128}
+                  required
+                  value={runId}
+                  onChange={(event) => setRunId(event.target.value)}
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-foreground/40"
+                  placeholder={t("snapshots.runIdPlaceholder")}
+                />
+                <p className="text-xs leading-5 text-muted-foreground">
+                  {t("snapshots.runIdHelp", { project: activeProject.name })}
+                </p>
+              </div>
+              {importError && <p role="alert" className="rounded-lg border border-destructive/25 bg-destructive/5 px-3 py-2.5 text-sm text-destructive">{importError}</p>}
+              {importReadiness && <ReadinessSummary report={importReadiness} />}
+              <div className="flex justify-end">
+                <Button type="submit" disabled={isImporting || !runId.trim()}>
+                  <DocumentArrowUpIcon aria-hidden="true" />
+                  {t(isImporting ? "snapshots.importing" : "snapshots.importAction")}
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <p className="rounded-lg border border-dashed border-border p-5 text-sm text-muted-foreground">{t("snapshots.chooseProjectBody")}</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

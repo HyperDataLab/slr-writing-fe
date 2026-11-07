@@ -1,6 +1,6 @@
 # FE Feature Map
 
-This repository is the SLR AI Writing frontend. The base shell, Projects, Snapshots, Methods/PRISMA, Journal Profile, and Outline/H1 are implemented; later manuscript workflows follow the sequence below.
+This repository is the SLR AI Writing frontend. Every workflow in the table below is implemented and wired to the writing backend (verified 2026-11-06); the remaining work is listed under "Open items".
 
 See [`spec.md`](./spec.md) for the onboarding context and current implementation status. Projects and Snapshots currently connect to the writing backend using opt-in local dev-auth; Firebase auth remains deferred and is required before production use of protected endpoints.
 
@@ -12,24 +12,32 @@ React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui source components with Rad
 
 | Feature | Responsibility | Roadmap alignment |
 | --- | --- | --- |
-| `auth` | Hold the signed-in user session, pass the Firebase ID token, and protect authenticated routes. | M1 |
+| `auth` | Firebase sign-in (email/password, Google), session restore, route guard, sign-out; supplies the ID token to the API client and ends the session on 401. Implemented against the Auth emulator; a real Firebase project is still to be wired for deployment. | M1 |
 | `projects` | List, create, and open writing projects linked to an SLR project. | Existing project API; M1 permission check |
-| `snapshots` | Import a run, show immutable snapshot history/details, and present readiness issues and stale state. | M0, M10 |
+| `snapshots` | Pick a run from the linked SLR project (or type a run id) and import it, show immutable snapshot history/details, and present readiness issues and stale state. | M0, M10 |
 | `methods` | Generate and review deterministic Methods revisions from a READY snapshot; show PRISMA facts, source paths, and missing-data warnings. | M2 |
 | `journal-profiles` | List and view read-only journal profiles, preserve section order and expected sources, and clearly label verification status and suggested word budgets. | M3 |
 | `outline` | Generate and version a manuscript blueprint from a READY snapshot and Journal Profile; assign snapshot claims, show RQ coverage and backend issues, and request H1 approval. Profile section order is fixed; subsections can be reordered. OWNER authorization is enforced by the backend. | M5 |
-| `manuscripts` | Show paragraph plans and revisions, draft from the approved evidence pack, and request H2 approval. | M6–M7 |
-| `verification` | Show citation-registry checks, G1–G7 results, and review issues. | M8 |
-| `approvals` | Present OWNER-only H1/H2/H3 decisions with their recorded provenance. | Cross-cutting workflow |
-| `export` | Present export eligibility and produce the Markdown package after H3. | M9 |
+| `paragraph-plans` | Generate and show paragraph plans from the approved blueprint, with per-section status and the backend's readiness issues. Implemented as its own feature, not under `manuscripts`. | M6 |
+| `drafting` | Draft a section from READY plans, edit it by hand (new version, H2 approve locked until re-verified), show markdown with evidence markers, record OWNER H2. Methods is excluded (it has its own page). | M7 |
+| `verification` | Run and show G1–G7 (`NOT_RUN` and `NOT_APPLICABLE` stay distinct from `PASS`), review issues, and the citation manifest. | M8 |
+| `approvals` | Not a feature folder: H1 lives in `outline`, H2 in `drafting`, H3 in `export`. Each presents the OWNER decision with its recorded provenance. | Cross-cutting workflow |
+| `export` | Show H3 readiness (`blockingReasons`, `requiredSections`, `omittedSections`), record H3, create and download the package, and query evidence lineage. | M9 |
+| `manuscripts` | Reserved name from the original plan; no folder exists. | n/a |
 
-## Delivery order
+## Delivery status
 
-1. `projects` → `snapshots`: connect project list/create and snapshot import-from-SLR/history/detail endpoints. Use local backend dev-auth only when explicitly configured; implement `auth` and Firebase token wiring before production use.
-2. `methods` → `journal-profiles` → `outline`: connected. Outline/H1 supports create, optimistic-concurrency revisions, history, validation, and OWNER decisions through the backend Blueprint API.
-3. `manuscripts` → `approvals` (H2): plan and draft paragraphs from snapshot evidence.
-4. `verification`: validate citation IDs and quality gates; expose unresolved issues.
-5. `export` → `approvals` (H3): enforce export gates and prepare the final package.
+1. `projects` → `snapshots`: done. `auth` done (Firebase; dev-auth shortcut kept for local development).
+2. `methods` → `journal-profiles` → `outline`: done (Outline/H1 uses optimistic-concurrency revisions and OWNER decisions).
+3. `paragraph-plans` → `drafting` (H2): done; read, generate and approve only.
+4. `verification`: done.
+5. `export` → H3: done.
+
+## Open items
+
+- Manual edit of paragraph plans (the BE `PUT` route exists). Manual edit of drafts is done.
+- A real Firebase project for staging/production (`VITE_FIREBASE_*`); sign-in is verified against the Auth emulator only.
+- A run with real evidence to exercise G2/G5.
 
 ## UI invariants
 

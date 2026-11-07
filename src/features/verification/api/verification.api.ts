@@ -12,14 +12,14 @@ export function getLatestVerification(
   projectId: string,
   snapshotId: string,
 ): Promise<VerificationReportView> {
-  return apiRequest<VerificationReportView>(`${verificationPath(projectId, snapshotId)}/latest`);
+  return apiRequest<VerificationReportView>(verificationPath(projectId, snapshotId));
 }
 
 export function runVerification(
   projectId: string,
   snapshotId: string,
 ): Promise<{ report: VerificationReportView }> {
-  return apiRequest<{ report: VerificationReportView }>(verificationPath(projectId, snapshotId), {
+  return apiRequest<{ report: VerificationReportView }>(`${verificationPath(projectId, snapshotId)}/run`, {
     method: "POST",
   });
 }

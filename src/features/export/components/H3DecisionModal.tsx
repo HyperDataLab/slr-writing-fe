@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ShieldCheckIcon, XCircleIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/shared/ui/button";
 import {
@@ -25,13 +26,14 @@ export function H3DecisionModal({
   onConfirm: (note?: string) => Promise<void>;
   submitting: boolean;
 }) {
+  const { t } = useTranslation();
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (action === "reject" && (!note.trim() || note.trim().length < 5)) {
-      setError("Rejection requires an explanatory note (at least 5 characters).");
+      setError(t("draft.decision.noteRequired"));
       return;
     }
     setError(null);
@@ -40,7 +42,7 @@ export function H3DecisionModal({
       setNote("");
       onClose();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "H3 decision submission failed");
+      setError(err instanceof Error ? err.message : t("exportPkg.decision.submitError"));
     }
   };
 
@@ -50,46 +52,46 @@ export function H3DecisionModal({
         <DialogHeader>
           <div className="flex items-center gap-2">
             {action === "approve" ? (
-              <ShieldCheckIcon className="size-6 text-emerald-600 dark:text-emerald-400" />
+              <ShieldCheckIcon className="size-6 text-success" />
             ) : (
-              <XCircleIcon className="size-6 text-rose-600 dark:text-rose-400" />
+              <XCircleIcon className="size-6 text-destructive" />
             )}
             <DialogTitle>
-              {action === "approve" ? "Confirm Final Submission Approval (H3)" : "Reject Final Package (H3)"}
+              {action === "approve" ? t("exportPkg.decision.approveTitle") : t("exportPkg.decision.rejectTitle")}
             </DialogTitle>
           </div>
           <DialogDescription className="text-xs pt-1">
             {action === "approve"
-              ? "H3 Approval authorizes creation of the immutable submission package. You confirm full responsibility as the SLR Project Owner."
-              : "Rejection prevents manuscript export and requires addressing quality gate or drafting issues."}
+              ? t("exportPkg.decision.approveDescription")
+              : t("exportPkg.decision.rejectDescription")}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 py-2 text-sm">
           <div className="bg-muted/50 p-2.5 rounded-md border border-border/60 text-xs space-y-1">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Target Hash:</span>
+              <span className="text-muted-foreground">{t("exportPkg.decision.targetHash")}:</span>
               <span className="font-mono text-muted-foreground text-[11px] truncate max-w-[200px]" title={compositeHash}>
-                {compositeHash ? `${compositeHash.slice(0, 20)}...` : "N/A"}
+                {compositeHash ? `${compositeHash.slice(0, 20)}...` : "—"}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Human Authority:</span>
-              <span className="font-semibold text-foreground">SLR Project Owner</span>
+              <span className="text-muted-foreground">{t("exportPkg.decision.authority")}:</span>
+              <span className="font-semibold text-foreground">{t("exportPkg.decision.owner")}</span>
             </div>
           </div>
 
           <div>
             <label className="text-xs font-semibold text-foreground block mb-1.5">
-              Review Note {action === "reject" && <span className="text-destructive">*</span>}
+              {t("draft.decision.note")} {action === "reject" && <span className="text-destructive">*</span>}
             </label>
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder={
                 action === "approve"
-                  ? "Optional note (e.g. Verified by Owner for academic journal submission)..."
-                  : "Required explanation for rejection..."
+                  ? t("exportPkg.decision.notePlaceholderApprove")
+                  : t("draft.decision.notePlaceholderReject")
               }
               rows={3}
               className="w-full bg-background border border-border rounded-md p-2.5 text-xs focus:outline-hidden focus:ring-2 focus:ring-primary"
@@ -104,7 +106,7 @@ export function H3DecisionModal({
 
           <DialogFooter className="gap-2 sm:gap-0 pt-2">
             <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={submitting}>
-              Cancel
+              {t("draft.decision.cancel")}
             </Button>
             <Button
               type="submit"
@@ -112,7 +114,7 @@ export function H3DecisionModal({
               size="sm"
               disabled={submitting}
             >
-              {submitting ? "Recording..." : action === "approve" ? "Authorize & Approve H3" : "Confirm Rejection H3"}
+              {submitting ? t("exportPkg.decision.recording") : action === "approve" ? t("exportPkg.decision.confirmApprove") : t("exportPkg.decision.confirmReject")}
             </Button>
           </DialogFooter>
         </form>
