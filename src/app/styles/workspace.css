@@ -994,28 +994,56 @@
     min-height: 0;
   }
 
+  .draft-section-rail {
+    position: sticky;
+    top: 8px;
+    z-index: 5;
+    order: 0;
+    gap: 0;
+    border-color: var(--slr-border);
+    border-radius: 12px;
+    padding: 7px;
+    background: rgb(255 255 255 / 96%);
+    box-shadow: 0 5px 18px rgb(18 35 49 / 8%);
+    backdrop-filter: blur(10px);
+  }
+
+  .draft-rail-heading,
+  .draft-rail-snapshot {
+    display: none;
+  }
+
+  .draft-section-list {
+    display: flex;
+    gap: 5px;
+    margin-top: 0;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+
+  .draft-section-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .draft-section-link {
+    min-height: 40px;
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .draft-section-link.is-active {
+    box-shadow: inset 0 -2px 0 var(--slr-primary);
+  }
+
   .draft-paper-column {
     order: 1;
     padding: 17px 13px 20px;
   }
 
-  .draft-section-rail {
+  .draft-inspector-pane {
     order: 2;
     border-top: 1px solid var(--slr-border);
-    border-right: 0;
-  }
-
-  .draft-inspector-pane {
-    order: 3;
-    border-top: 1px solid var(--slr-border);
-  }
-
-  .draft-section-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .draft-rail-snapshot {
-    margin-top: 14px;
   }
 
   .draft-paper-heading {
@@ -1204,6 +1232,153 @@
   background: #fff;
 }
 
+.draft-plan-panel-wrap {
+  padding: 20px clamp(16px, 4%, 38px) 32px;
+  border-bottom: 1px solid var(--slr-border);
+}
+
+.draft-content-anchor {
+  scroll-margin-top: 16px;
+}
+
+.draft-plan-workspace {
+  display: grid;
+  gap: 16px;
+}
+
+.draft-plan-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.draft-plan-api-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border-left: 3px solid var(--slr-primary);
+  border-radius: 8px;
+  padding: 11px 13px;
+  color: var(--slr-ink);
+  background: var(--slr-primary-soft);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.draft-plan-api-note svg {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--slr-primary);
+}
+
+.draft-plan-api-note p {
+  margin: 0;
+}
+
+.draft-plan-list {
+  display: grid;
+  border-top: 1px solid var(--slr-border);
+  border-bottom: 1px solid var(--slr-border);
+  padding-inline: 16px;
+  background: #fff;
+}
+
+.draft-plan-list-item + .draft-plan-list-item {
+  border-top: 1px solid var(--slr-border);
+}
+
+.paragraph-plan-card {
+  display: grid;
+  gap: 12px;
+  padding-block: 16px;
+}
+
+.paragraph-plan-card h3 {
+  margin: 0;
+}
+
+.draft-plan-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--slr-border);
+  padding-top: 14px;
+}
+
+.draft-plan-ready-count {
+  color: var(--slr-muted-ink);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.draft-plan-state {
+  display: grid;
+  min-height: 120px;
+  place-items: center;
+  color: var(--slr-muted-ink);
+  font-size: 13px;
+}
+
+.draft-plan-issues {
+  display: grid;
+  gap: 8px;
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: var(--slr-ink);
+  background: var(--slr-warning-soft);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.draft-plan-issues > div svg {
+  width: 16px;
+  height: 16px;
+  color: var(--slr-warning);
+}
+
+.draft-plan-issues ul {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.draft-plan-issues li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.draft-plan-unsaved,
+.draft-plan-not-ready,
+.draft-plan-methods-note {
+  margin: 0;
+  color: var(--slr-warning);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.draft-plan-notice {
+  margin: 0;
+  color: var(--slr-success);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.draft-plan-error {
+  border-radius: 9px;
+  padding: 11px 13px;
+  color: var(--slr-danger);
+  background: var(--slr-danger-soft);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .draft-toolbar-context,
 .draft-center-actions {
   display: flex;
@@ -1316,6 +1491,31 @@
 
   .draft-center-toolbar {
     align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .draft-plan-panel-wrap {
+    padding: 16px 13px 24px;
+  }
+
+  .draft-plan-header {
+    flex-direction: column;
+  }
+
+  .draft-plan-header > div:last-child {
+    width: 100%;
+  }
+
+  .draft-plan-header > div:last-child > button {
+    flex: 1;
+  }
+
+  .draft-plan-list {
+    padding-inline: 12px;
+  }
+
+  .draft-plan-footer {
+    align-items: stretch;
     flex-direction: column;
   }
 
