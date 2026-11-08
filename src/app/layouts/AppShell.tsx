@@ -19,7 +19,6 @@ import { Dialog, DialogContent, DialogTitle } from "@/shared/ui/dialog";
 import { useAuth } from "@/features/auth/auth-context";
 import { LanguageSwitcher } from "@/shared/ui/LanguageSwitcher";
 import { useProjects } from "@/features/projects/hooks/use-projects";
-import type { ProjectSummary } from "@/features/projects/model/project.types";
 
 type NavItem = {
   labelKey: string;
