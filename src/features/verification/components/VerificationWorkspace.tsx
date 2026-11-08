@@ -17,7 +17,7 @@ import type { SnapshotSummary } from "@/features/snapshots/model/snapshot.types"
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
-import { MotionReveal } from "@/shared/ui/motion";
+import { GsapStagger, MotionReveal } from "@/shared/ui/motion";
 
 export function VerificationWorkspace({
   projectId,
@@ -89,7 +89,7 @@ export function VerificationWorkspace({
   );
 
   return (
-    <div className="space-y-6">
+    <GsapStagger className="space-y-6">
       {/* Top Header Card */}
       <Card className="border border-border/80">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
@@ -241,6 +241,6 @@ export function VerificationWorkspace({
       ) : (
         manifest && <CitationManifestTable manifest={manifest} />
       )}
-    </div>
+    </GsapStagger>
   );
 }

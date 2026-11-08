@@ -1,7 +1,6 @@
 import { useEffect, useState, type ComponentType, type SVGProps } from "react";
 import { Link, useLocation, useOutlet, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   ArrowDownTrayIcon,
   ArrowUpTrayIcon,
@@ -19,6 +18,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/shared/ui/dialog";
 import { useAuth } from "@/features/auth/auth-context";
 import { LanguageSwitcher } from "@/shared/ui/LanguageSwitcher";
 import { useProjects } from "@/features/projects/hooks/use-projects";
+import { GsapRouteReveal } from "@/shared/ui/motion";
 
 type NavItem = {
   labelKey: string;
@@ -231,7 +231,6 @@ export function AppShell() {
   const { pathname } = useLocation();
   const [searchParams] = useSearchParams();
   const outlet = useOutlet();
-  const prefersReducedMotion = useReducedMotion();
   const { t } = useTranslation();
 
   const pageTitle = t(getPageTitleKey(pathname));
@@ -311,18 +310,9 @@ export function AppShell() {
 
         <main id="app-main" className="slrw-page" tabIndex={-1}>
           <div className="slrw-page-inner">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={routeMotionKey}
-                className="slrw-route-transition"
-                initial={prefersReducedMotion ? false : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
-                transition={{ duration: prefersReducedMotion ? 0 : 0.16, ease: "easeOut" }}
-              >
-                {outlet}
-              </motion.div>
-            </AnimatePresence>
+            <GsapRouteReveal key={routeMotionKey} className="slrw-route-transition">
+              {outlet}
+            </GsapRouteReveal>
           </div>
         </main>
       </div>

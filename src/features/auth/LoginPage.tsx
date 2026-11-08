@@ -6,6 +6,7 @@ import { isGoogleSignInEnabled } from "@/features/auth/auth.config";
 import { LanguageSwitcher } from "@/shared/ui/LanguageSwitcher";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
+import { GsapStagger } from "@/shared/ui/motion";
 
 /**
  * Only same-site paths are followed after sign-in, so a crafted `?next=` cannot send the user elsewhere. Browsers drop
@@ -78,7 +79,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
+    <GsapStagger className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
       <div className="absolute right-4 top-4">
         <LanguageSwitcher />
       </div>
@@ -142,6 +143,6 @@ export function LoginPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </GsapStagger>
   );
 }

@@ -26,6 +26,7 @@ import type { SnapshotSummary } from "@/features/snapshots/model/snapshot.types"
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
+import { GsapStagger } from "@/shared/ui/motion";
 
 export function ExportWorkspace({
   projectId,
@@ -129,7 +130,7 @@ export function ExportWorkspace({
   const canApprove = h3Status?.canApprove;
 
   return (
-    <div className="space-y-6">
+    <GsapStagger className="space-y-6">
       {/* Header Card */}
       <Card className="border border-border/80">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
@@ -431,6 +432,6 @@ export function ExportWorkspace({
           submitting={submittingDecision}
         />
       )}
-    </div>
+    </GsapStagger>
   );
 }
