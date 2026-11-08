@@ -1,6 +1,7 @@
 import { apiRequest } from "@/shared/lib/api-client";
 import type {
   ParagraphPlanMutationResponse,
+  ParagraphPlanContent,
   ParagraphPlanView,
 } from "@/features/paragraph-plans/model/paragraph-plan.types";
 
@@ -15,6 +16,17 @@ export function getParagraphPlans(projectId: string, snapshotId: string): Promis
 export function createParagraphPlans(projectId: string, snapshotId: string): Promise<ParagraphPlanMutationResponse> {
   return apiRequest<ParagraphPlanMutationResponse>(paragraphPlansPath(projectId, snapshotId), {
     method: "POST",
+  });
+}
+
+export function updateParagraphPlans(
+  projectId: string,
+  snapshotId: string,
+  input: { baseVersion: number; content: ParagraphPlanContent },
+): Promise<ParagraphPlanMutationResponse> {
+  return apiRequest<ParagraphPlanMutationResponse>(paragraphPlansPath(projectId, snapshotId), {
+    method: "PUT",
+    body: JSON.stringify(input),
   });
 }
 

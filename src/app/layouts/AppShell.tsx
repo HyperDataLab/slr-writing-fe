@@ -13,7 +13,6 @@ import {
   DocumentTextIcon,
   ListBulletIcon,
   PencilSquareIcon,
-  QueueListIcon,
   RectangleStackIcon,
   ShieldCheckIcon,
   Squares2X2Icon,
@@ -42,7 +41,6 @@ const workspaceItems: NavItem[] = [
     children: [
       { labelKey: "navigation.journalProfiles", to: "/journal-profiles", icon: BookOpenIcon },
       { labelKey: "navigation.methods", to: "/methods", icon: DocumentTextIcon },
-      { labelKey: "navigation.paragraphPlans", to: "/paragraph-plans", icon: QueueListIcon },
     ],
   },
   { labelKey: "navigation.outlineBuilder", to: "/outline", icon: ListBulletIcon },
@@ -164,7 +162,7 @@ function getPageTitleKey(pathname: string): string {
   if (pathname.startsWith("/methods")) return "navigation.methods";
   if (pathname.startsWith("/journal-profiles")) return "navigation.journalProfiles";
   if (pathname.startsWith("/outline")) return "navigation.outlineBuilder";
-  if (pathname.startsWith("/paragraph-plans")) return "navigation.paragraphPlans";
+  if (pathname.startsWith("/paragraph-plans")) return "navigation.writingStudio";
   if (pathname.startsWith("/drafting")) return "navigation.writingStudio";
   if (pathname.startsWith("/evidence")) return "navigation.evidenceRegistry";
   if (pathname.startsWith("/verification")) return "navigation.verification";

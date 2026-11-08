@@ -40,6 +40,8 @@ export interface ParagraphPlanRevision {
   createdAt: string;
 }
 
+export type ParagraphPlanContent = ParagraphPlanRevision["content"];
+
 export interface ParagraphPlanIssue {
   code: string;
   severity: "blocking" | "warning";

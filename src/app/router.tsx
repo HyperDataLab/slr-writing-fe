@@ -34,9 +34,6 @@ const MethodsPage = lazy(() =>
 const OutlinePage = lazy(() =>
   import("@/features/outline/pages/OutlinePage").then((module) => ({ default: module.OutlinePage })),
 );
-const ParagraphPlansPage = lazy(() =>
-  import("@/features/paragraph-plans/pages/ParagraphPlansPage").then((module) => ({ default: module.ParagraphPlansPage })),
-);
 const DraftingPage = lazy(() =>
   import("@/features/drafting/pages/DraftingPage").then((module) => ({ default: module.DraftingPage })),
 );
@@ -58,6 +55,15 @@ function SnapshotRoute() {
   }
   return <PageSuspense><SnapshotReadinessPage /></PageSuspense>;
 }
+
+function ParagraphPlansRedirect() {
+  const [searchParams] = useSearchParams();
+  const next = new URLSearchParams(searchParams);
+  next.delete("studioMode");
+  const query = next.toString();
+  return <Navigate to={query ? `/drafting?${query}#paragraph-plans` : "/drafting#paragraph-plans"} replace />;
+}
+
 function PageSuspense({ children }: { children: ReactNode }) {
   return <Suspense fallback={<RouteLoading />}>{children}</Suspense>;
 }
@@ -78,7 +84,7 @@ export function AppRouter() {
           <Route path="journal-profiles" element={<PageSuspense><JournalProfilesPage /></PageSuspense>} />
           <Route path="methods" element={<PageSuspense><MethodsPage /></PageSuspense>} />
           <Route path="outline" element={<PageSuspense><OutlinePage /></PageSuspense>} />
-          <Route path="paragraph-plans" element={<PageSuspense><ParagraphPlansPage /></PageSuspense>} />
+          <Route path="paragraph-plans" element={<ParagraphPlansRedirect />} />
           <Route path="drafting" element={<PageSuspense><DraftingPage /></PageSuspense>} />
           <Route path="verification" element={<PageSuspense><VerificationPage /></PageSuspense>} />
           <Route path="export" element={<PageSuspense><ExportPage /></PageSuspense>} />
