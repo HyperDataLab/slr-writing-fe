@@ -30,6 +30,7 @@ const colorTokens = [
   { key: "primaryText", token: "--primary-foreground" },
   { key: "border", token: "--slr-border" },
   { key: "borderStrong", token: "--slr-border-strong" },
+  { key: "inputBorder", token: "--slr-input-border" },
   { key: "success", token: "--slr-success" },
   { key: "warning", token: "--slr-warning" },
   { key: "danger", token: "--slr-danger" },
@@ -74,6 +75,8 @@ function resolveColor(token: string) {
 
 function colorToHex(value: string) {
   const values = value.match(/[\d.]+/g)?.slice(0, 3).map(Number);
+  const alpha = value.match(/[\d.]+/g)?.[3];
+  if (alpha !== undefined && Number(alpha) === 0) return "transparent";
   if (!values || values.length < 3) return value;
   return `#${values.map((channel) => Math.round(channel).toString(16).padStart(2, "0")).join("")}`;
 }

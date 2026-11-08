@@ -7,6 +7,7 @@ import type { ClaimOption } from "@/features/outline/utils/outline.helpers";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
+import { Input } from "@/shared/ui/input";
 import { MotionListItem } from "@/shared/ui/motion";
 
 interface OutlineSectionEditorProps {
@@ -109,7 +110,7 @@ export function OutlineSectionEditor({
             <label htmlFor={`${idPrefix}-min`} className="text-xs font-medium text-muted-foreground">
               {t("outline.minimumWords")}
             </label>
-            <input
+            <Input
               id={`${idPrefix}-min`}
               type="number"
               min={1}
@@ -118,14 +119,14 @@ export function OutlineSectionEditor({
               disabled={disabled}
               value={section.wordBudget.min}
               onChange={(event) => updateBudget("min", event.target.value)}
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-foreground/40 disabled:opacity-60"
+              className="w-full disabled:opacity-60"
             />
           </div>
           <div className="space-y-1.5">
             <label htmlFor={`${idPrefix}-max`} className="text-xs font-medium text-muted-foreground">
               {t("outline.maximumWords")}
             </label>
-            <input
+            <Input
               id={`${idPrefix}-max`}
               type="number"
               min={1}
@@ -134,7 +135,7 @@ export function OutlineSectionEditor({
               disabled={disabled}
               value={section.wordBudget.max}
               onChange={(event) => updateBudget("max", event.target.value)}
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-foreground/40 disabled:opacity-60"
+              className="w-full disabled:opacity-60"
             />
           </div>
           <p className="text-xs leading-5 text-muted-foreground sm:col-span-2">
@@ -174,13 +175,13 @@ export function OutlineSectionEditor({
                           <label htmlFor={`${idPrefix}-title-${index}`} className="text-xs font-medium text-muted-foreground">
                             {t("outline.subsectionTitle")}
                           </label>
-                          <input
+                          <Input
                             id={`${idPrefix}-title-${index}`}
                             value={subsection.title}
                             maxLength={300}
                             disabled={disabled}
                             onChange={(event) => updateSubsection(index, (current) => ({ ...current, title: event.target.value }))}
-                            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-foreground/40 disabled:opacity-60"
+                            className="w-full disabled:opacity-60"
                           />
                         </div>
                         <div className="flex items-end gap-1">
@@ -209,7 +210,7 @@ export function OutlineSectionEditor({
                         value={subsection.purpose ?? ""}
                         onChange={(event) => updateSubsection(index, (current) => ({ ...current, purpose: event.target.value.trim() ? event.target.value : null }))}
                         placeholder={t("outline.subsectionPurposePlaceholder")}
-                        className="w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:border-foreground/40 disabled:opacity-60"
+                        className="w-full resize-y rounded-xl border border-input bg-background px-3 py-2 text-sm transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
                       />
                     </div>
 
@@ -221,14 +222,14 @@ export function OutlineSectionEditor({
                         <label htmlFor={`${idPrefix}-claim-search-${index}`} className="sr-only">
                           {t("outline.searchClaims")}
                         </label>
-                        <input
+                        <Input
                           id={`${idPrefix}-claim-search-${index}`}
                           type="search"
                           value={claimFilter}
                           onChange={(event) => setClaimFilter(event.target.value)}
                           disabled={disabled || claimOptions.length === 0}
                           placeholder={t("outline.searchClaims")}
-                          className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-foreground/40 disabled:opacity-60"
+                          className="w-full disabled:opacity-60"
                         />
                         {claimOptions.length === 0 ? (
                           <p className="text-sm text-muted-foreground">{t("outline.noClaims")}</p>

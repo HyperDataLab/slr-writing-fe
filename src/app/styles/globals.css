@@ -43,6 +43,14 @@
 @layer base {
   * {
     @apply border-border;
+    border-color: transparent !important;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="hidden"]),
+  textarea,
+  select,
+  [data-button-variant="outline"] {
+    border-color: var(--slr-input-border) !important;
   }
 
   html {
@@ -84,6 +92,14 @@
   font-size: var(--slr-type-page-title);
   font-weight: var(--slr-weight-semibold);
   line-height: 1.2;
+}
+
+/* Keep keyboard focus visible after component borders become transparent. */
+#root input:focus-visible:not([class~="focus-visible:ring-2"]),
+#root textarea:focus-visible:not([class~="focus-visible:ring-2"]),
+#root select:focus-visible:not([class~="focus-visible:ring-2"]) {
+  outline: 2px solid var(--slr-border-focus);
+  outline-offset: 2px;
 }
 
 /* Thanh cuộn tự ẩn: giữ chỗ ở mọi trạng thái, hiện khi rê hoặc cuộn. */

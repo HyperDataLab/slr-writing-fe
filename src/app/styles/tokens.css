@@ -10,21 +10,22 @@
   --slr-disabled-ink: #647381;
   --slr-canvas: #f7f9fa;
   --slr-surface: #ffffff;
-  --slr-border: #dce4e9;
-  --slr-border-strong: #7b8b95;
+  --slr-border: transparent;
+  --slr-border-strong: transparent;
+  --slr-input-border: #dce4e9;
   --slr-border-focus: var(--slr-primary);
   --slr-shadow-popover: 0 8px 24px rgb(18 35 49 / 0.14);
   --slr-shadow-modal: 0 20px 48px rgb(18 35 49 / 0.18);
   --slr-night: #0b1720;
-  --slr-night-border: #3c4c58;
+  --slr-night-border: transparent;
   --slr-success: #117035;
   --slr-success-soft: #ecf8ef;
   --slr-warning: #92400e;
   --slr-warning-soft: #fef3c7;
-  --slr-warning-border: #fcd34d;
+  --slr-warning-border: transparent;
   --slr-danger: #b42318;
   --slr-danger-soft: #fef2f2;
-  --slr-danger-border: #fecaca;
+  --slr-danger-border: transparent;
 
   --slr-type-page-title: 1.25rem;
   --slr-type-section-title: 1.125rem;
@@ -53,7 +54,7 @@
   --border: var(--slr-border);
   --border-strong: var(--slr-border-strong);
   --border-focus: var(--slr-border-focus);
-  --input: var(--border-strong);
+  --input: var(--slr-input-border);
   --ring: var(--border-focus);
   --destructive: var(--slr-danger);
   --destructive-foreground: #ffffff;

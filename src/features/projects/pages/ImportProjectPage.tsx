@@ -20,6 +20,7 @@ import { MotionReveal } from "@/shared/ui/motion";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
+import { Input } from "@/shared/ui/input";
 
 const ARTIFACTS = [
   { id: "A1", required: true },
@@ -96,14 +97,14 @@ export function ImportProjectPage() {
         <label htmlFor="import-project-name" className="text-sm font-medium text-foreground">
           {t("projects.nameLabel")}
         </label>
-        <input
+        <Input
           id="import-project-name"
           autoComplete="organization"
           maxLength={200}
           required
           value={projectName}
           onChange={(event) => setProjectName(event.target.value)}
-          className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-foreground/40"
+          className="w-full"
           placeholder={t("projects.namePlaceholder")}
         />
       </div>
@@ -111,14 +112,14 @@ export function ImportProjectPage() {
         <label htmlFor="import-slr-project-id" className="text-sm font-medium text-foreground">
           {t("projects.slrIdLabel")}
         </label>
-        <input
+        <Input
           id="import-slr-project-id"
           autoComplete="off"
           maxLength={200}
           required
           value={slrProjectId}
           onChange={(event) => setSlrProjectId(event.target.value)}
-          className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-foreground/40"
+          className="w-full"
           placeholder={t("projects.slrIdPlaceholder")}
         />
       </div>
@@ -217,7 +218,7 @@ export function ImportProjectPage() {
                       <label htmlFor="import-run-id" className="text-sm font-medium text-foreground">
                         {t("projectImport.manualRunLabel")}
                       </label>
-                      <input
+                      <Input
                         id="import-run-id"
                         autoComplete="off"
                         maxLength={128}
@@ -225,7 +226,7 @@ export function ImportProjectPage() {
                         value={runId}
                         onChange={(event) => setRunId(event.target.value)}
                         placeholder={t("projectImport.manualRunPlaceholder")}
-                        className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-foreground/40"
+                        className="mt-2 w-full"
                       />
                       <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
                         {t("projectImport.manualRunHelp")}

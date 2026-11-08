@@ -275,7 +275,7 @@ export function OutlineWorkspace({
                     id="outline-profile"
                     value={profileId}
                     onChange={(event) => setProfileId(event.target.value)}
-                    className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:border-foreground/40"
+                    className="min-h-11 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:min-h-10"
                   >
                     {profiles.map((item) => <option key={item.id} value={item.id}>{item.name} · v{item.version}</option>)}
                   </select>
@@ -352,7 +352,7 @@ export function OutlineWorkspace({
                   value={selectedVersion}
                   onChange={(event) => void handleVersionChange(event.target.value)}
                   disabled={isBusy || view.versions.length < 2}
-                  className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:border-foreground/40 disabled:opacity-60"
+                  className="min-h-11 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60 md:min-h-10"
                 >
                   {view.versions.map((version) => (
                     <option key={version.id} value={version.version}>
@@ -369,7 +369,7 @@ export function OutlineWorkspace({
               )}
               <Button type="button" size="sm" variant="outline" disabled={isBusy} onClick={() => void loadLatest()}>
                 <ArrowPathIcon aria-hidden="true" />
-                {t("common.retry")}
+                {t("workflow.refresh")}
               </Button>
             </div>
           </CardHeader>
@@ -499,7 +499,7 @@ export function OutlineWorkspace({
                   onChange={(event) => setDecisionNote(event.target.value)}
                   disabled={!isLatest || isBusy || !isReady}
                   placeholder={t("outline.decisionNotePlaceholder")}
-                  className="w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:border-foreground/40 disabled:opacity-60"
+                  className="w-full resize-y rounded-xl border border-input bg-background px-3 py-2 text-sm transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
                 />
                 {dirty && <p className="text-xs text-muted-foreground">{t("outline.saveBeforeDecision")}</p>}
               </div>

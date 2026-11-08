@@ -213,11 +213,15 @@
 }
 
 .ds-border-line--control {
-  border: 1px solid var(--slr-border-strong);
+  border: 1px solid transparent;
+  outline: 1px solid var(--slr-input-border);
+  outline-offset: -1px;
 }
 
 .ds-border-line--focus {
   border: 2px solid var(--slr-border-focus);
+  outline: 2px solid var(--slr-border-focus);
+  outline-offset: 2px;
 }
 
 .ds-elevation-card {

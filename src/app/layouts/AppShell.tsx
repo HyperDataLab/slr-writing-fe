@@ -352,7 +352,7 @@ export function AppShell() {
             >
               <Bars3Icon className="size-5" aria-hidden="true" />
             </button>
-            <div className="slrw-breadcrumbs" aria-label={t("navigation.breadcrumbs")}>
+            <nav className="slrw-breadcrumbs" aria-label={t("navigation.breadcrumbs")}>
               <Link to="/">{t("navigation.workspace")}</Link>
               {!pathname.startsWith("/projects") && activeProject && (
                 <>
@@ -362,7 +362,7 @@ export function AppShell() {
               )}
               <span aria-hidden="true">/</span>
               <span aria-current="page">{pageTitle}</span>
-            </div>
+            </nav>
           </div>
           <div className="slrw-topbar-actions">
             <span className="slrw-workflow-status">
