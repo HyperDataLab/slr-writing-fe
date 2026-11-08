@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ComponentType, type SVGProps } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
-import { motion, useReducedMotion } from "motion/react";
+import { useReducedMotion } from "motion/react";
 import { gsap } from "gsap";
 import {
   ArrowRightIcon,
@@ -28,6 +28,7 @@ import { getLatestVerification } from "@/features/verification/api/verification.
 import { ApiError } from "@/shared/lib/api-client";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
+import { GsapStagger } from "@/shared/ui/gsap-motion";
 
 type WorkflowStage = {
   icon: ComponentType<SVGProps<SVGSVGElement>>;
@@ -223,13 +224,8 @@ export function OverviewPage() {
   const resumePath = workspacePath(resumePaths[resumeStep], selectedProjectId, selectedSnapshotId);
 
   return (
-    <div className="overview-dashboard">
-      <motion.section
-        className="overview-heading"
-        initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: prefersReducedMotion ? 0 : 0.28, ease: "easeOut" }}
-      >
+    <GsapStagger className="overview-dashboard">
+      <section className="overview-heading">
         <div>
           <p className="overview-eyebrow">{t("overview.pageEyebrow")}</p>
           <h1 className="slrw-page-title">{t("overview.pageTitle")}</h1>
@@ -249,15 +245,9 @@ export function OverviewPage() {
             </Link>
           </Button>
         </div>
-      </motion.section>
+      </section>
 
-      <motion.section
-        className="overview-project-hero"
-        aria-labelledby="overview-project-title"
-        initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: prefersReducedMotion ? 0 : 0.34, delay: prefersReducedMotion ? 0 : 0.04, ease: "easeOut" }}
-      >
+      <section className="overview-project-hero" aria-labelledby="overview-project-title">
         <div className="overview-hero-decoration overview-hero-decoration-one" aria-hidden="true" />
         <div className="overview-hero-decoration overview-hero-decoration-two" aria-hidden="true" />
         <div className="overview-hero-copy">
@@ -294,7 +284,7 @@ export function OverviewPage() {
             )}
           </div>
         </div>
-      </motion.section>
+      </section>
 
       {projectsError && <p className="overview-inline-error" role="alert">{projectsError}</p>}
       {snapshotDetailError && <p className="overview-inline-error" role="alert">{snapshotDetailError}</p>}
@@ -380,6 +370,6 @@ export function OverviewPage() {
           </CardContent>
         </Card>
       </section>
-    </div>
+    </GsapStagger>
   );
 }

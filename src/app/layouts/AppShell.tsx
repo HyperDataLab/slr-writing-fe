@@ -1,29 +1,24 @@
 import { useEffect, useState, type ComponentType, type SVGProps } from "react";
-import { Link, useLocation, useNavigate, useOutlet, useSearchParams } from "react-router";
+import { Link, useLocation, useOutlet, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
-  ArrowRightIcon,
   ArrowDownTrayIcon,
   ArrowUpTrayIcon,
   Bars3Icon,
-  BookOpenIcon,
   ChevronDownIcon,
   CircleStackIcon,
-  DocumentTextIcon,
   ListBulletIcon,
   PencilSquareIcon,
   RectangleStackIcon,
   ShieldCheckIcon,
   Squares2X2Icon,
-  SparklesIcon,
 } from "@heroicons/react/24/outline";
 import { cn } from "@/shared/utils/cn";
 import { Dialog, DialogContent, DialogTitle } from "@/shared/ui/dialog";
 import { useAuth } from "@/features/auth/auth-context";
 import { LanguageSwitcher } from "@/shared/ui/LanguageSwitcher";
 import { useProjects } from "@/features/projects/hooks/use-projects";
-import type { ProjectSummary } from "@/features/projects/model/project.types";
+import { GsapRouteReveal } from "@/shared/ui/gsap-motion";
 
 type NavItem = {
   labelKey: string;
@@ -38,10 +33,6 @@ const workspaceItems: NavItem[] = [
     labelKey: "navigation.writingStudio",
     to: "/drafting",
     icon: PencilSquareIcon,
-    children: [
-      { labelKey: "navigation.journalProfiles", to: "/journal-profiles", icon: BookOpenIcon },
-      { labelKey: "navigation.methods", to: "/methods", icon: DocumentTextIcon },
-    ],
   },
   { labelKey: "navigation.outlineBuilder", to: "/outline", icon: ListBulletIcon },
   {
@@ -172,31 +163,17 @@ function getPageTitleKey(pathname: string): string {
 
 function SidebarNavigation({
   onNavigate,
-  projects,
-  projectsLoading,
   selectedProjectId,
   selectedSnapshotId,
-  onSelectProject,
 }: {
   onNavigate?: () => void;
-  projects: ProjectSummary[];
-  projectsLoading: boolean;
   selectedProjectId: string;
   selectedSnapshotId: string;
-  onSelectProject: (projectId: string) => void;
 }) {
   const { t } = useTranslation();
 
   const [searchParams] = useSearchParams();
   const { pathname } = useLocation();
-  const activeProject = projects.find((project) => project.id === selectedProjectId);
-  const projectInitials = activeProject?.name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase() || "SL";
 
   return (
     <div className="slrw-sidebar">
@@ -209,24 +186,6 @@ function SidebarNavigation({
           <span className="slrw-brand-caption">RESEARCH WORKSPACE</span>
         </span>
       </Link>
-
-      <label className="slrw-project-switcher">
-        <span className="slrw-project-initials" aria-hidden="true">{projectInitials}</span>
-        <span className="slrw-project-copy">
-          <strong>{activeProject?.name ?? (projectsLoading ? t("navigation.loadingProject") : t("navigation.chooseProject"))}</strong>
-          <span>{activeProject ? t("navigation.projectType") : t("navigation.selectProjectHint")}</span>
-        </span>
-        <ChevronDownIcon className="slrw-project-chevron" aria-hidden="true" />
-        <select
-          aria-label={t("navigation.selectProject")}
-          value={activeProject?.id ?? ""}
-          onChange={(event) => onSelectProject(event.target.value)}
-        >
-          <option value="">{t("navigation.chooseProject")}</option>
-          {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
-          <option value="__manage__">{t("navigation.manageProjects")}</option>
-        </select>
-      </label>
 
       <nav aria-label={t("navigation.main")} className="slrw-side-nav">
         <section className="slrw-nav-group" aria-label={t("navigation.workspace")}>
@@ -263,16 +222,6 @@ function SidebarNavigation({
         </section>
       </nav>
 
-      <div className="slrw-sidebar-footer">
-        <div className="slrw-trust-note">
-          <SparklesIcon aria-hidden="true" />
-          <strong>{t("navigation.evidenceFirst")}</strong>
-          <p>{t("navigation.evidenceDescription")}</p>
-          <Link to={withWorkspaceContext("/evidence", selectedProjectId, selectedSnapshotId)} onClick={onNavigate}>
-            {t("navigation.exploreEvidence")} <ArrowRightIcon aria-hidden="true" />
-          </Link>
-        </div>
-      </div>
     </div>
   );
 }
@@ -280,17 +229,15 @@ function SidebarNavigation({
 export function AppShell() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { pathname } = useLocation();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const outlet = useOutlet();
-  const prefersReducedMotion = useReducedMotion();
-  const navigate = useNavigate();
   const { t } = useTranslation();
 
   const pageTitle = t(getPageTitleKey(pathname));
   const routeTab = pathname === "/verification" ? searchParams.get("tab") ?? "gates" : "";
   const routeMotionKey = `${pathname}:${routeTab}`;
   const { mode, user, signOut } = useAuth();
-  const { projects, isLoading: projectsLoading, load: loadProjects } = useProjects();
+  const { projects, load: loadProjects } = useProjects();
   const selectedProjectId = searchParams.get("projectId") || (typeof window !== "undefined" ? localStorage.getItem("slrw_selected_project_id") : null) || "";
   const selectedSnapshotId = searchParams.get("snapshotId") || (typeof window !== "undefined" ? localStorage.getItem("slrw_selected_snapshot_id") : null) || "";
   const activeProject = projects.find((project) => project.id === selectedProjectId);
@@ -299,28 +246,9 @@ export function AppShell() {
 
   useEffect(() => { void loadProjects(); }, [loadProjects, selectedProjectId]);
 
-  const handleProjectSelect = (projectId: string) => {
-    if (projectId === "__manage__") {
-      navigate("/import?newProject=1");
-      return;
-    }
-    if (!projectId || projectId === selectedProjectId) return;
-    localStorage.setItem("slrw_selected_project_id", projectId);
-    localStorage.removeItem("slrw_selected_snapshot_id");
-    const next = new URLSearchParams(searchParams);
-    next.set("projectId", projectId);
-    next.delete("snapshotId");
-    next.delete("mode");
-    next.delete("tab");
-    setSearchParams(next);
-  };
-
   const sidebarProps = {
-    projects,
-    projectsLoading,
     selectedProjectId,
     selectedSnapshotId,
-    onSelectProject: handleProjectSelect,
   };
 
   return (
@@ -382,18 +310,9 @@ export function AppShell() {
 
         <main id="app-main" className="slrw-page" tabIndex={-1}>
           <div className="slrw-page-inner">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={routeMotionKey}
-                className="slrw-route-transition"
-                initial={prefersReducedMotion ? false : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
-                transition={{ duration: prefersReducedMotion ? 0 : 0.16, ease: "easeOut" }}
-              >
-                {outlet}
-              </motion.div>
-            </AnimatePresence>
+            <GsapRouteReveal key={routeMotionKey} className="slrw-route-transition">
+              {outlet}
+            </GsapRouteReveal>
           </div>
         </main>
       </div>

@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import type { MethodsFact } from "@/features/methods/model/methods.types";
 import { Badge } from "@/shared/ui/badge";
-import { MotionListItem } from "@/shared/ui/motion";
+import { GsapListItem } from "@/shared/ui/gsap-motion";
 
 function formatFactValue(value: MethodsFact["value"], locale: string, missingLabel: string, emptyLabel: string) {
   if (value === null) return missingLabel;
@@ -37,7 +37,7 @@ export function MethodsFactList({ facts }: { facts: MethodsFact[] }) {
         );
 
         return (
-          <MotionListItem key={fact.key} delay={index * 0.025} className="space-y-2 py-4 first:pt-0 last:pb-0">
+          <GsapListItem key={fact.key} delay={index * 0.025} className="space-y-2 py-4 first:pt-0 last:pb-0">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <p className="text-sm font-medium text-foreground">{factLabel}</p>
               <Badge variant={fact.status === "explicit" ? "default" : "outline"}>
@@ -51,7 +51,7 @@ export function MethodsFactList({ facts }: { facts: MethodsFact[] }) {
                 {t("methods.derivation")}: {fact.derivation}
               </p>
             )}
-          </MotionListItem>
+          </GsapListItem>
         );
       })}
     </ul>

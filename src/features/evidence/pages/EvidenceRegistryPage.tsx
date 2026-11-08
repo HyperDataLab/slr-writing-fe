@@ -18,6 +18,7 @@ import { ApiError } from "@/shared/lib/api-client";
 import { useStableT } from "@/shared/i18n/use-stable-t";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
+import { GsapStagger } from "@/shared/ui/gsap-motion";
 import { Input } from "@/shared/ui/input";
 
 type RegistryFilter = "all" | "verified" | "review" | "unlinked";
@@ -143,7 +144,7 @@ export function EvidenceRegistryPage() {
   const isWorkspaceLoading = projectsLoading || snapshotsLoading;
 
   return (
-    <div className="space-y-6">
+    <GsapStagger className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{t("evidenceRegistry.eyebrow")}</p>
@@ -265,6 +266,6 @@ export function EvidenceRegistryPage() {
           </div>
         </Card>
       )}
-    </div>
+    </GsapStagger>
   );
 }

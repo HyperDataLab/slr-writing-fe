@@ -10,7 +10,7 @@ import { ApiError } from "@/shared/lib/api-client";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
-import { MotionListItem, MotionReveal } from "@/shared/ui/motion";
+import { GsapListItem, GsapReveal } from "@/shared/ui/gsap-motion";
 
 function revisionSummary(revision: MethodsRevision): MethodsRevisionSummary {
   return {
@@ -148,7 +148,7 @@ export function MethodsWorkspace({
 
   return (
     <div className="space-y-5">
-      <MotionReveal>
+      <GsapReveal>
       <Card>
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1.5">
@@ -171,7 +171,7 @@ export function MethodsWorkspace({
           </Button>
         </CardContent>
       </Card>
-      </MotionReveal>
+      </GsapReveal>
 
       {generationResult && (
         <p role="status" className="rounded-lg border border-border bg-secondary/60 px-4 py-3 text-sm text-foreground">
@@ -181,21 +181,21 @@ export function MethodsWorkspace({
       {error && <p role="alert" className="rounded-lg border border-border px-4 py-3 text-sm text-destructive">{error}</p>}
 
       {isLoading ? (
-        <MotionReveal><Card><CardContent className="py-12 text-center text-sm text-muted-foreground">{t("methods.loading")}</CardContent></Card></MotionReveal>
+        <GsapReveal><Card><CardContent className="py-12 text-center text-sm text-muted-foreground">{t("methods.loading")}</CardContent></Card></GsapReveal>
       ) : !revision ? (
-        <MotionReveal><Card className="flex min-h-56 items-center justify-center">
+        <GsapReveal><Card className="flex min-h-56 items-center justify-center">
           <CardContent className="max-w-md px-6 py-10 text-center">
             <p className="text-base font-semibold text-foreground">{t("methods.emptyTitle")}</p>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               {isReady ? t("methods.emptyDescription") : t("methods.blockedDescription")}
             </p>
           </CardContent>
-        </Card></MotionReveal>
+        </Card></GsapReveal>
       ) : (
         <>
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(19rem,0.85fr)]">
             <div className="space-y-5">
-              <MotionReveal>
+              <GsapReveal>
               <Card>
                 <CardHeader className="gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div>
@@ -218,9 +218,9 @@ export function MethodsWorkspace({
                   )}
                 </CardContent>
               </Card>
-              </MotionReveal>
+              </GsapReveal>
 
-              <MotionReveal effect="fade">
+              <GsapReveal effect="fade">
               <Card>
                 <CardHeader>
                   <CardTitle>{t("methods.sourcesTitle")}</CardTitle>
@@ -237,11 +237,11 @@ export function MethodsWorkspace({
                   </details>
                 </CardContent>
               </Card>
-              </MotionReveal>
+              </GsapReveal>
             </div>
 
             <aside className="space-y-5">
-              <MotionReveal effect="fade">
+              <GsapReveal effect="fade">
               <Card>
                 <CardHeader>
                   <CardTitle>{t("methods.prismaTitle")}</CardTitle>
@@ -251,9 +251,9 @@ export function MethodsWorkspace({
                   <MethodsFactList facts={prismaFacts} />
                 </CardContent>
               </Card>
-              </MotionReveal>
+              </GsapReveal>
 
-              <MotionReveal effect="fade">
+              <GsapReveal effect="fade">
               <Card>
                 <CardHeader className="flex-row items-start gap-3">
                   <ExclamationTriangleIcon className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -268,21 +268,21 @@ export function MethodsWorkspace({
                   ) : (
                     <ul className="space-y-3">
                       {revision.warnings.map((warning, index) => (
-                        <MotionListItem key={`${warning.code}-${warning.ref ?? index}`} delay={index * 0.04} className="rounded-lg border border-border bg-secondary/40 p-3">
+                        <GsapListItem key={`${warning.code}-${warning.ref ?? index}`} delay={index * 0.04} className="rounded-lg border border-border bg-secondary/40 p-3">
                           <p className="text-xs font-semibold text-foreground">{warning.code}</p>
                           <p className="mt-1 text-sm leading-5 text-muted-foreground">{warning.message}</p>
                           {warning.ref && <code className="mt-2 block break-all text-[11px] text-muted-foreground">{warning.ref}</code>}
-                        </MotionListItem>
+                        </GsapListItem>
                       ))}
                     </ul>
                   )}
                 </CardContent>
               </Card>
-              </MotionReveal>
+              </GsapReveal>
             </aside>
           </div>
 
-          <MotionReveal delay={0.12}>
+          <GsapReveal delay={0.12}>
           <Card>
             <CardContent className="grid gap-4 pt-6 sm:grid-cols-[minmax(13rem,0.5fr)_minmax(0,1fr)] sm:items-end">
               <div className="space-y-2">
@@ -324,7 +324,7 @@ export function MethodsWorkspace({
               )}
             </CardContent>
           </Card>
-          </MotionReveal>
+          </GsapReveal>
         </>
       )}
     </div>
