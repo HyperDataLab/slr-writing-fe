@@ -14,6 +14,7 @@ import { Link, useSearchParams } from "react-router";
 import { useProjects } from "@/features/projects/hooks/use-projects";
 import { Button } from "@/shared/ui/button";
 import { Badge } from "@/shared/ui/badge";
+import { Input } from "@/shared/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import {
   Dialog,
@@ -316,7 +317,7 @@ export function SnapshotReadinessPage() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{t("snapshots.step")}</p>
-            <h2 className="slrw-page-title mt-1 tracking-tight">{t("snapshots.title")}</h2>
+            <h1 className="slrw-page-title mt-1">{t("snapshots.title")}</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{t("snapshots.description")}</p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -526,14 +527,14 @@ export function SnapshotReadinessPage() {
                 <label htmlFor="snapshot-run-id" className="text-sm font-medium text-foreground">
                   {t("snapshots.runIdLabelManual")}
                 </label>
-                <input
+                <Input
                   id="snapshot-run-id"
                   autoComplete="off"
                   maxLength={128}
                   required
                   value={runId}
                   onChange={(event) => setRunId(event.target.value)}
-                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-foreground/40"
+                  className="w-full"
                   placeholder={t("snapshots.runIdPlaceholder")}
                 />
                 <p className="text-xs leading-5 text-muted-foreground">

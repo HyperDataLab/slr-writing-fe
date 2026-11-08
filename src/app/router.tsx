@@ -8,6 +8,9 @@ import { RouteLoading } from "@/shared/ui/RouteLoading";
 const LoginPage = lazy(() =>
   import("@/features/auth/LoginPage").then((module) => ({ default: module.LoginPage })),
 );
+const DesignSystemPage = lazy(() =>
+  import("@/features/design-system/pages/DesignSystemPage").then((module) => ({ default: module.DesignSystemPage })),
+);
 const OverviewPage = lazy(() =>
   import("@/features/projects/pages/OverviewPage").then((module) => ({ default: module.OverviewPage })),
 );
@@ -64,6 +67,7 @@ export function AppRouter() {
     <BrowserRouter>
       <Routes>
         <Route path="login" element={<PageSuspense><LoginPage /></PageSuspense>} />
+        <Route path="design-system" element={<PageSuspense><DesignSystemPage /></PageSuspense>} />
         <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
           <Route index element={<PageSuspense><OverviewPage /></PageSuspense>} />

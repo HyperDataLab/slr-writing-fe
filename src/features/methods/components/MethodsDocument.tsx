@@ -65,9 +65,9 @@ export function MethodsDocument({ markdown }: { markdown: string }) {
       {blocks.map((block) => {
         if (block.type === "heading") {
           const className = block.level === 2
-            ? "text-xl font-semibold tracking-tight text-foreground"
+            ? "text-xl font-semibold text-foreground"
             : block.level === 3
-              ? "text-base font-semibold tracking-tight text-foreground"
+              ? "text-base font-semibold text-foreground"
               : "text-sm font-semibold text-foreground";
           if (block.level === 2) return <h2 key={block.key} className={className}>{decodeGeneratedMarkdown(block.text)}</h2>;
           if (block.level === 3) return <h3 key={block.key} className={className}>{decodeGeneratedMarkdown(block.text)}</h3>;
