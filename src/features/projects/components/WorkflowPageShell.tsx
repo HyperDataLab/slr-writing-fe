@@ -44,7 +44,7 @@ export function WorkflowPageShell({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="slrw-page-title tracking-tight">{title}</h1>
+        <h1 className="slrw-page-title">{title}</h1>
         <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
       </div>
 

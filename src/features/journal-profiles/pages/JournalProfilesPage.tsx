@@ -113,7 +113,7 @@ export function JournalProfilesPage() {
       <MotionReveal>
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{t("journalProfiles.step")}</p>
-          <h2 className="slrw-page-title mt-1 tracking-tight">{t("journalProfiles.title")}</h2>
+          <h2 className="slrw-page-title mt-1">{t("journalProfiles.title")}</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{t("journalProfiles.description")}</p>
         </div>
       </MotionReveal>
@@ -245,7 +245,7 @@ export function JournalProfilesPage() {
 
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h3 className="text-lg font-semibold tracking-tight">{t("journalProfiles.sectionsTitle")}</h3>
+              <h3 className="text-lg font-semibold">{t("journalProfiles.sectionsTitle")}</h3>
               <p className="mt-1 text-sm text-muted-foreground">
                 {t("journalProfiles.sectionsDescription", { count: profile.sections.length })}
               </p>

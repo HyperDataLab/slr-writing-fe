@@ -18,6 +18,7 @@ import { ApiError } from "@/shared/lib/api-client";
 import { useStableT } from "@/shared/i18n/use-stable-t";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
+import { Input } from "@/shared/ui/input";
 
 type RegistryFilter = "all" | "verified" | "review" | "unlinked";
 
@@ -146,7 +147,7 @@ export function EvidenceRegistryPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{t("evidenceRegistry.eyebrow")}</p>
-          <h2 className="slrw-page-title mt-1 tracking-tight">{t("navigation.evidenceRegistry")}</h2>
+          <h1 className="slrw-page-title mt-1">{t("navigation.evidenceRegistry")}</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{t("evidenceRegistry.description")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -174,12 +175,12 @@ export function EvidenceRegistryPage() {
             <div className="relative min-w-[min(100%,22rem)] flex-1 sm:max-w-md">
               <MagnifyingGlassIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
               <label className="sr-only" htmlFor="registry-search">{t("evidenceRegistry.searchLabel")}</label>
-              <input
+              <Input
                 id="registry-search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={t("evidenceRegistry.searchPlaceholder")}
-                className="h-11 w-full rounded-lg border border-input bg-background pl-10 pr-3 text-sm outline-none transition-colors focus-visible:border-foreground/40"
+                className="pl-10 pr-3"
               />
             </div>
             <div role="group" aria-label={t("evidenceRegistry.filtersLabel")} className="flex flex-wrap gap-2">
@@ -189,7 +190,7 @@ export function EvidenceRegistryPage() {
                   type="button"
                   aria-pressed={filter === item.id}
                   onClick={() => setFilter(item.id)}
-                  className={`min-h-10 rounded-lg border px-3 text-xs font-semibold transition-colors ${filter === item.id ? "border-primary/25 bg-secondary text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted"}`}
+                  className={`min-h-11 rounded-lg border px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:min-h-10 ${filter === item.id ? "border-primary/25 bg-secondary text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted"}`}
                 >
                   {item.label}{item.count !== undefined && <span className="ml-1.5 tabular-nums">{item.count}</span>}
                 </button>
@@ -247,7 +248,7 @@ export function EvidenceRegistryPage() {
                         </span>
                       </td>
                       <td className="px-3 py-4 text-muted-foreground">
-                        <Link to={studioUrl} aria-label={t("evidenceRegistry.openDraftFor", { id: row.externalId })} className="inline-flex size-8 items-center justify-center rounded-md hover:bg-secondary hover:text-foreground">
+                        <Link to={studioUrl} aria-label={t("evidenceRegistry.openDraftFor", { id: row.externalId })} className="inline-flex size-11 items-center justify-center rounded-md hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:size-10">
                           <ChevronRightIcon className="size-4" aria-hidden="true" />
                         </Link>
                       </td>

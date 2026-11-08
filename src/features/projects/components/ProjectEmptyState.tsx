@@ -10,7 +10,7 @@ export function ProjectEmptyState() {
       <span className="flex size-14 items-center justify-center rounded-2xl bg-secondary text-primary">
         <FolderPlusIcon className="size-7" aria-hidden="true" />
       </span>
-      <h2 className="mt-5 text-lg font-semibold tracking-tight text-foreground">{t("projects.emptyTitle")}</h2>
+      <h2 className="mt-5 text-lg font-semibold text-foreground">{t("projects.emptyTitle")}</h2>
       <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
         {t("projects.emptyDescription")}
       </p>
