@@ -4,6 +4,7 @@ import {
   CheckCircleIcon,
   CircleStackIcon,
   ClockIcon,
+  DocumentTextIcon,
   DocumentArrowUpIcon,
   ExclamationTriangleIcon,
   PlusIcon,
@@ -258,10 +259,13 @@ export function SnapshotReadinessPage() {
   }, [activeProject, searchParams, setSearchParams]);
   const readiness = selectedReadiness ?? importReadiness;
   const locale = i18n.resolvedLanguage ?? "vi";
-  const openEditorUrl = selectedProjectId && selectedSnapshotId
-    ? "/drafting?projectId=" + encodeURIComponent(selectedProjectId) + "&snapshotId=" + encodeURIComponent(selectedSnapshotId)
-    : "/drafting";
-  const canOpenEditor = snapshotDetail?.status === "READY";
+  const openOutlineUrl = selectedProjectId && selectedSnapshotId
+    ? "/outline?projectId=" + encodeURIComponent(selectedProjectId) + "&snapshotId=" + encodeURIComponent(selectedSnapshotId)
+    : "/outline";
+  const methodsUrl = selectedProjectId && selectedSnapshotId
+    ? "/methods?projectId=" + encodeURIComponent(selectedProjectId) + "&snapshotId=" + encodeURIComponent(selectedSnapshotId)
+    : "/methods";
+  const canOpenOutline = snapshotDetail?.status === "READY";
   const primaryMetrics = snapshotDetail
     ? [
         { label: t("snapshots.counts.studies"), value: snapshotDetail._count.studies },
@@ -321,17 +325,17 @@ export function SnapshotReadinessPage() {
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{t("snapshots.description")}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {canOpenEditor ? (
+            {canOpenOutline ? (
               <Button asChild variant="outline">
-                <Link to={openEditorUrl}>
+                <Link to={openOutlineUrl}>
                   <PencilSquareIcon aria-hidden="true" />
-                  {t("snapshots.openEditor")}
+                  {t("snapshots.openOutline")}
                 </Link>
               </Button>
             ) : (
               <Button type="button" variant="outline" disabled>
                 <PencilSquareIcon aria-hidden="true" />
-                {t("snapshots.openEditor")}
+                {t("snapshots.openOutline")}
               </Button>
             )}
             <Button
@@ -468,10 +472,10 @@ export function SnapshotReadinessPage() {
                     {t("snapshots.integrityHash", { hash: snapshotDetail.integrityHash })}
                   </p>
                 </div>
-                {canOpenEditor ? (
+                {canOpenOutline ? (
                   <Button asChild variant="outline" className="w-full">
-                    <Link to={openEditorUrl}>
-                      <CheckCircleIcon aria-hidden="true" />{t("snapshots.openEditor")}
+                    <Link to={openOutlineUrl}>
+                      <CheckCircleIcon aria-hidden="true" />{t("snapshots.openOutline")}
                     </Link>
                   </Button>
                 ) : (
@@ -504,6 +508,32 @@ export function SnapshotReadinessPage() {
 
           {snapshotDetail && readiness && (
             <ReadinessSummary report={readiness} />
+          )}
+          {snapshotDetail?.status === "READY" && (
+            <MotionReveal delay={0.12} effect="fade">
+              <Card>
+                <CardHeader className="flex-row items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
+                      <DocumentTextIcon className="size-5" aria-hidden="true" />
+                    </span>
+                    <div>
+                      <CardTitle>{t("snapshots.methodsOptionalTitle")}</CardTitle>
+                      <CardDescription className="mt-1">{t("snapshots.methodsOptionalDescription")}</CardDescription>
+                    </div>
+                  </div>
+                  <Badge variant="outline">{t("snapshots.optional")}</Badge>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-xs leading-5 text-muted-foreground">{t("snapshots.methodsOptionalNote")}</p>
+                  <Button asChild variant="outline" className="w-full">
+                    <Link to={methodsUrl}>
+                      {t("snapshots.openMethods")}<ArrowRightIcon aria-hidden="true" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            </MotionReveal>
           )}
         </MotionReveal>
       </div>

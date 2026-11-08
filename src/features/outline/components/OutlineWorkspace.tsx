@@ -263,27 +263,38 @@ export function OutlineWorkspace({
                   </div>
                 </div>
               )}
-              {profiles.length === 0 ? (
-                <div className="space-y-2 text-sm text-muted-foreground">
-                  <p>{t("outline.noProfiles")}</p>
-                  <Link className="font-medium text-primary underline-offset-4 hover:underline" to="/journal-profiles">{t("outline.openProfiles")}</Link>
+              <div className="max-w-xl space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">{t("outline.profileStep")}</p>
+                  <Badge variant="outline">{t("outline.profileRequired")}</Badge>
                 </div>
-              ) : (
-                <div className="max-w-xl space-y-2">
-                  <label htmlFor="outline-profile" className="text-sm font-medium text-foreground">{t("outline.profileLabel")}</label>
-                  <select
-                    id="outline-profile"
-                    value={profileId}
-                    onChange={(event) => setProfileId(event.target.value)}
-                    className="min-h-11 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:min-h-10"
-                  >
-                    {profiles.map((item) => <option key={item.id} value={item.id}>{item.name} · v{item.version}</option>)}
-                  </select>
-                  {selectedProfile?.verification.status === "unverified" && selectedProfile.notice && (
-                    <p className="rounded-lg border border-warning-border bg-warning-soft p-3 text-xs leading-5 text-warning">{selectedProfile.notice}</p>
-                  )}
-                </div>
-              )}
+                <p id="outline-profile-hint" className="text-sm leading-6 text-muted-foreground">
+                  {t("outline.profileRequiredHint")}
+                </p>
+                {profiles.length === 0 ? (
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <p>{t("outline.noProfiles")}</p>
+                    <Link className="font-medium text-primary underline-offset-4 hover:underline" to="/journal-profiles">{t("outline.openProfiles")}</Link>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <label htmlFor="outline-profile" className="text-sm font-medium text-foreground">{t("outline.profileLabel")}</label>
+                    <select
+                      id="outline-profile"
+                      required
+                      aria-describedby="outline-profile-hint"
+                      value={profileId}
+                      onChange={(event) => setProfileId(event.target.value)}
+                      className="min-h-11 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:min-h-10"
+                    >
+                      {profiles.map((item) => <option key={item.id} value={item.id}>{item.name} · v{item.version}</option>)}
+                    </select>
+                    {selectedProfile?.verification.status === "unverified" && selectedProfile.notice && (
+                      <p className="rounded-lg border border-warning-border bg-warning-soft p-3 text-xs leading-5 text-warning">{selectedProfile.notice}</p>
+                    )}
+                  </div>
+                )}
+              </div>
               {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
               <Button type="button" onClick={() => void handleCreate()} disabled={!isReady || !profileId || profiles.length === 0 || creating}>
                 <DocumentPlusIcon aria-hidden="true" />
