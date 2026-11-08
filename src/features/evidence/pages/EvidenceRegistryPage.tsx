@@ -146,7 +146,7 @@ export function EvidenceRegistryPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{t("evidenceRegistry.eyebrow")}</p>
-          <h2 className="slrw-page-title mt-1 tracking-tight">{t("navigation.evidenceRegistry")}</h2>
+          <h2 className="slrw-page-title mt-1">{t("navigation.evidenceRegistry")}</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{t("evidenceRegistry.description")}</p>
         </div>
         <div className="flex flex-wrap gap-2">

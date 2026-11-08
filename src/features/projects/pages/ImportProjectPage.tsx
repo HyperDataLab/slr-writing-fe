@@ -151,7 +151,7 @@ export function ImportProjectPage() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{t("projectImport.eyebrow")}</p>
-            <h1 className="slrw-page-title mt-1 tracking-tight">{t("projectImport.title")}</h1>
+            <h1 className="slrw-page-title mt-1">{t("projectImport.title")}</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{t("projectImport.description")}</p>
           </div>
           <Button asChild variant="outline">

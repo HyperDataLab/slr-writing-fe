@@ -316,7 +316,7 @@ export function SnapshotReadinessPage() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{t("snapshots.step")}</p>
-            <h2 className="slrw-page-title mt-1 tracking-tight">{t("snapshots.title")}</h2>
+            <h2 className="slrw-page-title mt-1">{t("snapshots.title")}</h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{t("snapshots.description")}</p>
           </div>
           <div className="flex flex-wrap gap-2">

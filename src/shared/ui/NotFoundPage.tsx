@@ -9,7 +9,7 @@ export function NotFoundPage() {
     <Card className="mx-auto max-w-xl">
       <CardContent className="px-6 py-12 text-center sm:py-16">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">404</p>
-        <h2 className="mt-3 text-2xl font-semibold tracking-tight">{t("common.notFoundTitle")}</h2>
+        <h2 className="mt-3 text-2xl font-semibold">{t("common.notFoundTitle")}</h2>
         <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
           {t("common.notFoundDescription")}
         </p>
