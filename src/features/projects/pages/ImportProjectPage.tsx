@@ -16,7 +16,7 @@ import { createProjectSchema } from "@/features/projects/model/project.schema";
 import { useSnapshotImport } from "@/features/snapshots/hooks/use-snapshot-import";
 import { SlrRunPicker } from "@/features/snapshots/components/SlrRunPicker";
 import { ReadinessSummary } from "@/features/snapshots/components/ReadinessSummary";
-import { MotionReveal } from "@/shared/ui/motion";
+import { GsapReveal } from "@/shared/ui/gsap-motion";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
@@ -148,7 +148,7 @@ export function ImportProjectPage() {
 
   return (
     <div className="space-y-7">
-      <MotionReveal>
+      <GsapReveal>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{t("projectImport.eyebrow")}</p>
@@ -162,10 +162,10 @@ export function ImportProjectPage() {
             </Link>
           </Button>
         </div>
-      </MotionReveal>
+      </GsapReveal>
 
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.8fr)]">
-        <MotionReveal effect="fade">
+        <GsapReveal effect="fade">
           <Card className="overflow-hidden">
             <CardContent className="p-5">
               {(!projectsInitialized || projectsLoading) ? (
@@ -256,9 +256,9 @@ export function ImportProjectPage() {
               )}
             </CardContent>
           </Card>
-        </MotionReveal>
+        </GsapReveal>
 
-        <MotionReveal delay={0.06} effect="fade">
+        <GsapReveal delay={0.06} effect="fade">
           <Card>
             <CardHeader>
               <CardTitle>{t("projectImport.payloadTitle")}</CardTitle>
@@ -285,10 +285,10 @@ export function ImportProjectPage() {
               </div>
             </CardContent>
           </Card>
-        </MotionReveal>
+        </GsapReveal>
       </div>
 
-      <MotionReveal delay={0.1} effect="fade">
+      <GsapReveal delay={0.1} effect="fade">
         <Card>
           <CardHeader>
             <CardTitle>{t("projectImport.workflowTitle")}</CardTitle>
@@ -307,7 +307,7 @@ export function ImportProjectPage() {
             </ol>
           </CardContent>
         </Card>
-      </MotionReveal>
+      </GsapReveal>
     </div>
   );
 }

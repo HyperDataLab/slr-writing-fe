@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import type { BlueprintIssue } from "@/features/outline/model/outline.types";
 import { Badge } from "@/shared/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
-import { MotionListItem } from "@/shared/ui/motion";
+import { GsapListItem } from "@/shared/ui/gsap-motion";
 
 export function OutlineIssuesPanel({ issues, approvable }: { issues: BlueprintIssue[]; approvable: boolean }) {
   const { t } = useTranslation();
@@ -26,7 +26,7 @@ export function OutlineIssuesPanel({ issues, approvable }: { issues: BlueprintIs
         ) : (
           <ul className="space-y-3">
             {issues.map((issue, index) => (
-              <MotionListItem key={`${issue.code}-${issue.ref ?? index}`} delay={index * 0.02}>
+              <GsapListItem key={`${issue.code}-${issue.ref ?? index}`} delay={index * 0.02}>
                 <div className="rounded-lg border border-border p-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-xs font-semibold text-foreground">{issue.code}</p>
@@ -40,7 +40,7 @@ export function OutlineIssuesPanel({ issues, approvable }: { issues: BlueprintIs
                   <p className="mt-2 text-sm leading-5 text-muted-foreground">{issue.message}</p>
                   {issue.ref && <code className="mt-2 block break-all text-[11px] text-muted-foreground">{issue.ref}</code>}
                 </div>
-              </MotionListItem>
+              </GsapListItem>
             ))}
           </ul>
         )}

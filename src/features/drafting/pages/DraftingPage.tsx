@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { DraftingWorkspace } from "@/features/drafting/components/DraftingWorkspace";
 import { useActiveWorkspaceSelection } from "@/features/projects/hooks/use-active-workspace-selection";
 import { Button } from "@/shared/ui/button";
+import { GsapStagger } from "@/shared/ui/gsap-motion";
 
 function workspacePath(path: string, projectId: string, snapshotId?: string) {
   const params = new URLSearchParams();
@@ -28,7 +29,7 @@ function DraftingEmptyWorkspace({
   const actionPath = projectSelected ? importPath : "/projects";
 
   return (
-    <div className="draft-studio-grid is-empty">
+    <GsapStagger className="draft-studio-grid is-empty">
       <aside className="draft-section-rail" aria-label={t("draft.manuscriptOutline")}>
         <div className="draft-rail-heading">{t("draft.manuscriptOutline")}</div>
         <div className="draft-empty-outline">
@@ -90,7 +91,7 @@ function DraftingEmptyWorkspace({
           <p className="draft-inspector-hint">{t("draft.inspectorEmpty")}</p>
         </div>
       </aside>
-    </div>
+    </GsapStagger>
   );
 }
 
@@ -118,7 +119,7 @@ export function DraftingPage() {
   const exportPath = workspacePath("/export", selectedProjectId, selectedSnapshotId);
 
   return (
-    <div className="draft-writing-page">
+    <GsapStagger className="draft-writing-page">
       <header className="drafting-page-header">
         <div className="drafting-page-heading">
           <p className="draft-page-eyebrow">{t("draft.studioEyebrow")}</p>
@@ -167,6 +168,6 @@ export function DraftingPage() {
           importPath={importPath}
         />
       )}
-    </div>
+    </GsapStagger>
   );
 }

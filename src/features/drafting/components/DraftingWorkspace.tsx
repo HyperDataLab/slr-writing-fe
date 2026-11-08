@@ -30,6 +30,7 @@ import type { SnapshotSummary } from "@/features/snapshots/model/snapshot.types"
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
+import { GsapStagger } from "@/shared/ui/gsap-motion";
 
 const DEFAULT_SECTIONS = [
   { key: "abstract", label: "draft.tab.abstract" },
@@ -280,7 +281,7 @@ export function DraftingWorkspace({
       )}
 
       {/* Three-pane manuscript workspace */}
-      <div className="draft-studio-grid">
+      <GsapStagger className="draft-studio-grid">
         <aside className="draft-section-rail" aria-label={t("draft.manuscriptOutline")}>
           <div className="draft-rail-heading">{t("draft.manuscriptOutline")}</div>
           <div className="draft-section-list">
@@ -549,7 +550,7 @@ export function DraftingWorkspace({
             </div>
           )}
         </aside>
-      </div>
+      </GsapStagger>
       {/* Decision Dialog Modal */}
       {modalAction && latest && (
         <H2DecisionDialog

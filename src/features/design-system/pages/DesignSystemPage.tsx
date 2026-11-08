@@ -20,6 +20,7 @@ import {
 import { EmptyState } from "@/shared/ui/empty-state";
 import { Input } from "@/shared/ui/input";
 import { ListRow } from "@/shared/ui/list-row";
+import { GsapStagger } from "@/shared/ui/gsap-motion";
 
 const colorTokens = [
   { key: "canvas", token: "--slr-canvas" },
@@ -221,7 +222,8 @@ export function DesignSystemPage() {
           </nav>
         </aside>
 
-        <main id="design-system-content" tabIndex={-1} className="ds-main min-w-0 space-y-6" aria-labelledby="ds-page-title">
+        <main id="design-system-content" tabIndex={-1} className="ds-main min-w-0" aria-labelledby="ds-page-title">
+          <GsapStagger className="space-y-6">
           <header className="space-y-2">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">SLR · UI foundations</p>
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -571,6 +573,7 @@ export function DesignSystemPage() {
               </CardContent>
             </Card>
           </section>
+          </GsapStagger>
         </main>
       </div>
     </div>

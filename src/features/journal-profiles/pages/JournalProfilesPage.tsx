@@ -8,7 +8,7 @@ import type { JournalProfile } from "@/features/journal-profiles/model/journal-p
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
-import { MotionListItem, MotionReveal } from "@/shared/ui/motion";
+import { GsapListItem, GsapReveal } from "@/shared/ui/gsap-motion";
 
 export function JournalProfilesPage() {
   const { t, i18n } = useTranslation();
@@ -110,15 +110,15 @@ export function JournalProfilesPage() {
 
   return (
     <div className="space-y-7">
-      <MotionReveal>
+      <GsapReveal>
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{t("journalProfiles.step")}</p>
           <h2 className="slrw-page-title mt-1">{t("journalProfiles.title")}</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{t("journalProfiles.description")}</p>
         </div>
-      </MotionReveal>
+      </GsapReveal>
 
-      <MotionReveal>
+      <GsapReveal>
         <Card>
           <CardHeader>
             <CardTitle>{t("journalProfiles.selectTitle")}</CardTitle>
@@ -144,7 +144,7 @@ export function JournalProfilesPage() {
             </div>
           </CardContent>
         </Card>
-      </MotionReveal>
+      </GsapReveal>
 
       {profilesLoading || profileLoading ? (
         <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">{t("journalProfiles.loading")}</CardContent></Card>
@@ -165,8 +165,8 @@ export function JournalProfilesPage() {
       ) : profiles.length === 0 ? (
         <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">{t("journalProfiles.noProfiles")}</CardContent></Card>
       ) : profile ? (
-        <MotionReveal key={profile.id} delay={0.04} className="space-y-5" effect="fade">
-          <MotionReveal>
+        <GsapReveal key={profile.id} delay={0.04} className="space-y-5" effect="fade">
+          <GsapReveal>
           <Card>
             <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="space-y-2">
@@ -241,7 +241,7 @@ export function JournalProfilesPage() {
               )}
             </CardContent>
           </Card>
-          </MotionReveal>
+          </GsapReveal>
 
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
@@ -255,12 +255,12 @@ export function JournalProfilesPage() {
 
           <ul className="grid gap-4 lg:grid-cols-2">
             {profile.sections.map((section, index) => (
-              <MotionListItem key={section.key} delay={index * 0.04}>
+              <GsapListItem key={section.key} delay={index * 0.04}>
                 <JournalProfileSectionCard section={section} />
-              </MotionListItem>
+              </GsapListItem>
             ))}
           </ul>
-        </MotionReveal>
+        </GsapReveal>
       ) : null}
     </div>
   );
