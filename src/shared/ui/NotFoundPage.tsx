@@ -2,7 +2,7 @@ import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
-import { GsapReveal } from "@/shared/ui/motion";
+import { GsapReveal } from "@/shared/ui/gsap-motion";
 
 export function NotFoundPage() {
   const { t } = useTranslation();

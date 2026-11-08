@@ -20,7 +20,7 @@ import {
 import { EmptyState } from "@/shared/ui/empty-state";
 import { Input } from "@/shared/ui/input";
 import { ListRow } from "@/shared/ui/list-row";
-import { GsapStagger } from "@/shared/ui/motion";
+import { GsapStagger } from "@/shared/ui/gsap-motion";
 
 const colorTokens = [
   { key: "canvas", token: "--slr-canvas" },

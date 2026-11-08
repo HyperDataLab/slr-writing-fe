@@ -28,7 +28,7 @@ import { getLatestVerification } from "@/features/verification/api/verification.
 import { ApiError } from "@/shared/lib/api-client";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
-import { GsapStagger } from "@/shared/ui/motion";
+import { GsapStagger } from "@/shared/ui/gsap-motion";
 
 type WorkflowStage = {
   icon: ComponentType<SVGProps<SVGSVGElement>>;

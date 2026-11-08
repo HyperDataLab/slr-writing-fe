@@ -28,7 +28,7 @@ import { ReadinessSummary } from "@/features/snapshots/components/ReadinessSumma
 import { SlrRunPicker } from "@/features/snapshots/components/SlrRunPicker";
 import { getSnapshot, listSnapshots } from "@/features/snapshots/api/snapshots.api";
 import { useSnapshotImport } from "@/features/snapshots/hooks/use-snapshot-import";
-import { MotionListItem, MotionReveal } from "@/shared/ui/motion";
+import { GsapListItem, GsapReveal } from "@/shared/ui/gsap-motion";
 import { cn } from "@/shared/utils/cn";
 import type {
   ReadinessReport,
@@ -317,7 +317,7 @@ export function SnapshotReadinessPage() {
 
   return (
     <div className="space-y-7">
-      <MotionReveal>
+      <GsapReveal>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{t("snapshots.step")}</p>
@@ -348,10 +348,10 @@ export function SnapshotReadinessPage() {
             </Button>
           </div>
         </div>
-      </MotionReveal>
+      </GsapReveal>
 
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.12fr)_minmax(22rem,0.92fr)]">
-        <MotionReveal effect="fade">
+        <GsapReveal effect="fade">
           <Card className="overflow-hidden">
             <CardHeader className="flex-row items-start justify-between gap-4 border-b border-border">
               <div>
@@ -410,7 +410,7 @@ export function SnapshotReadinessPage() {
               ) : (
                 <ul className="max-h-[42rem] space-y-1 overflow-y-auto" aria-label={t("snapshots.historyTitle")}>
                   {snapshots.map((snapshot, index) => (
-                    <MotionListItem key={snapshot.id} delay={index * 0.025}>
+                    <GsapListItem key={snapshot.id} delay={index * 0.025}>
                       <SnapshotHistoryRow
                         snapshot={snapshot}
                         selected={snapshot.id === selectedSnapshotId}
@@ -418,15 +418,15 @@ export function SnapshotReadinessPage() {
                         locale={locale}
                         onSelect={() => handleSnapshotSelect(snapshot.id)}
                       />
-                    </MotionListItem>
+                    </GsapListItem>
                   ))}
                 </ul>
               )}
             </CardContent>
           </Card>
-        </MotionReveal>
+        </GsapReveal>
 
-        <MotionReveal delay={0.06} effect="fade" className="space-y-5">
+        <GsapReveal delay={0.06} effect="fade" className="space-y-5">
           {detailLoading ? (
             <Card><CardContent className="py-14 text-center text-sm text-muted-foreground">{t("snapshots.loadingDetail")}</CardContent></Card>
           ) : detailError ? (
@@ -510,7 +510,7 @@ export function SnapshotReadinessPage() {
             <ReadinessSummary report={readiness} />
           )}
           {snapshotDetail?.status === "READY" && (
-            <MotionReveal delay={0.12} effect="fade">
+            <GsapReveal delay={0.12} effect="fade">
               <Card>
                 <CardHeader className="flex-row items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
@@ -533,9 +533,9 @@ export function SnapshotReadinessPage() {
                   </Button>
                 </CardContent>
               </Card>
-            </MotionReveal>
+            </GsapReveal>
           )}
-        </MotionReveal>
+        </GsapReveal>
       </div>
 
       <Dialog open={importOpen} onOpenChange={handleImportDialogChange}>

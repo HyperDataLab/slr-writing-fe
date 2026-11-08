@@ -14,7 +14,7 @@ import { ApiError } from "@/shared/lib/api-client";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
-import { MotionReveal } from "@/shared/ui/motion";
+import { GsapReveal } from "@/shared/ui/gsap-motion";
 
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
@@ -245,7 +245,7 @@ export function OutlineWorkspace({
   if (notCreated || !view || !draft) {
     return (
       <div className="outline-builder-layout">
-        <MotionReveal>
+        <GsapReveal>
           <Card>
             <CardHeader>
               <CardTitle>{t("outline.notCreatedTitle")}</CardTitle>
@@ -302,7 +302,7 @@ export function OutlineWorkspace({
               </Button>
             </CardContent>
           </Card>
-        </MotionReveal>
+        </GsapReveal>
         <aside className="outline-structure-health">
           <p className="outline-structure-eyebrow">{t("outline.structureHealthTitle")}</p>
           <h2>{t("outline.healthWaitingTitle")}</h2>
@@ -336,7 +336,7 @@ export function OutlineWorkspace({
 
   return (
     <div className="space-y-5">
-      <MotionReveal>
+      <GsapReveal>
         <Card>
           <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="space-y-2">
@@ -390,7 +390,7 @@ export function OutlineWorkspace({
             </CardContent>
           )}
         </Card>
-      </MotionReveal>
+      </GsapReveal>
 
       {error && <p role="alert" className="rounded-lg border border-destructive/30 px-4 py-3 text-sm text-destructive">{error}</p>}
       {message && <p role="status" className="rounded-lg border border-border bg-secondary/60 px-4 py-3 text-sm text-foreground">{message}</p>}

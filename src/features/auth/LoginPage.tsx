@@ -6,7 +6,7 @@ import { isGoogleSignInEnabled } from "@/features/auth/auth.config";
 import { LanguageSwitcher } from "@/shared/ui/LanguageSwitcher";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
-import { GsapStagger } from "@/shared/ui/motion";
+import { GsapStagger } from "@/shared/ui/gsap-motion";
 
 /**
  * Only same-site paths are followed after sign-in, so a crafted `?next=` cannot send the user elsewhere. Browsers drop

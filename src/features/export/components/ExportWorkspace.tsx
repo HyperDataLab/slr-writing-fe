@@ -26,7 +26,7 @@ import type { SnapshotSummary } from "@/features/snapshots/model/snapshot.types"
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
-import { GsapStagger } from "@/shared/ui/motion";
+import { GsapStagger } from "@/shared/ui/gsap-motion";
 
 export function ExportWorkspace({
   projectId,

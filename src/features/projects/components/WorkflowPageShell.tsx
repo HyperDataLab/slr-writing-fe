@@ -6,7 +6,7 @@ import { useActiveWorkspaceSelection } from "@/features/projects/hooks/use-activ
 import type { SnapshotSummary } from "@/features/snapshots/model/snapshot.types";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
-import { GsapStagger } from "@/shared/ui/motion";
+import { GsapStagger } from "@/shared/ui/gsap-motion";
 
 /**
  * Shared frame of the workflow pages (paragraph plans, drafting, verification, export): page header, the

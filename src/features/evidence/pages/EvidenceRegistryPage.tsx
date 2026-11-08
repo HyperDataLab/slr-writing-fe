@@ -18,7 +18,7 @@ import { ApiError } from "@/shared/lib/api-client";
 import { useStableT } from "@/shared/i18n/use-stable-t";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
-import { GsapStagger } from "@/shared/ui/motion";
+import { GsapStagger } from "@/shared/ui/gsap-motion";
 import { Input } from "@/shared/ui/input";
 
 type RegistryFilter = "all" | "verified" | "review" | "unlinked";

@@ -8,7 +8,7 @@ import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
-import { MotionListItem } from "@/shared/ui/motion";
+import { GsapListItem } from "@/shared/ui/gsap-motion";
 
 interface OutlineSectionEditorProps {
   section: BlueprintSection;
@@ -164,7 +164,7 @@ export function OutlineSectionEditor({
           ) : (
             <ol className="space-y-3">
               {section.subsections.map((subsection, index) => (
-                <MotionListItem key={subsection.id} delay={index * 0.025}>
+                <GsapListItem key={subsection.id} delay={index * 0.025}>
                   <div className="space-y-4 rounded-lg border border-border bg-background p-4">
                     <div className="flex items-start gap-3">
                       <span className="mt-2 text-xs font-semibold tabular-nums text-muted-foreground">
@@ -272,7 +272,7 @@ export function OutlineSectionEditor({
                       })}
                     </p>
                   </div>
-                </MotionListItem>
+                </GsapListItem>
               ))}
             </ol>
           )}

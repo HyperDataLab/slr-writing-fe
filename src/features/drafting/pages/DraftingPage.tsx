@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { DraftingWorkspace } from "@/features/drafting/components/DraftingWorkspace";
 import { useActiveWorkspaceSelection } from "@/features/projects/hooks/use-active-workspace-selection";
 import { Button } from "@/shared/ui/button";
-import { GsapStagger } from "@/shared/ui/motion";
+import { GsapStagger } from "@/shared/ui/gsap-motion";
 
 function workspacePath(path: string, projectId: string, snapshotId?: string) {
   const params = new URLSearchParams();

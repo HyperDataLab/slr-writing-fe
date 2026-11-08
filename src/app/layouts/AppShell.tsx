@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/shared/ui/dialog";
 import { useAuth } from "@/features/auth/auth-context";
 import { LanguageSwitcher } from "@/shared/ui/LanguageSwitcher";
 import { useProjects } from "@/features/projects/hooks/use-projects";
-import { GsapRouteReveal } from "@/shared/ui/motion";
+import { GsapRouteReveal } from "@/shared/ui/gsap-motion";
 
 type NavItem = {
   labelKey: string;
