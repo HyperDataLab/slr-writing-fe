@@ -22,6 +22,7 @@ import {
 } from "@/features/drafting/api/drafting.api";
 import { ApiError } from "@/shared/lib/api-client";
 import { DraftEditor } from "@/features/drafting/components/DraftEditor";
+import { ParagraphPlansWorkspace } from "@/features/paragraph-plans/components/ParagraphPlansWorkspace";
 import { getLatestVerification } from "@/features/verification/api/verification.api";
 import { H2DecisionDialog } from "@/features/drafting/components/H2DecisionDialog";
 import type { SectionDraftView } from "@/features/drafting/model/drafting.types";
@@ -31,11 +32,20 @@ import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
 
 const DEFAULT_SECTIONS = [
+  { key: "abstract", label: "draft.tab.abstract" },
   { key: "introduction", label: "draft.tab.introduction" },
   { key: "methods", label: "draft.tab.methods" },
   { key: "results", label: "draft.tab.results" },
   { key: "discussion", label: "draft.tab.discussion" },
+  { key: "conclusion", label: "draft.tab.conclusion" },
 ];
+
+function scrollToWritingTarget(targetId: string) {
+  const target = document.getElementById(targetId);
+  if (!target) return;
+  const behavior: ScrollBehavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+  target.scrollIntoView({ behavior, block: "start" });
+}
 
 export function DraftingWorkspace({
   projectId,
@@ -62,6 +72,10 @@ export function DraftingWorkspace({
   const [submittingDecision, setSubmittingDecision] = useState(false);
   const [selectedCitation, setSelectedCitation] = useState<string | null>(null);
   const [inspectorTab, setInspectorTab] = useState<"evidence" | "checks">("evidence");
+  const [planReadiness, setPlanReadiness] = useState<{ sectionKey: string; readyCount: number } | null>(null);
+  const reportPlanReadiness = useCallback((sectionKey: string, readyCount: number) => {
+    setPlanReadiness({ sectionKey, readyCount });
+  }, []);
 
   // Only the latest request may update the view; an older, slower response must not show another section's draft.
   const loadSeq = useRef(0);
@@ -98,6 +112,13 @@ export function DraftingWorkspace({
     setNotice(null);
     void loadDraft(activeSection);
   }, [activeSection, loadDraft]);
+
+  useEffect(() => {
+    const targetId = window.location.hash.slice(1);
+    if (targetId !== "paragraph-plans" && targetId !== "draft-content") return;
+    const frame = window.requestAnimationFrame(() => scrollToWritingTarget(targetId));
+    return () => window.cancelAnimationFrame(frame);
+  }, [projectId, snapshot.id]);
 
   const handleGenerate = async () => {
     setDrafting(true);
@@ -141,6 +162,7 @@ export function DraftingWorkspace({
   };
 
   const latest = draftView?.revision;
+  const hasReadyPlan = planReadiness?.sectionKey === activeSection && planReadiness.readyCount > 0;
   const approval = draftView?.approval.decision;
   const status = draftView?.approval.status ?? "PENDING";
   const paragraphFacts = latest && !Array.isArray(latest.facts) ? (latest.facts.paragraphs ?? []) : [];
@@ -156,6 +178,11 @@ export function DraftingWorkspace({
   const reportCoversVersion = verifiedCurrent;
   const needsReverify = !!latest && latest.generator === "manual-edit" && !(reportCoversVersion && !verificationFailed);
   const verificationLink = `/verification?projectId=${encodeURIComponent(projectId)}&snapshotId=${encodeURIComponent(snapshot.id)}`;
+
+  const handleStartDraftFromPlan = async () => {
+    if (!latest) await handleGenerate();
+    window.requestAnimationFrame(() => scrollToWritingTarget("draft-content"));
+  };
 
   const handleSaveEdit = async (markdown: string) => {
     if (!draftView) return;
@@ -278,12 +305,26 @@ export function DraftingWorkspace({
         </aside>
 
         <section className="draft-paper-column" aria-label={sectionLabel}>
-          <div className="draft-center-toolbar">
-            <div className="draft-toolbar-context">
-              <span className="draft-toolbar-label">{t("draft.prose")}</span>
-              {latest && <span className="draft-toolbar-project">{latest.generator}</span>}
-            </div>
+          <div id="paragraph-plans" className="draft-plan-panel-wrap">
+            <ParagraphPlansWorkspace
+              projectId={projectId}
+              snapshot={snapshot}
+              sectionKey={activeSection}
+              canDraft={canDraft}
+              hasDraft={Boolean(latest)}
+              draftLoading={loading}
+              drafting={drafting}
+              onReadinessChange={reportPlanReadiness}
+              onStartDraft={handleStartDraftFromPlan}
+            />
+          </div>
+
+          <div id="draft-content" className="draft-center-toolbar draft-content-anchor">
             <div className="draft-center-actions">
+              <div className="draft-toolbar-context">
+                <span className="draft-toolbar-label">{t("draft.prose")}</span>
+                {latest && <span className="draft-toolbar-project">{latest.generator}</span>}
+              </div>
               <Button
                 type="button"
                 variant="outline"
@@ -308,20 +349,23 @@ export function DraftingWorkspace({
                   {t("draftEdit.edit")}
                 </Button>
               )}
-              <Button
-                type="button"
-                variant="default"
-                size="sm"
-                onClick={handleGenerate}
-                disabled={drafting || editing || !canDraft}
-                title={canDraft ? undefined : t("draft.methodsOnOwnPage")}
-                className="gap-1.5"
-              >
-                <SparklesIcon className="size-4" aria-hidden="true" />
-                {drafting ? t("draft.drafting") : latest ? t("draft.redraft") : t("draft.draftWithAi")}
-              </Button>
+              {latest && canDraft && (
+                <Button
+                  type="button"
+                  variant="default"
+                  size="sm"
+                  onClick={handleGenerate}
+                  disabled={drafting || editing || loading || !hasReadyPlan}
+                  title={hasReadyPlan ? undefined : t("plans.noReadyPlans")}
+                  className="gap-1.5"
+                >
+                  <SparklesIcon className="size-4" aria-hidden="true" />
+                  {drafting ? t("draft.drafting") : t("draft.redraft")}
+                </Button>
+              )}
             </div>
           </div>
+
           <div className="draft-paper-heading">
             <div>
               <p className="draft-paper-kicker">{t("draft.pageTitle")}</p>
@@ -348,10 +392,7 @@ export function DraftingWorkspace({
                   <h3 className="text-base font-semibold">{t("draft.noDraftTitle", { section: sectionLabel })}</h3>
                   <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">{t("draft.noDraftDescription")}</p>
                 </div>
-                <Button type="button" onClick={handleGenerate} disabled={drafting || !canDraft} className="gap-2">
-                  <SparklesIcon aria-hidden="true" />
-                  {drafting ? t("draft.drafting") : t("draft.draftNow", { section: sectionLabel })}
-                </Button>
+                <p className="mx-auto max-w-md text-xs leading-5 text-muted-foreground">{t("draft.preparePlanFirst")}</p>
               </CardContent>
             </Card>
           ) : (

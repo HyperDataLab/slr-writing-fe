@@ -36,11 +36,15 @@ type WorkflowStage = {
 };
 
 function workspacePath(path: string, projectId: string, snapshotId: string) {
-  const params = new URLSearchParams();
+  const [route, initialHash = ""] = path.split("#", 2);
+  const [pathname, initialQuery = ""] = route.split("?", 2);
+  const params = new URLSearchParams(initialQuery);
   if (projectId) params.set("projectId", projectId);
   if (snapshotId) params.set("snapshotId", snapshotId);
-  const query = params.toString();
-  return query ? `${path}?${query}` : path;
+  const serialized = params.toString();
+  const query = serialized ? `?${serialized}` : "";
+  const hash = initialHash ? `#${initialHash}` : "";
+  return `${pathname}${query}${hash}`;
 }
 
 export function OverviewPage() {
@@ -213,8 +217,8 @@ export function OverviewPage() {
     noSnapshot: "/snapshots",
     readiness: "/snapshots",
     outline: "/outline",
-    plan: "/paragraph-plans",
-    draft: "/drafting",
+    plan: "/drafting#paragraph-plans",
+    draft: "/drafting#draft-content",
   };
   const resumePath = workspacePath(resumePaths[resumeStep], selectedProjectId, selectedSnapshotId);
 
