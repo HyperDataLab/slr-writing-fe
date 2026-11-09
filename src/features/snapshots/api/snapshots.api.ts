@@ -2,6 +2,7 @@ import { apiRequest } from "@/shared/lib/api-client";
 import type {
   ImportSnapshotInput,
   SnapshotDetail,
+  SlrHealthStatus,
   SlrRunSummary,
   SnapshotImportResponse,
   SnapshotSummary,
@@ -32,4 +33,9 @@ export function getSnapshot(projectId: string, snapshotId: string): Promise<Snap
     "/projects/" + encodeURIComponent(projectId) + "/snapshots/" + encodeURIComponent(snapshotId),
   );
 }
+
+export function getSlrHealth(): Promise<SlrHealthStatus> {
+  return apiRequest<SlrHealthStatus>("/health/slr");
+}
+
 

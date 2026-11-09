@@ -33,6 +33,7 @@ const send = (res, status, body) => { res.statusCode = status; res.setHeader("co
 
 createServer((req, res) => {
   const url = (req.url ?? "").split("?")[0];
+  if (url === "/api/health" || url === "/health") return send(res, 200, wrap({ status: "ok" }));
   const m = url.match(/^\/api\/projects\/([^/]+)(\/.*)?$/);
   if (!m) return send(res, 404, {});
   const pid = decodeURIComponent(m[1]);

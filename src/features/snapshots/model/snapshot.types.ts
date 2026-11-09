@@ -76,3 +76,10 @@ export interface SnapshotImportResponse {
   warnings: ReadinessIssue[];
 }
 
+export interface SlrHealthStatus {
+  reachable: boolean;
+  baseUrl: string;
+  latencyMs?: number;
+  error?: string;
+}
+
