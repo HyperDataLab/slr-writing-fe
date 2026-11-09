@@ -32,6 +32,9 @@ import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
 import { GsapStagger } from "@/shared/ui/gsap-motion";
 
+/** Written last, from the sections a person has approved (H2), not from paragraph plans. */
+const SYNTHESIS_SECTIONS = ["abstract", "conclusion"];
+
 const DEFAULT_SECTIONS = [
   { key: "abstract", label: "draft.tab.abstract" },
   { key: "introduction", label: "draft.tab.introduction" },
@@ -128,7 +131,12 @@ export function DraftingWorkspace({
       await generateSectionDraft(projectId, snapshot.id, activeSection);
       await loadDraft(activeSection);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t("draft.draftError"));
+      if (err instanceof ApiError && err.code === "SOURCE_SECTIONS_NOT_APPROVED") {
+        const list = (err.details as { sections?: Array<{ sectionKey: string }> } | undefined)?.sections ?? [];
+        setError(t("draft.sourcesNotApproved", { sections: list.map((s) => t(`plans.sectionName.${s.sectionKey}`, { defaultValue: s.sectionKey })).join(", ") }));
+      } else {
+        setError(err instanceof Error ? err.message : t("draft.draftError"));
+      }
     } finally {
       setDrafting(false);
     }
@@ -172,6 +180,7 @@ export function DraftingWorkspace({
     : [];
   // Methods comes from the fixed template (Methods page), never from the LLM drafter.
   const canDraft = activeSection !== "methods";
+  const isSynthesis = SYNTHESIS_SECTIONS.includes(activeSection);
   const sectionLabel = t(`plans.sectionName.${draftView?.sectionKey ?? activeSection}`, { defaultValue: activeSection });
   // A hand edit keeps the old evidence facts, so the new version must be re-verified before H2 can approve it.
   const verificationFailed = verifiedStatus === "FAILED";
@@ -306,6 +315,7 @@ export function DraftingWorkspace({
         </aside>
 
         <section className="draft-paper-column" aria-label={sectionLabel}>
+          {!isSynthesis && (
           <div id="paragraph-plans" className="draft-plan-panel-wrap">
             <ParagraphPlansWorkspace
               projectId={projectId}
@@ -319,6 +329,7 @@ export function DraftingWorkspace({
               onStartDraft={handleStartDraftFromPlan}
             />
           </div>
+          )}
 
           <div id="draft-content" className="draft-center-toolbar draft-content-anchor">
             <div className="draft-center-actions">
@@ -356,8 +367,8 @@ export function DraftingWorkspace({
                   variant="default"
                   size="sm"
                   onClick={handleGenerate}
-                  disabled={drafting || editing || loading || !hasReadyPlan}
-                  title={hasReadyPlan ? undefined : t("plans.noReadyPlans")}
+                  disabled={drafting || editing || loading || (!isSynthesis && !hasReadyPlan)}
+                  title={isSynthesis || hasReadyPlan ? undefined : t("plans.noReadyPlans")}
                   className="gap-1.5"
                 >
                   <SparklesIcon className="size-4" aria-hidden="true" />
@@ -391,9 +402,16 @@ export function DraftingWorkspace({
                 </div>
                 <div>
                   <h3 className="text-base font-semibold">{t("draft.noDraftTitle", { section: sectionLabel })}</h3>
-                  <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">{t("draft.noDraftDescription")}</p>
+                  <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">{isSynthesis ? t("draft.synthesisHint") : t("draft.noDraftDescription")}</p>
                 </div>
-                <p className="mx-auto max-w-md text-xs leading-5 text-muted-foreground">{t("draft.preparePlanFirst")}</p>
+                {isSynthesis ? (
+                  <Button type="button" onClick={handleGenerate} disabled={drafting} className="gap-1.5">
+                    <SparklesIcon className="size-4" aria-hidden="true" />
+                    {drafting ? t("draft.drafting") : t("draft.draftWithAi")}
+                  </Button>
+                ) : (
+                  <p className="mx-auto max-w-md text-xs leading-5 text-muted-foreground">{t("draft.preparePlanFirst")}</p>
+                )}
               </CardContent>
             </Card>
           ) : (

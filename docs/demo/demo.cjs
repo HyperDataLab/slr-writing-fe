@@ -202,6 +202,21 @@ let GLOBAL_PAGE = null;
     await snap(page, "h2-methods");
   });
 
+  // 12b. Abstract and Conclusion are written last, from the approved sections
+  await step(page, "12. Tóm tắt và Kết luận được viết sau cùng, chỉ từ các section đã duyệt H2 (không thêm số liệu hay trích dẫn mới)", async () => {
+    await goto(page, /Soạn thảo & H2/);
+    await tab(/Tóm tắt/); await draftIfNeeded();
+    await snap(page, "draft-abstract");
+    await approveH2();
+    await tab(/Kết luận/); await draftIfNeeded(); await approveH2();
+  });
+  await step(page, "12. Có section mới nên báo cáo kiểm chứng đã cũ: chạy lại các cổng", async () => {
+    await goto(page, /Cổng chất lượng/);
+    await click(page, /Chạy lại các cổng/);
+    await page.getByText(/Đạt/).first().waitFor({ timeout: 30000 });
+    await snap(page, "verification-rerun");
+  });
+
   // 13. Export
   await step(page, "13. Xuất bản: danh sách kiểm tra đạt, OWNER duyệt H3", async () => {
     await goto(page, /Xuất bản & H3/);
