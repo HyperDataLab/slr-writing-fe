@@ -10,3 +10,5 @@ coverage/
 
 # Screenshots written by docs/demo/demo.cjs
 docs/demo/shots/
+
+docs/demo/auth-emulator/*.log
