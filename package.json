@@ -8,7 +8,9 @@
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
-    "test:ui-visual": "node scripts/capture-live-ui.cjs"
+    "test:ui-visual": "node scripts/capture-live-ui.cjs",
+    "start:all": "powershell -NoProfile -ExecutionPolicy Bypass -File ../slr-writing-be/scripts/start-dev.ps1",
+    "stop:all": "powershell -NoProfile -ExecutionPolicy Bypass -File ../slr-writing-be/scripts/stop-dev.ps1"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
