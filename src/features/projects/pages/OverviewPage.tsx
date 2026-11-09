@@ -1,162 +1,375 @@
-import { useEffect, useRef, type ComponentType, type SVGProps } from "react";
+import { useEffect, useRef, useState, type ComponentType, type SVGProps } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
-import { motion, useReducedMotion } from "motion/react";
+import { useReducedMotion } from "motion/react";
 import { gsap } from "gsap";
 import {
   ArrowRightIcon,
-  CheckBadgeIcon,
+  ArrowUpTrayIcon,
+  BookOpenIcon,
+  CheckCircleIcon,
+  CircleStackIcon,
+  ClockIcon,
   DocumentTextIcon,
+  ExclamationTriangleIcon,
+  ListBulletIcon,
+  PencilSquareIcon,
   ShieldCheckIcon,
-  Squares2X2Icon,
 } from "@heroicons/react/24/outline";
-import { Badge } from "@/shared/ui/badge";
+import { useActiveWorkspaceSelection } from "@/features/projects/hooks/use-active-workspace-selection";
+import { getSnapshot } from "@/features/snapshots/api/snapshots.api";
+import type { SnapshotDetail } from "@/features/snapshots/model/snapshot.types";
+import { getBlueprint } from "@/features/outline/api/outline.api";
+import type { BlueprintView } from "@/features/outline/model/outline.types";
+import { getParagraphPlans } from "@/features/paragraph-plans/api/paragraph-plans.api";
+import type { ParagraphPlanView } from "@/features/paragraph-plans/model/paragraph-plan.types";
+import { getSectionDraft } from "@/features/drafting/api/drafting.api";
+import { getLatestVerification } from "@/features/verification/api/verification.api";
+import { ApiError } from "@/shared/lib/api-client";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
-import { MotionReveal } from "@/shared/ui/motion";
+import { GsapStagger } from "@/shared/ui/gsap-motion";
 
-type Step = {
-  number: string;
+type WorkflowStage = {
   icon: ComponentType<SVGProps<SVGSVGElement>>;
+  state: "complete" | "current" | "upcoming" | "attention";
+  key: string;
 };
 
-const workflowSteps: Step[] = [
-  {
-    number: "01",
-    icon: Squares2X2Icon,
-  },
-  {
-    number: "02",
-    icon: DocumentTextIcon,
-  },
-  {
-    number: "03",
-    icon: ShieldCheckIcon,
-  },
-  {
-    number: "04",
-    icon: CheckBadgeIcon,
-  },
-];
+function workspacePath(path: string, projectId: string, snapshotId: string) {
+  const [route, initialHash = ""] = path.split("#", 2);
+  const [pathname, initialQuery = ""] = route.split("?", 2);
+  const params = new URLSearchParams(initialQuery);
+  if (projectId) params.set("projectId", projectId);
+  if (snapshotId) params.set("snapshotId", snapshotId);
+  const serialized = params.toString();
+  const query = serialized ? `?${serialized}` : "";
+  const hash = initialHash ? `#${initialHash}` : "";
+  return `${pathname}${query}${hash}`;
+}
 
 export function OverviewPage() {
-  const stepsRef = useRef<HTMLDivElement>(null);
+  const metricsRef = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = useReducedMotion();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const {
+    selectedProjectId,
+    selectedSnapshotId,
+    projects,
+    projectsLoading,
+    projectsError,
+    snapshotsLoading,
+    activeSnapshot,
+  } = useActiveWorkspaceSelection();
+  const [snapshotDetail, setSnapshotDetail] = useState<SnapshotDetail | null>(null);
+  const [blueprint, setBlueprint] = useState<BlueprintView | null>(null);
+  const [paragraphPlan, setParagraphPlan] = useState<ParagraphPlanView | null>(null);
+  const [sectionProgress, setSectionProgress] = useState<{ started: number; total: number } | null>(null);
+  const [citationCoverage, setCitationCoverage] = useState<number | null>(null);
+  const [snapshotDetailLoading, setSnapshotDetailLoading] = useState(false);
+  const [snapshotDetailError, setSnapshotDetailError] = useState<string | null>(null);
+
+  const activeProject = projects.find((project) => project.id === selectedProjectId);
 
   useEffect(() => {
-    const root = stepsRef.current;
-    if (!root || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const root = metricsRef.current;
+    if (!root || prefersReducedMotion || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const context = gsap.context(() => {
       gsap.fromTo(
-        "[data-workflow-step]",
-        { y: 14, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.45, stagger: 0.08, ease: "power2.out" },
+        "[data-overview-metric]",
+        { y: 12, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.42, stagger: 0.07, ease: "power2.out" },
       );
     }, root);
 
     return () => context.revert();
-  }, []);
+  }, [prefersReducedMotion]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setSnapshotDetail(null);
+    setBlueprint(null);
+    setParagraphPlan(null);
+    setSectionProgress(null);
+    setCitationCoverage(null);
+    setSnapshotDetailError(null);
+
+    if (!selectedProjectId || !selectedSnapshotId || !activeSnapshot) {
+      setSnapshotDetailLoading(false);
+      return () => { cancelled = true; };
+    }
+
+    setSnapshotDetailLoading(true);
+    void (async () => {
+      try {
+        const detail = await getSnapshot(selectedProjectId, selectedSnapshotId);
+        if (cancelled) return;
+        setSnapshotDetail(detail);
+
+        // These are read-only APIs. Missing H1 or paragraph-plan records are normal
+        // early workflow states, so keep the overview useful without surfacing 404s.
+        if (detail.status === "READY") {
+          try {
+            const currentBlueprint = await getBlueprint(selectedProjectId, selectedSnapshotId);
+            if (cancelled) return;
+            setBlueprint(currentBlueprint);
+
+            if (currentBlueprint.approval.status === "APPROVED") {
+              const sectionKeys = currentBlueprint.revision.content.sections
+                .filter((section) => section.include)
+                .map((section) => section.key);
+              const [currentPlan, verification, sectionDrafts] = await Promise.all([
+                getParagraphPlans(selectedProjectId, selectedSnapshotId).catch(() => null),
+                getLatestVerification(selectedProjectId, selectedSnapshotId).catch(() => null),
+                Promise.all(sectionKeys.map(async (sectionKey) => {
+                  try {
+                    const draft = await getSectionDraft(selectedProjectId, selectedSnapshotId, sectionKey);
+                    return draft.revision.markdown.trim().length > 0;
+                  } catch (error) {
+                    return error instanceof ApiError && error.status === 404 ? false : null;
+                  }
+                })),
+              ]);
+              if (cancelled) return;
+              setParagraphPlan(currentPlan);
+              setSectionProgress(
+                sectionKeys.length > 0 && sectionDrafts.every((started) => started !== null)
+                ? { started: sectionDrafts.filter((started) => started === true).length, total: sectionKeys.length }
+                  : null,
+              );
+              setCitationCoverage(
+                verification?.isCurrent && verification.manifest.totalCitations > 0
+                  ? Math.round((verification.manifest.resolvedCitations / verification.manifest.totalCitations) * 100)
+                  : null,
+              );
+            }
+          } catch {
+            if (!cancelled) setBlueprint(null);
+          }
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setSnapshotDetailError(error instanceof Error ? error.message : t("overview.snapshotLoadError"));
+        }
+      } finally {
+        if (!cancelled) setSnapshotDetailLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [activeSnapshot, selectedProjectId, selectedSnapshotId, t]);
+
+  const isSnapshotReady = activeSnapshot?.status === "READY";
+  const hasApprovedBlueprint = blueprint?.approval.status === "APPROVED";
+  const isParagraphPlanReady = Boolean(paragraphPlan?.readyToDraft);
+  const numberFormat = new Intl.NumberFormat(i18n.resolvedLanguage ?? "vi");
+  const metrics = [
+    { key: "studies", label: t("overview.metrics.studies"), icon: BookOpenIcon, tone: "mint", value: snapshotDetail?._count.studies == null ? null : numberFormat.format(snapshotDetail._count.studies) },
+    { key: "evidence", label: t("overview.metrics.evidence"), icon: CircleStackIcon, tone: "lavender", value: snapshotDetail?._count.evidence == null ? null : numberFormat.format(snapshotDetail._count.evidence) },
+    { key: "sections", label: t("overview.metrics.sections"), icon: DocumentTextIcon, tone: "amber", value: sectionProgress ? `${sectionProgress.started}/${sectionProgress.total}` : null },
+    { key: "citationCoverage", label: t("overview.metrics.citationCoverage"), icon: ShieldCheckIcon, tone: "blue", value: citationCoverage == null ? null : `${numberFormat.format(citationCoverage)}%` },
+  ];
+
+  const workflowStages: WorkflowStage[] = [
+    {
+      key: "import",
+      icon: ArrowUpTrayIcon,
+      state: activeSnapshot ? "complete" : "current",
+    },
+    {
+      key: "outline",
+      icon: ListBulletIcon,
+      state: !isSnapshotReady ? (activeSnapshot ? "attention" : "upcoming") : hasApprovedBlueprint ? "complete" : "current",
+    },
+    {
+      key: "plan",
+      icon: DocumentTextIcon,
+      state: !hasApprovedBlueprint ? "upcoming" : isParagraphPlanReady ? "complete" : "current",
+    },
+    {
+      key: "draft",
+      icon: PencilSquareIcon,
+      state: isParagraphPlanReady ? "current" : "upcoming",
+    },
+    {
+      key: "review",
+      icon: CheckCircleIcon,
+      state: "upcoming",
+    },
+  ];
+
+  const resumeStep = !activeProject
+    ? "noProject"
+    : snapshotsLoading
+      ? "loading"
+    : !activeSnapshot
+      ? "noSnapshot"
+      : !isSnapshotReady
+        ? "readiness"
+        : !hasApprovedBlueprint
+          ? "outline"
+          : !isParagraphPlanReady
+            ? "plan"
+            : "draft";
+  const resumePaths: Record<string, string> = {
+    noProject: "/import",
+    loading: "/snapshots",
+    noSnapshot: "/snapshots",
+    readiness: "/snapshots",
+    outline: "/outline",
+    plan: "/drafting#paragraph-plans",
+    draft: "/drafting#draft-content",
+  };
+  const resumePath = workspacePath(resumePaths[resumeStep], selectedProjectId, selectedSnapshotId);
 
   return (
-    <div className="space-y-10">
-      <motion.section
-        initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: prefersReducedMotion ? 0 : 0.35, ease: "easeOut" }}
-        className="relative isolate overflow-hidden rounded-2xl bg-primary px-6 py-8 text-white shadow-sm sm:px-9 sm:py-10 lg:px-12"
-      >
-        <div
-          aria-hidden="true"
-          className="absolute -right-20 -top-32 -z-10 size-96 rounded-full border border-white/15"
-        />
-        <div
-          aria-hidden="true"
-          className="absolute -right-5 -top-16 -z-10 size-64 rounded-full border border-white/15"
-        />
-        <div className="max-w-3xl">
-          <Badge className="border-white/20 bg-white/10 text-white hover:bg-white/10">
-            {t("overview.badge")}
-          </Badge>
-          <h2 className="mt-5 max-w-2xl text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
-            {t("overview.title")}
-          </h2>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-white/80 sm:text-base">
-            {t("overview.description")}
-          </p>
-          <Button
-            asChild
-            variant="secondary"
-            className="mt-7 bg-white text-primary hover:bg-white/90"
-          >
-            <Link to="/projects">
-              {t("overview.viewProjects")}
+    <GsapStagger className="overview-dashboard">
+      <section className="overview-heading">
+        <div>
+          <p className="overview-eyebrow">{t("overview.pageEyebrow")}</p>
+          <h1 className="slrw-page-title">{t("overview.pageTitle")}</h1>
+          <p className="overview-page-description">{t("overview.pageDescription")}</p>
+        </div>
+        <div className="overview-heading-actions">
+          <Button asChild variant="outline">
+            <Link to={workspacePath("/snapshots", selectedProjectId, selectedSnapshotId)}>
+              <ArrowUpTrayIcon aria-hidden="true" />
+              {t("overview.importSource")}
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link to={workspacePath("/drafting", selectedProjectId, selectedSnapshotId)}>
+              {t("overview.openStudio")}
               <ArrowRightIcon aria-hidden="true" />
             </Link>
           </Button>
         </div>
-      </motion.section>
-
-      <section aria-labelledby="workflow-heading">
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
-              {t("overview.workflowLabel")}
-            </p>
-            <h2 id="workflow-heading" className="mt-1 text-xl font-semibold tracking-tight">
-              {t("overview.workflowTitle")}
-            </h2>
-          </div>
-          <p className="max-w-md text-sm leading-6 text-muted-foreground">
-            {t("overview.workflowDescription")}
-          </p>
-        </div>
-
-        <div ref={stepsRef} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {workflowSteps.map((step, index) => {
-            const Icon = step.icon;
-            return (
-              <Card key={step.number} data-workflow-step className="h-full">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between">
-                    <span className="flex size-10 items-center justify-center rounded-xl bg-secondary text-primary">
-                      <Icon className="size-5" aria-hidden="true" />
-                    </span>
-                    <span className="text-xs font-semibold tracking-[0.12em] text-muted-foreground">
-                      {step.number}
-                    </span>
-                  </div>
-                  <h3 className="mt-5 text-sm font-semibold text-foreground">{t(`overview.steps.${index}.title`)}</h3>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{t(`overview.steps.${index}.description`)}</p>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
       </section>
 
-      <section aria-labelledby="guardrails-heading">
-        <div className="mb-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
-            {t("overview.guardrailsLabel")}
-          </p>
-          <h2 id="guardrails-heading" className="mt-1 text-xl font-semibold tracking-tight">
-            {t("overview.guardrailsTitle")}
+      <section className="overview-project-hero" aria-labelledby="overview-project-title">
+        <div className="overview-hero-decoration overview-hero-decoration-one" aria-hidden="true" />
+        <div className="overview-hero-decoration overview-hero-decoration-two" aria-hidden="true" />
+        <div className="overview-hero-copy">
+          <p className="overview-hero-kicker">{t("overview.activeProject")}<span>/</span>{t("overview.projectType")}</p>
+          <h2 id="overview-project-title">
+            {activeProject?.name ?? (projectsLoading ? t("overview.loadingProject") : t("overview.noActiveProject"))}
           </h2>
+          <p>
+            {activeProject
+              ? t("overview.projectDescription", { slrProjectId: activeProject.slrProjectId })
+              : t("overview.noActiveProjectDescription")}
+          </p>
+          <Button asChild variant="secondary" className="overview-hero-button">
+            <Link to={activeProject
+              ? workspacePath("/drafting", selectedProjectId, selectedSnapshotId)
+              : "/import"}>
+              {t(activeProject ? "overview.continueWriting" : "overview.viewProjects")}
+              <ArrowRightIcon aria-hidden="true" />
+            </Link>
+          </Button>
         </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          {Array.from({ length: 3 }, (_, index) => (
-            <MotionReveal key={index} delay={index * 0.05}>
-            <div className="border-l-2 border-primary/25 pl-4">
-              <h3 className="text-sm font-semibold">{t(`overview.guardrails.${index}.title`)}</h3>
-              <p className="mt-1.5 text-sm leading-6 text-muted-foreground">{t(`overview.guardrails.${index}.description`)}</p>
-            </div>
-            </MotionReveal>
-          ))}
+        <div className={`overview-snapshot-ring is-${activeSnapshot?.status?.toLowerCase() ?? "empty"}`} aria-label={activeSnapshot ? t(`snapshots.status.${activeSnapshot.status}`) : t("overview.noSnapshotShort")}>
+          <div className="overview-snapshot-ring-inner">
+            {activeSnapshot ? (
+              <>
+                <strong>{t(`snapshots.status.${activeSnapshot.status}`)}</strong>
+                <span>{t("overview.snapshotStatusLabel")}</span>
+              </>
+            ) : (
+              <>
+                <CircleStackIcon aria-hidden="true" />
+                <span>{t("overview.noSnapshotShort")}</span>
+              </>
+            )}
+          </div>
         </div>
       </section>
-    </div>
+
+      {projectsError && <p className="overview-inline-error" role="alert">{projectsError}</p>}
+      {snapshotDetailError && <p className="overview-inline-error" role="alert">{snapshotDetailError}</p>}
+
+      <section ref={metricsRef} className="overview-metrics" aria-label={t("overview.metrics.title")}>
+        {metrics.map(({ key, label, icon: Icon, tone, value }) => {
+          const supportingText = !activeSnapshot
+            ? t("overview.metrics.awaitingSnapshot")
+            : snapshotDetailLoading
+              ? t("overview.metrics.loading")
+              : value == null
+                ? t(key === "sections" ? "overview.metrics.sectionsPending" : "overview.metrics.coveragePending")
+                : null;
+          return (
+            <Card className="overview-metric" data-overview-metric key={key}>
+              <CardContent className="overview-metric-content">
+                <span className={`overview-metric-icon is-${tone}`}><Icon aria-hidden="true" /></span>
+                <strong>{snapshotDetailLoading || !activeSnapshot ? "—" : value ?? "—"}</strong>
+                <span>{label}</span>
+                {supportingText && <small>{supportingText}</small>}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </section>
+
+      <section className="overview-lower-grid">
+        <Card className="overview-workflow-card">
+          <CardContent className="overview-workflow-content">
+            <div className="overview-section-heading">
+              <div>
+                <p className="overview-eyebrow">{t("overview.workflowLabel")}</p>
+                <h2>{t("overview.workflowTitle")}</h2>
+                <p>{t("overview.workflowDescription")}</p>
+              </div>
+              <span className="overview-next-badge">
+                {t(`overview.workflowState.${workflowStages.find((stage) => stage.state === "current" || stage.state === "attention")?.key ?? "import"}`)}
+              </span>
+            </div>
+            <ol className="overview-workflow-list">
+              {workflowStages.map(({ key, icon: Icon, state }, index) => (
+                <li className={`overview-workflow-step is-${state}`} key={key}>
+                  <span className="overview-step-icon" aria-hidden="true">
+                    {state === "complete" ? <CheckCircleIcon /> : state === "attention" ? <ExclamationTriangleIcon /> : <Icon />}
+                  </span>
+                  <span className="overview-step-copy">
+                    <strong>{t(`overview.stages.${key}.title`)}</strong>
+                    <span>{t(`overview.workflowState.${state}`)}</span>
+                  </span>
+                  <span className="overview-step-number">0{index + 1}</span>
+                </li>
+              ))}
+            </ol>
+          </CardContent>
+        </Card>
+
+        <Card className="overview-resume-card">
+          <CardContent className="overview-resume-content">
+            <div className="overview-resume-topline">
+              <ClockIcon aria-hidden="true" />
+              <span>{t("overview.resumeEyebrow")}</span>
+            </div>
+            <h2>{t("overview.resumeTitle")}</h2>
+            <p>{t(`overview.resume.${resumeStep}`, {
+              project: activeProject?.name ?? "",
+              snapshot: activeSnapshot?.sourceRunId ?? "",
+            })}</p>
+            {activeSnapshot && (
+              <div className="overview-resume-meta">
+                <span>{activeSnapshot.sourceRunId}</span>
+                <span>{t(`snapshots.status.${activeSnapshot.status}`)}</span>
+              </div>
+            )}
+            <div className="overview-resume-footer">
+              <span>{activeSnapshot ? `${t("overview.importedAt")} · ${new Date(activeSnapshot.importedAt).toLocaleDateString(i18n.resolvedLanguage ?? "vi")}` : t("overview.noRecentActivity")}</span>
+              <Button asChild>
+                <Link to={resumePath}>
+                  {t(`overview.resumeActions.${resumeStep}`)}
+                  <ArrowRightIcon aria-hidden="true" />
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+    </GsapStagger>
   );
 }
-

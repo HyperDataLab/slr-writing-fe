@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowRightIcon, DocumentTextIcon } from "@heroicons/react/24/outline";
+import { ArrowRightIcon, DocumentTextIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router";
 import { listJournalProfiles } from "@/features/journal-profiles/api/journal-profiles.api";
@@ -9,8 +9,85 @@ import { useProjects } from "@/features/projects/hooks/use-projects";
 import type { SnapshotSummary } from "@/features/snapshots/model/snapshot.types";
 import { listSnapshots } from "@/features/snapshots/api/snapshots.api";
 import { Button } from "@/shared/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
-import { MotionReveal } from "@/shared/ui/motion";
+
+function workspacePath(path: string, projectId: string, snapshotId = "") {
+  const params = new URLSearchParams();
+  if (projectId) params.set("projectId", projectId);
+  if (snapshotId) params.set("snapshotId", snapshotId);
+  const query = params.toString();
+  return query ? `${path}?${query}` : path;
+}
+
+function OutlineStateLayout({
+  title,
+  description,
+  healthTitle,
+  healthDescription,
+  error,
+  actionHref,
+  actionLabel,
+  onRetry,
+  retryLabel,
+  loading = false,
+}: {
+  title: string;
+  description: string;
+  healthTitle: string;
+  healthDescription: string;
+  error?: string | null;
+  actionHref?: string;
+  actionLabel?: string;
+  onRetry?: () => void;
+  retryLabel?: string;
+  loading?: boolean;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <div className="outline-builder-layout" aria-busy={loading}>
+      <section className="outline-builder-state-panel">
+        <div className="outline-builder-state-heading">
+          <span className="outline-builder-state-icon" aria-hidden="true">
+            {error ? <ExclamationTriangleIcon /> : <DocumentTextIcon />}
+          </span>
+          <div>
+            <p className="outline-builder-state-kicker">{t("outline.studioEyebrow")}</p>
+            <h2>{title}</h2>
+          </div>
+        </div>
+        <p className="outline-builder-state-description">{description}</p>
+        {loading && <p className="outline-builder-loading" role="status">{t("outline.loadingSelection")}</p>}
+        {error && <p className="outline-builder-error" role="alert">{error}</p>}
+        {(actionHref || onRetry) && (
+          <div className="outline-builder-state-actions">
+            {actionHref && actionLabel && (
+              <Button asChild variant="outline" size="sm" className="gap-2">
+                <Link to={actionHref}>{actionLabel}<ArrowRightIcon aria-hidden="true" /></Link>
+              </Button>
+            )}
+            {onRetry && (
+              <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+                {retryLabel ?? t("common.retry")}
+              </Button>
+            )}
+          </div>
+        )}
+      </section>
+
+      <aside className="outline-structure-health">
+        <p className="outline-structure-eyebrow">{t("outline.structureHealthTitle")}</p>
+        <h2>{healthTitle}</h2>
+        <p className="outline-structure-description">{healthDescription}</p>
+        {error && (
+          <div className="outline-health-notice is-error" role="status">
+            <ExclamationTriangleIcon aria-hidden="true" />
+            <p>{t("outline.healthUnavailable")}</p>
+          </div>
+        )}
+      </aside>
+    </div>
+  );
+}
 
 export function OutlinePage() {
   const { t } = useTranslation();
@@ -34,30 +111,24 @@ export function OutlinePage() {
 
   useEffect(() => {
     if (projects.length > 0 && !selectedProjectId) {
-      const stored = localStorage.getItem('slrw_selected_project_id');
-      const matched = projects.find((p) => p.id === stored) ?? projects[0];
+      const stored = localStorage.getItem("slrw_selected_project_id");
+      const matched = projects.find((project) => project.id === stored) ?? projects[0];
       setSearchParams((current) => {
         const next = new URLSearchParams(current);
-        next.set('projectId', matched.id);
-        const storedSnap = localStorage.getItem('slrw_selected_snapshot_id');
-        if (storedSnap && !next.get('snapshotId')) {
-          next.set('snapshotId', storedSnap);
-        }
+        next.set("projectId", matched.id);
+        const storedSnapshotId = localStorage.getItem("slrw_selected_snapshot_id");
+        if (storedSnapshotId && !next.get("snapshotId")) next.set("snapshotId", storedSnapshotId);
         return next;
       }, { replace: true });
     }
   }, [projects, selectedProjectId, setSearchParams]);
 
   useEffect(() => {
-    if (selectedProjectId) {
-      localStorage.setItem('slrw_selected_project_id', selectedProjectId);
-    }
+    if (selectedProjectId) localStorage.setItem("slrw_selected_project_id", selectedProjectId);
   }, [selectedProjectId]);
 
   useEffect(() => {
-    if (selectedSnapshotId) {
-      localStorage.setItem('slrw_selected_snapshot_id', selectedSnapshotId);
-    }
+    if (selectedSnapshotId) localStorage.setItem("slrw_selected_snapshot_id", selectedSnapshotId);
   }, [selectedSnapshotId]);
 
   useEffect(() => {
@@ -109,129 +180,164 @@ export function OutlinePage() {
     return () => { cancelled = true; };
   }, [selectedProjectId, setSearchParams, snapshotReloadKey, t]);
 
-  function updateSelection(projectId: string, snapshotId = "") {
-    setSearchParams((current) => {
-      const next = new URLSearchParams(current);
-      if (projectId) next.set("projectId", projectId);
-      else next.delete("projectId");
-      if (snapshotId) next.set("snapshotId", snapshotId);
-      else next.delete("snapshotId");
-      return next;
-    }, { replace: true });
-  }
-
   const activeProject = projects.find((project) => project.id === selectedProjectId);
   const activeSnapshot = snapshots.find((snapshot) => snapshot.id === selectedSnapshotId);
+  const writingHref = workspacePath("/drafting", selectedProjectId, selectedSnapshotId);
+  const snapshotHref = selectedProjectId
+    ? `/snapshots?projectId=${encodeURIComponent(selectedProjectId)}${selectedSnapshotId ? `&snapshotId=${encodeURIComponent(selectedSnapshotId)}` : "&mode=import"}`
+    : "/snapshots?mode=import";
+
+  const header = (
+    <header className="outline-page-header">
+      <div className="outline-page-heading">
+        <p className="outline-page-eyebrow">{t("outline.studioEyebrow")}</p>
+        <h1 className="slrw-page-title">{t("outline.studioTitle")}</h1>
+        <p>{t("outline.studioDescription")}</p>
+        {(activeProject || activeSnapshot) && (
+          <div className="outline-page-meta">
+            {activeProject && <span>{activeProject.name}</span>}
+            {activeSnapshot && <span>{t("workflow.run")}: {activeSnapshot.sourceRunId}</span>}
+          </div>
+        )}
+      </div>
+      <div className="outline-page-actions">
+        <Button asChild variant="outline" size="sm" className="gap-2">
+          <Link to={writingHref}>{t("outline.openWritingStudio")}<ArrowRightIcon aria-hidden="true" /></Link>
+        </Button>
+        <Button asChild size="sm" className="gap-2">
+          <Link to={snapshotHref}>{activeSnapshot ? t("outline.openCurrentSnapshot") : t("outline.openSnapshots")}<ArrowRightIcon aria-hidden="true" /></Link>
+        </Button>
+      </div>
+    </header>
+  );
+
+  let workspaceContent;
+  if (projectsLoading) {
+    workspaceContent = (
+      <OutlineStateLayout
+        loading
+        title={t("outline.loadingTitle")}
+        description={t("outline.loadingSelection")}
+        healthTitle={t("outline.loadingTitle")}
+        healthDescription={t("outline.structureHealthDescription")}
+      />
+    );
+  } else if (projectsError) {
+    workspaceContent = (
+      <OutlineStateLayout
+        title={t("outline.unavailableTitle")}
+        description={t("outline.projectLoadDescription")}
+        healthTitle={t("outline.healthUnavailableTitle")}
+        healthDescription={t("outline.structureHealthDescription")}
+        error={projectsError}
+        onRetry={() => void loadProjects()}
+      />
+    );
+  } else if (projects.length === 0) {
+    workspaceContent = (
+      <OutlineStateLayout
+        title={t("outline.noProjects")}
+        description={t("outline.noProjectsDescription")}
+        healthTitle={t("outline.healthWaitingTitle")}
+        healthDescription={t("outline.healthNoProject")}
+        actionHref="/projects"
+        actionLabel={t("outline.openProjects")}
+      />
+    );
+  } else if (!selectedProjectId || !activeProject) {
+    workspaceContent = (
+      <OutlineStateLayout
+        title={t("outline.selectProjectTitle")}
+        description={t("outline.selectPrompt")}
+        healthTitle={t("outline.healthWaitingTitle")}
+        healthDescription={t("outline.healthNoProject")}
+        actionHref="/projects"
+        actionLabel={t("outline.openProjects")}
+      />
+    );
+  } else if (snapshotsLoading) {
+    workspaceContent = (
+      <OutlineStateLayout
+        loading
+        title={t("outline.loadingTitle")}
+        description={t("outline.loadingSelection")}
+        healthTitle={t("outline.loadingTitle")}
+        healthDescription={t("outline.structureHealthDescription")}
+      />
+    );
+  } else if (snapshotsError) {
+    workspaceContent = (
+      <OutlineStateLayout
+        title={t("outline.unavailableTitle")}
+        description={t("outline.snapshotLoadDescription")}
+        healthTitle={t("outline.healthUnavailableTitle")}
+        healthDescription={t("outline.structureHealthDescription")}
+        error={snapshotsError}
+        onRetry={() => setSnapshotReloadKey((current) => current + 1)}
+      />
+    );
+  } else if (snapshots.length === 0) {
+    workspaceContent = (
+      <OutlineStateLayout
+        title={t("outline.noSnapshots")}
+        description={t("outline.noSnapshotDescription")}
+        healthTitle={t("outline.healthWaitingTitle")}
+        healthDescription={t("outline.healthNoSnapshot")}
+        actionHref={snapshotHref}
+        actionLabel={t("outline.importSnapshot")}
+      />
+    );
+  } else if (!activeSnapshot) {
+    workspaceContent = (
+      <OutlineStateLayout
+        title={t("outline.snapshotUnavailable")}
+        description={t("outline.snapshotUnavailableDescription")}
+        healthTitle={t("outline.healthUnavailableTitle")}
+        healthDescription={t("outline.healthNoSnapshot")}
+        actionHref={snapshotHref}
+        actionLabel={t("outline.openCurrentSnapshot")}
+      />
+    );
+  } else if (profilesError) {
+    workspaceContent = (
+      <OutlineStateLayout
+        title={t("outline.unavailableTitle")}
+        description={t("outline.profileUnavailableDescription")}
+        healthTitle={t("outline.healthUnavailableTitle")}
+        healthDescription={t("outline.structureHealthDescription")}
+        error={profilesError}
+        actionHref="/journal-profiles"
+        actionLabel={t("outline.openProfiles")}
+        onRetry={() => setProfileReloadKey((current) => current + 1)}
+      />
+    );
+  } else if (profilesLoading) {
+    workspaceContent = (
+      <OutlineStateLayout
+        loading
+        title={t("outline.loadingTitle")}
+        description={t("outline.loadingSelection")}
+        healthTitle={t("outline.loadingTitle")}
+        healthDescription={t("outline.structureHealthDescription")}
+      />
+    );
+  } else {
+    workspaceContent = (
+      <OutlineWorkspace
+        key={`${activeProject.id}:${activeSnapshot.id}`}
+        projectId={activeProject.id}
+        snapshot={activeSnapshot}
+        profiles={profiles}
+        profilesLoading={profilesLoading}
+        requestedProfileId={requestedProfileId}
+      />
+    );
+  }
 
   return (
-    <div className="space-y-7">
-      <MotionReveal>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{t("outline.step")}</p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight">{t("outline.title")}</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{t("outline.description")}</p>
-        </div>
-      </MotionReveal>
-
-      <MotionReveal delay={0.04}>
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("outline.selectTitle")}</CardTitle>
-            <CardDescription>{t("outline.selectDescription")}</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label htmlFor="outline-project" className="text-sm font-medium text-foreground">{t("outline.projectLabel")}</label>
-              <select
-                id="outline-project"
-                value={selectedProjectId}
-                onChange={(event) => updateSelection(event.target.value)}
-                disabled={projectsLoading}
-                className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:border-foreground/40 disabled:opacity-60"
-              >
-                <option value="">{t("outline.chooseProject")}</option>
-                {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="outline-snapshot" className="text-sm font-medium text-foreground">{t("outline.snapshotLabel")}</label>
-              <select
-                id="outline-snapshot"
-                value={selectedSnapshotId}
-                onChange={(event) => updateSelection(selectedProjectId, event.target.value)}
-                disabled={!selectedProjectId || snapshotsLoading || snapshots.length === 0}
-                className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:border-foreground/40 disabled:opacity-60"
-              >
-                <option value="">{t("outline.chooseSnapshot")}</option>
-                {snapshots.map((snapshot) => (
-                  <option key={snapshot.id} value={snapshot.id}>
-                    {snapshot.sourceRunId} · {t(`snapshots.status.${snapshot.status}`)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </CardContent>
-        </Card>
-      </MotionReveal>
-
-      {projectsLoading || snapshotsLoading || profilesLoading ? (
-        <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">{t("outline.loadingSelection")}</CardContent></Card>
-      ) : projectsError ? (
-        <Card>
-          <CardContent className="space-y-3 py-6 text-center">
-            <p role="alert" className="text-sm text-destructive">{projectsError}</p>
-            <Button type="button" size="sm" variant="outline" onClick={() => void loadProjects()}>{t("common.retry")}</Button>
-          </CardContent>
-        </Card>
-      ) : profilesError ? (
-        <Card>
-          <CardContent className="space-y-3 py-6 text-center">
-            <p role="alert" className="text-sm text-destructive">{profilesError}</p>
-            <Button type="button" size="sm" variant="outline" onClick={() => setProfileReloadKey((current) => current + 1)}>{t("common.retry")}</Button>
-          </CardContent>
-        </Card>
-      ) : snapshotsError ? (
-        <Card>
-          <CardContent className="space-y-3 py-6 text-center">
-            <p role="alert" className="text-sm text-destructive">{snapshotsError}</p>
-            <Button type="button" size="sm" variant="outline" onClick={() => setSnapshotReloadKey((current) => current + 1)}>{t("common.retry")}</Button>
-          </CardContent>
-        </Card>
-      ) : projects.length === 0 ? (
-        <Card>
-          <CardContent className="py-10 text-center">
-            <p className="text-sm text-muted-foreground">{t("outline.noProjects")}</p>
-            <Button asChild variant="outline" className="mt-4"><Link to="/projects">{t("outline.openProjects")}<ArrowRightIcon aria-hidden="true" /></Link></Button>
-          </CardContent>
-        </Card>
-      ) : !selectedProjectId ? (
-        <Card className="flex min-h-56 items-center justify-center">
-          <CardContent className="max-w-md px-6 py-10 text-center">
-            <span className="mx-auto flex size-12 items-center justify-center rounded-xl bg-secondary text-primary"><DocumentTextIcon className="size-6" aria-hidden="true" /></span>
-            <p className="mt-4 text-sm leading-6 text-muted-foreground">{t("outline.selectPrompt")}</p>
-          </CardContent>
-        </Card>
-      ) : !activeProject ? (
-        <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">{t("outline.projectUnavailable")}</CardContent></Card>
-      ) : snapshots.length === 0 ? (
-        <Card>
-          <CardContent className="py-10 text-center">
-            <p className="text-sm text-muted-foreground">{t("outline.noSnapshots")}</p>
-            <Button asChild variant="outline" className="mt-4"><Link to={`/snapshots?projectId=${encodeURIComponent(activeProject.id)}`}>{t("outline.openSnapshots")}<ArrowRightIcon aria-hidden="true" /></Link></Button>
-          </CardContent>
-        </Card>
-      ) : !activeSnapshot ? (
-        <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">{t("outline.snapshotUnavailable")}</CardContent></Card>
-      ) : (
-        <OutlineWorkspace
-          key={`${activeProject.id}:${activeSnapshot.id}`}
-          projectId={activeProject.id}
-          snapshot={activeSnapshot}
-          profiles={profiles}
-          profilesLoading={profilesLoading}
-          requestedProfileId={requestedProfileId}
-        />
-      )}
+    <div className="outline-page">
+      {header}
+      {workspaceContent}
     </div>
   );
 }

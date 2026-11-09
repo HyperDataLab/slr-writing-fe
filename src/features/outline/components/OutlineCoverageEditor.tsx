@@ -4,7 +4,7 @@ import type { JournalProfile } from "@/features/journal-profiles/model/journal-p
 import type { BlueprintContent } from "@/features/outline/model/outline.types";
 import { ANSWERING_SECTION_KEYS } from "@/features/outline/utils/outline.helpers";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
-import { MotionListItem } from "@/shared/ui/motion";
+import { GsapListItem } from "@/shared/ui/gsap-motion";
 
 export function OutlineCoverageEditor({
   content,
@@ -90,7 +90,7 @@ export function OutlineCoverageEditor({
                 notApplicableReason: null,
               };
               return (
-                <MotionListItem key={rqId} delay={questionIndex * 0.035}>
+                <GsapListItem key={rqId} delay={questionIndex * 0.035}>
                   <div className="space-y-3 rounded-lg border border-border p-4">
                     <h4 className="break-all text-sm font-semibold text-foreground">
                       {t("outline.questionId", { id: rqId })}
@@ -140,7 +140,7 @@ export function OutlineCoverageEditor({
                       </div>
                     )}
                   </div>
-                </MotionListItem>
+                </GsapListItem>
               );
             })}
           </ol>

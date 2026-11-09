@@ -6,6 +6,7 @@ import { useActiveWorkspaceSelection } from "@/features/projects/hooks/use-activ
 import type { SnapshotSummary } from "@/features/snapshots/model/snapshot.types";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
+import { GsapStagger } from "@/shared/ui/gsap-motion";
 
 /**
  * Shared frame of the workflow pages (paragraph plans, drafting, verification, export): page header, the
@@ -42,9 +43,9 @@ export function WorkflowPageShell({
   const labelClass = "text-xs font-semibold text-muted-foreground block mb-1.5 uppercase tracking-wider";
 
   return (
-    <div className="space-y-6">
+    <GsapStagger className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+        <h1 className="slrw-page-title">{title}</h1>
         <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
       </div>
 
@@ -120,6 +121,6 @@ export function WorkflowPageShell({
       ) : (
         <div className="text-center py-8 text-sm text-muted-foreground">{t("workflow.pickSnapshot")}</div>
       )}
-    </div>
+    </GsapStagger>
   );
 }

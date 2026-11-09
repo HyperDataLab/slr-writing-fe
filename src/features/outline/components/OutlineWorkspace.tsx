@@ -14,7 +14,7 @@ import { ApiError } from "@/shared/lib/api-client";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
-import { MotionReveal } from "@/shared/ui/motion";
+import { GsapReveal } from "@/shared/ui/gsap-motion";
 
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
@@ -212,74 +212,131 @@ export function OutlineWorkspace({
 
   if (error && !view && !notCreated) {
     return (
-      <Card>
-        <CardContent className="space-y-3 py-8 text-center">
-          <p role="alert" className="text-sm text-destructive">{error}</p>
-          <Button type="button" size="sm" variant="outline" onClick={() => void loadLatest()}>{t("common.retry")}</Button>
-        </CardContent>
-      </Card>
+      <div className="outline-builder-layout">
+        <section className="outline-builder-state-panel" aria-labelledby="outline-load-error-title">
+          <div className="outline-builder-state-heading">
+            <span className="outline-builder-state-icon is-error" aria-hidden="true">
+              <ExclamationTriangleIcon />
+            </span>
+            <div>
+              <p className="outline-builder-state-kicker">{t("outline.studioEyebrow")}</p>
+              <h2 id="outline-load-error-title">{t("outline.unavailableTitle")}</h2>
+            </div>
+          </div>
+          <p className="outline-builder-state-description">{t("outline.loadError")}</p>
+          <p role="alert" className="outline-builder-error">{error}</p>
+          <div className="outline-builder-state-actions">
+            <Button type="button" size="sm" variant="outline" onClick={() => void loadLatest()}>{t("common.retry")}</Button>
+          </div>
+        </section>
+        <aside className="outline-structure-health">
+          <p className="outline-structure-eyebrow">{t("outline.structureHealthTitle")}</p>
+          <h2>{t("outline.healthUnavailableTitle")}</h2>
+          <p className="outline-structure-description">{t("outline.structureHealthDescription")}</p>
+          <div className="outline-health-notice is-error" role="status">
+            <ExclamationTriangleIcon aria-hidden="true" />
+            <p>{t("outline.healthUnavailable")}</p>
+          </div>
+        </aside>
+      </div>
     );
   }
 
   if (notCreated || !view || !draft) {
     return (
-      <MotionReveal>
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("outline.notCreatedTitle")}</CardTitle>
-            <CardDescription>{t("outline.generateDescription")}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            {!isReady && (
-              <div className="flex items-start gap-3 rounded-lg border border-amber-300/70 bg-amber-50/70 p-4 text-amber-950">
-                <ExclamationTriangleIcon className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
-                <div>
-                  <p className="text-sm font-semibold">{t("outline.readySnapshotRequired")}</p>
-                  <Link className="mt-1 inline-block text-sm font-medium underline underline-offset-4" to={`/snapshots?projectId=${encodeURIComponent(projectId)}&snapshotId=${encodeURIComponent(snapshot.id)}`}>
-                    {t("outline.openReadiness")}
-                  </Link>
+      <div className="outline-builder-layout">
+        <GsapReveal>
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("outline.notCreatedTitle")}</CardTitle>
+              <CardDescription>{t("outline.generateDescription")}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {!isReady && (
+                <div className="flex items-start gap-3 rounded-lg border border-warning-border bg-warning-soft p-4 text-warning">
+                  <ExclamationTriangleIcon className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+                  <div>
+                    <p className="text-sm font-semibold">{t("outline.readySnapshotRequired")}</p>
+                    <Link className="mt-1 inline-block text-sm font-medium underline underline-offset-4" to={`/snapshots?projectId=${encodeURIComponent(projectId)}&snapshotId=${encodeURIComponent(snapshot.id)}`}>
+                      {t("outline.openReadiness")}
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            )}
-            {profiles.length === 0 ? (
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <p>{t("outline.noProfiles")}</p>
-                <Link className="font-medium text-primary underline-offset-4 hover:underline" to="/journal-profiles">{t("outline.openProfiles")}</Link>
-              </div>
-            ) : (
-              <div className="max-w-xl space-y-2">
-                <label htmlFor="outline-profile" className="text-sm font-medium text-foreground">{t("outline.profileLabel")}</label>
-                <select
-                  id="outline-profile"
-                  value={profileId}
-                  onChange={(event) => setProfileId(event.target.value)}
-                  className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:border-foreground/40"
-                >
-                  {profiles.map((item) => <option key={item.id} value={item.id}>{item.name} · v{item.version}</option>)}
-                </select>
-                {selectedProfile?.verification.status === "unverified" && selectedProfile.notice && (
-                  <p className="rounded-lg border border-amber-300/70 bg-amber-50/70 p-3 text-xs leading-5 text-amber-950">{selectedProfile.notice}</p>
+              )}
+              <div className="max-w-xl space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">{t("outline.profileStep")}</p>
+                  <Badge variant="outline">{t("outline.profileRequired")}</Badge>
+                </div>
+                <p id="outline-profile-hint" className="text-sm leading-6 text-muted-foreground">
+                  {t("outline.profileRequiredHint")}
+                </p>
+                {profiles.length === 0 ? (
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <p>{t("outline.noProfiles")}</p>
+                    <Link className="font-medium text-primary underline-offset-4 hover:underline" to="/journal-profiles">{t("outline.openProfiles")}</Link>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <label htmlFor="outline-profile" className="text-sm font-medium text-foreground">{t("outline.profileLabel")}</label>
+                    <select
+                      id="outline-profile"
+                      required
+                      aria-describedby="outline-profile-hint"
+                      value={profileId}
+                      onChange={(event) => setProfileId(event.target.value)}
+                      className="min-h-11 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:min-h-10"
+                    >
+                      {profiles.map((item) => <option key={item.id} value={item.id}>{item.name} · v{item.version}</option>)}
+                    </select>
+                    {selectedProfile?.verification.status === "unverified" && selectedProfile.notice && (
+                      <p className="rounded-lg border border-warning-border bg-warning-soft p-3 text-xs leading-5 text-warning">{selectedProfile.notice}</p>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-            {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-            <Button type="button" onClick={() => void handleCreate()} disabled={!isReady || !profileId || profiles.length === 0 || creating}>
-              <DocumentPlusIcon aria-hidden="true" />
-              {t(creating ? "outline.generating" : "outline.generate")}
-            </Button>
-          </CardContent>
-        </Card>
-      </MotionReveal>
+              {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+              <Button type="button" onClick={() => void handleCreate()} disabled={!isReady || !profileId || profiles.length === 0 || creating}>
+                <DocumentPlusIcon aria-hidden="true" />
+                {t(creating ? "outline.generating" : "outline.generate")}
+              </Button>
+            </CardContent>
+          </Card>
+        </GsapReveal>
+        <aside className="outline-structure-health">
+          <p className="outline-structure-eyebrow">{t("outline.structureHealthTitle")}</p>
+          <h2>{t("outline.healthWaitingTitle")}</h2>
+          <p className="outline-structure-description">{t("outline.structureHealthDescription")}</p>
+          <div className={isReady ? "outline-health-notice" : "outline-health-notice is-error"} role="status">
+            {!isReady && <ExclamationTriangleIcon aria-hidden="true" />}
+            <p>{isReady ? t("outline.notCreatedTitle") : t("outline.readySnapshotRequired")}</p>
+          </div>
+        </aside>
+      </div>
     );
   }
 
   const editingDisabled = !profile || !isReady || !isLatest || isBusy;
   const canApprove = Boolean(profile && isLatest && isReady && !dirty && view.approvable && !isBusy);
   const canReject = Boolean(profile && isLatest && isReady && !dirty && decisionNote.trim() && !isBusy);
+  const includedSections = draft.sections.filter((section) => section.include);
+  const totalProfileSections = profile?.sections.length ?? draft.sections.length;
+  const activeSubsectionIds = new Set(includedSections.flatMap((section) => section.subsections.map((subsection) => subsection.id)));
+  const coveredQuestionCount = questionIds.filter((questionId) => {
+    const coverage = draft.coverage.find((item) => item.rqId === questionId);
+    return Boolean(coverage && (
+      coverage.subsectionIds.some((subsectionId) => activeSubsectionIds.has(subsectionId))
+      || coverage.notApplicableReason?.trim()
+    ));
+  }).length;
+  const blockingIssueCount = view.issues.filter((issue) => issue.severity === "blocking").length;
+  const warningIssueCount = view.issues.length - blockingIssueCount;
+  const sectionProgressMax = Math.max(totalProfileSections, 1);
+  const questionProgressMax = Math.max(questionIds.length, 1);
 
   return (
     <div className="space-y-5">
-      <MotionReveal>
+      <GsapReveal>
         <Card>
           <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="space-y-2">
@@ -306,7 +363,7 @@ export function OutlineWorkspace({
                   value={selectedVersion}
                   onChange={(event) => void handleVersionChange(event.target.value)}
                   disabled={isBusy || view.versions.length < 2}
-                  className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:border-foreground/40 disabled:opacity-60"
+                  className="min-h-11 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60 md:min-h-10"
                 >
                   {view.versions.map((version) => (
                     <option key={version.id} value={version.version}>
@@ -323,17 +380,17 @@ export function OutlineWorkspace({
               )}
               <Button type="button" size="sm" variant="outline" disabled={isBusy} onClick={() => void loadLatest()}>
                 <ArrowPathIcon aria-hidden="true" />
-                {t("common.retry")}
+                {t("workflow.refresh")}
               </Button>
             </div>
           </CardHeader>
           {profile?.verification.status === "unverified" && profile.notice && (
             <CardContent className="pt-0">
-              <p className="rounded-lg border border-amber-300/70 bg-amber-50/70 p-3 text-xs leading-5 text-amber-950">{profile.notice}</p>
+              <p className="rounded-lg border border-warning-border bg-warning-soft p-3 text-xs leading-5 text-warning">{profile.notice}</p>
             </CardContent>
           )}
         </Card>
-      </MotionReveal>
+      </GsapReveal>
 
       {error && <p role="alert" className="rounded-lg border border-destructive/30 px-4 py-3 text-sm text-destructive">{error}</p>}
       {message && <p role="status" className="rounded-lg border border-border bg-secondary/60 px-4 py-3 text-sm text-foreground">{message}</p>}
@@ -344,13 +401,13 @@ export function OutlineWorkspace({
         <p role="status" className="rounded-lg bg-secondary/60 px-4 py-3 text-sm text-muted-foreground">{t("outline.readOnlyHistory")}</p>
       )}
       {!isReady && (
-        <p role="status" className="rounded-lg border border-amber-300/70 bg-amber-50/70 px-4 py-3 text-sm text-amber-950">{t("outline.readySnapshotRequired")}</p>
+        <p role="status" className="rounded-lg border border-warning-border bg-warning-soft px-4 py-3 text-sm text-warning">{t("outline.readySnapshotRequired")}</p>
       )}
       {!profile && (
-        <p role="status" className="rounded-lg border border-amber-300/70 bg-amber-50/70 px-4 py-3 text-sm text-amber-950">{t("outline.profileUnavailable")}</p>
+        <p role="status" className="rounded-lg border border-warning-border bg-warning-soft px-4 py-3 text-sm text-warning">{t("outline.profileUnavailable")}</p>
       )}
       {profile && profile.version !== draft.profile.version && (
-        <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300/70 bg-amber-50/70 px-4 py-3 text-sm text-amber-950">
+        <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning-border bg-warning-soft px-4 py-3 text-sm text-warning">
           <p>{t("outline.profileVersionOutdated", { blueprintVersion: draft.profile.version, currentVersion: profile.version })}</p>
           <Button
             type="button"
@@ -374,7 +431,49 @@ export function OutlineWorkspace({
           onChange={setDraft}
         />
 
-        <aside className="space-y-5">
+        <aside className="outline-builder-inspector space-y-5">
+          <Card className="outline-health-summary">
+            <CardHeader>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <CardTitle>{t("outline.structureHealthTitle")}</CardTitle>
+                <Badge variant={canApprove ? "default" : "outline"}>
+                  {t(canApprove ? "outline.approvable" : "outline.blocked")}
+                </Badge>
+              </div>
+              <CardDescription>{t("outline.structureHealthDescription")}</CardDescription>
+            </CardHeader>
+            <CardContent className="outline-health-summary-content">
+              <div className="outline-health-progress-item">
+                <div className="outline-health-progress-label">
+                  <span>{t("outline.healthSections")}</span>
+                  <strong>{includedSections.length}/{totalProfileSections}</strong>
+                </div>
+                <progress
+                  className="outline-health-progress"
+                  value={includedSections.length}
+                  max={sectionProgressMax}
+                  aria-label={t("outline.healthSectionProgress")}
+                />
+              </div>
+              <div className="outline-health-progress-item">
+                <div className="outline-health-progress-label">
+                  <span>{t("outline.healthQuestions")}</span>
+                  <strong>{coveredQuestionCount}/{questionIds.length}</strong>
+                </div>
+                <progress
+                  className="outline-health-progress"
+                  value={coveredQuestionCount}
+                  max={questionProgressMax}
+                  aria-label={t("outline.healthQuestionProgress")}
+                />
+              </div>
+              <div className="outline-health-issue-counts">
+                <span>{t("outline.healthBlocking")}</span>
+                <strong>{blockingIssueCount}</strong>
+                <span>{t("outline.issuesDescription", { blocking: blockingIssueCount, warning: warningIssueCount })}</span>
+              </div>
+            </CardContent>
+          </Card>
           <OutlineCoverageEditor
             content={draft}
             questionIds={questionIds}
@@ -411,7 +510,7 @@ export function OutlineWorkspace({
                   onChange={(event) => setDecisionNote(event.target.value)}
                   disabled={!isLatest || isBusy || !isReady}
                   placeholder={t("outline.decisionNotePlaceholder")}
-                  className="w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:border-foreground/40 disabled:opacity-60"
+                  className="w-full resize-y rounded-xl border border-input bg-background px-3 py-2 text-sm transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
                 />
                 {dirty && <p className="text-xs text-muted-foreground">{t("outline.saveBeforeDecision")}</p>}
               </div>

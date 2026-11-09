@@ -8,7 +8,6 @@ import {
   HomeIcon,
   ListBulletIcon,
   PencilSquareIcon,
-  QueueListIcon,
   ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
 
@@ -28,7 +27,6 @@ export const workflowNavigation: NavigationItem[] = [
   { labelKey: "navigation.journalProfiles", to: "/journal-profiles", icon: BookOpenIcon },
   { labelKey: "navigation.methods", to: "/methods", icon: DocumentTextIcon },
   { labelKey: "navigation.outline", to: "/outline", icon: ListBulletIcon },
-  { labelKey: "navigation.paragraphPlans", to: "/paragraph-plans", icon: QueueListIcon },
   { labelKey: "navigation.drafting", to: "/drafting", icon: PencilSquareIcon },
   { labelKey: "navigation.verification", to: "/verification", icon: ShieldCheckIcon },
   { labelKey: "navigation.export", to: "/export", icon: ArrowDownTrayIcon },

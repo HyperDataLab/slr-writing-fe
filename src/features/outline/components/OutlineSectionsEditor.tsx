@@ -4,7 +4,7 @@ import type { BlueprintContent, BlueprintSection } from "@/features/outline/mode
 import type { ClaimOption } from "@/features/outline/utils/outline.helpers";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
-import { MotionReveal } from "@/shared/ui/motion";
+import { GsapReveal } from "@/shared/ui/gsap-motion";
 import { OutlineSectionEditor } from "@/features/outline/components/OutlineSectionEditor";
 
 function replaceSection(content: BlueprintContent, section: BlueprintSection): BlueprintContent {
@@ -94,7 +94,7 @@ export function OutlineSectionsEditor({
       </Card>
 
       {orderedBlueprintSections.map(({ profileSection, section }, index) => section ? (
-        <MotionReveal key={section.key} delay={index * 0.035} effect="fade">
+        <GsapReveal key={section.key} delay={index * 0.035} effect="fade">
           <OutlineSectionEditor
             section={section}
             profileSection={profileSection}
@@ -104,9 +104,9 @@ export function OutlineSectionsEditor({
             onChange={handleSectionChange}
             onRemoveSubsection={(subsectionId) => removeSubsection(section.key, subsectionId)}
           />
-        </MotionReveal>
+        </GsapReveal>
       ) : (
-        <MotionReveal key={profileSection.key} delay={index * 0.035} effect="fade">
+        <GsapReveal key={profileSection.key} delay={index * 0.035} effect="fade">
           <Card>
             <CardHeader>
               <CardTitle>{t(`journalProfiles.sectionTitles.${profileSection.key}`, { defaultValue: profileSection.title })}</CardTitle>
@@ -118,11 +118,11 @@ export function OutlineSectionsEditor({
               </Button>
             </CardContent>
           </Card>
-        </MotionReveal>
+        </GsapReveal>
       ))}
 
       {unknownSections.map((section, index) => (
-        <MotionReveal key={section.key} delay={(orderedBlueprintSections.length + index) * 0.035} effect="fade">
+        <GsapReveal key={section.key} delay={(orderedBlueprintSections.length + index) * 0.035} effect="fade">
           <div className="space-y-3">
             <OutlineSectionEditor
               section={section}
@@ -136,7 +136,7 @@ export function OutlineSectionsEditor({
               {t("outline.removeUnknownSection")}: {section.key}
             </Button>
           </div>
-        </MotionReveal>
+        </GsapReveal>
       ))}
     </div>
   );

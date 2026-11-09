@@ -8,7 +8,7 @@ import { listSnapshots } from "@/features/snapshots/api/snapshots.api";
 import { useProjects } from "@/features/projects/hooks/use-projects";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
-import { MotionReveal } from "@/shared/ui/motion";
+import { GsapReveal } from "@/shared/ui/gsap-motion";
 
 export function MethodsPage() {
   const { t } = useTranslation();
@@ -107,15 +107,15 @@ export function MethodsPage() {
 
   return (
     <div className="space-y-7">
-      <MotionReveal>
+      <GsapReveal>
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{t("methods.step")}</p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight">{t("methods.title")}</h2>
+          <h2 className="slrw-page-title mt-1">{t("methods.title")}</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{t("methods.description")}</p>
         </div>
-      </MotionReveal>
+      </GsapReveal>
 
-      <MotionReveal>
+      <GsapReveal>
       <Card>
         <CardHeader>
           <CardTitle>{t("methods.selectTitle")}</CardTitle>
@@ -158,7 +158,7 @@ export function MethodsPage() {
           </div>
         </CardContent>
       </Card>
-      </MotionReveal>
+      </GsapReveal>
 
       {projectsLoading || snapshotsLoading ? (
         <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">{t("methods.loadingSelection")}</CardContent></Card>
@@ -208,9 +208,9 @@ export function MethodsPage() {
           </CardContent>
         </Card>
       ) : activeProject && activeSnapshot ? (
-        <MotionReveal key={`${selectedProjectId}:${selectedSnapshotId}`} delay={0.06} effect="fade">
+        <GsapReveal key={`${selectedProjectId}:${selectedSnapshotId}`} delay={0.06} effect="fade">
           <MethodsWorkspace projectId={selectedProjectId} snapshot={activeSnapshot} />
-        </MotionReveal>
+        </GsapReveal>
       ) : null}
 
       <p className="text-xs leading-5 text-muted-foreground">{t("methods.englishOutput")}</p>

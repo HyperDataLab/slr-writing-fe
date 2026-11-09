@@ -26,6 +26,7 @@ import type { SnapshotSummary } from "@/features/snapshots/model/snapshot.types"
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
+import { GsapStagger } from "@/shared/ui/gsap-motion";
 
 export function ExportWorkspace({
   projectId,
@@ -129,7 +130,7 @@ export function ExportWorkspace({
   const canApprove = h3Status?.canApprove;
 
   return (
-    <div className="space-y-6">
+    <GsapStagger className="space-y-6">
       {/* Header Card */}
       <Card className="border border-border/80">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
@@ -242,7 +243,7 @@ export function ExportWorkspace({
               )}
 
               {h3Status && h3Status.omittedSections.length > 0 && (
-                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs">
+                <div className="p-3 rounded-lg bg-warning-soft border border-warning-border text-warning text-xs">
                   {t("exportPkg.omitted", { sections: h3Status.omittedSections.map((key) => t(`plans.sectionName.${key}`, { defaultValue: key })).join(", ") })}
                 </div>
               )}
@@ -253,9 +254,9 @@ export function ExportWorkspace({
                   <span className="text-muted-foreground block text-[11px] mb-1">{t("exportPkg.humanOversight")}</span>
                   <div className="font-semibold text-foreground flex items-center gap-1.5">
                     {isH3Approved ? (
-                      <span className="text-emerald-600 dark:text-emerald-400">{t("exportPkg.approvedByOwner")}</span>
+                      <span className="text-success">{t("exportPkg.approvedByOwner")}</span>
                     ) : (
-                      <span className="text-amber-500">{t("exportPkg.pendingDecision")}</span>
+                      <span className="text-warning">{t("exportPkg.pendingDecision")}</span>
                     )}
                   </div>
                   {h3Status?.latestApproval && (
@@ -269,7 +270,7 @@ export function ExportWorkspace({
                   <span className="text-muted-foreground block text-[11px] mb-1">{t("exportPkg.qualityGates")}</span>
                   <div className="font-semibold text-foreground flex items-center gap-1.5">
                     {h3Status?.verificationSummary?.status === "PASSED" ? (
-                      <span className="text-emerald-600 dark:text-emerald-400">{t("exportPkg.gatesPassedAll")}</span>
+                      <span className="text-success">{t("exportPkg.gatesPassedAll")}</span>
                     ) : (
                       <span className="text-destructive">
                         {h3Status?.verificationSummary?.status
@@ -306,7 +307,7 @@ export function ExportWorkspace({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-rose-600 dark:text-rose-400"
+                    className="text-destructive"
                     disabled={isH3Approved}
                     onClick={() => setModalAction("reject")}
                   >
@@ -315,7 +316,7 @@ export function ExportWorkspace({
                   <Button
                     variant="default"
                     size="sm"
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    className="bg-primary hover:bg-primary-hover text-white"
                     disabled={!canApprove || isH3Approved}
                     onClick={() => setModalAction("approve")}
                   >
@@ -431,6 +432,6 @@ export function ExportWorkspace({
           submitting={submittingDecision}
         />
       )}
-    </div>
+    </GsapStagger>
   );
 }

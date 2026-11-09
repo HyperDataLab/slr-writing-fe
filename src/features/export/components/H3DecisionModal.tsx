@@ -52,9 +52,9 @@ export function H3DecisionModal({
         <DialogHeader>
           <div className="flex items-center gap-2">
             {action === "approve" ? (
-              <ShieldCheckIcon className="size-6 text-emerald-600 dark:text-emerald-400" />
+              <ShieldCheckIcon className="size-6 text-success" />
             ) : (
-              <XCircleIcon className="size-6 text-rose-600 dark:text-rose-400" />
+              <XCircleIcon className="size-6 text-destructive" />
             )}
             <DialogTitle>
               {action === "approve" ? t("exportPkg.decision.approveTitle") : t("exportPkg.decision.rejectTitle")}
