@@ -17,8 +17,8 @@ const OUT = process.env.DEMO_SHOTS ?? path.join(__dirname, "shots");
 const BASE = process.env.DEMO_BASE_URL ?? "http://127.0.0.1:5180";
 const DEMO_EMAIL = process.env.DEMO_EMAIL ?? "demo@example.com";
 const DEMO_PASSWORD = process.env.DEMO_PASSWORD ?? "Demo@12345";
-const PACE = Number(process.env.PACE || 1400); // ms to linger on each result so people can read it
-const SLOW = Number(process.env.SLOW || 250);
+const PACE = Number(process.env.PACE || 1800); // ms to linger on each result so people can read it
+const SLOW = Number(process.env.SLOW || 350);
 fs.mkdirSync(OUT, { recursive: true });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -73,8 +73,25 @@ async function goto(page, target) {
 
 let GLOBAL_PAGE = null;
 (async () => {
-  const browser = await chromium.launch({ channel: "chrome", headless: false, slowMo: SLOW, args: ["--window-size=1500,950", "--window-position=20,20"] });
-  const page = await browser.newPage({ viewport: { width: 1440, height: 860 } });
+  const os = require("os");
+  const profileDir = path.join(os.tmpdir(), "pw-demo-profile-" + Date.now());
+  const chromePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+  const edgePath = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
+  const executablePath = fs.existsSync(chromePath) ? chromePath : edgePath;
+
+  const context = await chromium.launchPersistentContext(profileDir, {
+    executablePath,
+    headless: false,
+    slowMo: SLOW,
+    viewport: { width: 1440, height: 860 },
+    args: [
+      "--window-size=1550,960",
+      "--window-position=40,40",
+      "--no-default-browser-check",
+      "--no-first-run",
+    ],
+  });
+  const page = context.pages()[0] || await context.newPage();
   GLOBAL_PAGE = page;
   page.on("pageerror", (e) => console.log("PAGE ERROR:", e.message));
   const stamp = new Date().toISOString().slice(11, 19).replace(/:/g, "");
@@ -251,8 +268,8 @@ let GLOBAL_PAGE = null;
     await snap(page, "lineage");
   });
   await caption(page, "Kết thúc demo. Bản thảo chỉ xuất được khi đủ section, đã duyệt H1/H2/H3 và kiểm chứng còn hiện hành");
-  await sleep(4000);
-  await browser.close();
+  await sleep(15000);
+  await context.close();
 })().catch(async (e) => {
   console.error("ERR", String(e.message).slice(0, 300));
   try { await GLOBAL_PAGE.screenshot({ path: OUT + "/ERROR.png" }); console.log("url at error:", GLOBAL_PAGE.url()); console.log((await GLOBAL_PAGE.locator("body").innerText()).slice(0, 900)); } catch {}
