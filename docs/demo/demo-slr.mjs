@@ -42,7 +42,7 @@ createServer((req, res) => {
   const runBase = `/synthesis/artifacts/runs/${raw.run.run_id}`;
   console.log(new Date().toISOString().slice(11, 19), req.method, url, req.headers.authorization ? "(token)" : "(no token)");
 
-  if (rest === "") return send(res, 200, wrap({ id: pid, name: "Demo SLR project", role: "OWNER" }));
+  if (rest === "") return send(res, 200, wrap({ id: pid, name: "Demo SLR project", role: "OWNER", roleText: "OWNER" }));
   if (rest === "/synthesis/artifacts/runs") {
     return send(res, 200, wrap([{ ...raw.run, generated_at: raw.run.generated_at ?? "2026-11-06T09:00:00.000Z", generated_by: raw.run.generated_by ?? "leader_user" }]));
   }
