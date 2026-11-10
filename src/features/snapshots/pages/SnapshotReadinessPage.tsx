@@ -553,8 +553,8 @@ export function SnapshotReadinessPage() {
                 onSelect={setRunId}
                 refreshKey={snapshotRefreshKey}
               />
-              <div className="space-y-2 border-t border-border pt-4">
-                <label htmlFor="snapshot-run-id" className="text-sm font-medium text-foreground">
+              <div className="flex flex-col gap-2.5 border-t border-border pt-4">
+                <label htmlFor="snapshot-run-id" className="block text-sm font-medium text-foreground">
                   {t("snapshots.runIdLabelManual")}
                 </label>
                 <Input

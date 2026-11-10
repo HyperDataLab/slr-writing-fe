@@ -214,8 +214,8 @@ export function ImportProjectPage() {
                         refreshKey={refreshKey}
                       />
                     </div>
-                    <div className="mt-4">
-                      <label htmlFor="import-run-id" className="text-sm font-medium text-foreground">
+                    <div className="mt-4 flex flex-col gap-2">
+                      <label htmlFor="import-run-id" className="block text-sm font-medium text-foreground">
                         {t("projectImport.manualRunLabel")}
                       </label>
                       <Input
@@ -226,7 +226,7 @@ export function ImportProjectPage() {
                         value={runId}
                         onChange={(event) => setRunId(event.target.value)}
                         placeholder={t("projectImport.manualRunPlaceholder")}
-                        className="mt-2 w-full"
+                        className="w-full"
                       />
                       <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
                         {t("projectImport.manualRunHelp")}
