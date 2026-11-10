@@ -40,3 +40,15 @@ Các file PDF được tạo ra tức thời tại thư mục giải pháp và t
 6. **Bảng Biểu TABLE I:** Trình bày PRISMA 2020 Flow theo phong cách bảng 2 dòng kẻ chuẩn mực của IEEE.
 7. **Tuyên bố Đạo đức AI:** Tuân thủ hướng dẫn bản quyền và tác giả AI của IEEE và COPE.
 
+---
+
+## 4. Tải và Xem Trực Tiếp Trên Web UI
+
+Người dùng và Giám khảo không cần thao tác dòng lệnh, có thể tải hoặc xem bản thảo trực tiếp ngay trên giao diện web:
+
+1. **Vào màn hình Gói nộp bài (H3):** Đi tới menu **Xuất bản thảo** (`/export`).
+2. **Nút "Tải bài báo PDF (IEEE)":** Nằm ngay trên thanh công cụ của thẻ "Gói nộp bài và tệp PKZIP". Nhấp vào để tải ngay file PDF chuẩn IEEE 2 cột về máy.
+3. **Nút "Xem PDF (IEEE)":** Mở trực tiếp tab mới trên trình duyệt để duyệt toàn bộ 8 trang bản thảo dạng PDF 2 cột sắc nét.
+4. **Thao tác nhanh trong bảng Manifest:** Tại dòng tệp `manuscript.md`, có sẵn các nút `[ PDF (IEEE) ]` và `[ Xem PDF (IEEE) ]` để thao tác trực tiếp.
+
+

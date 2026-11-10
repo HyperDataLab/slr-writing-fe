@@ -8,11 +8,13 @@ import {
   CheckCircleIcon,
   DocumentArrowDownIcon,
   ExclamationCircleIcon,
+  EyeIcon,
   ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
 import {
   approveH3,
   createExportPackage,
+  downloadExportPdfFile,
   downloadExportZipFile,
   getH3Status,
   getLatestExportPackage,
@@ -42,6 +44,8 @@ export function ExportWorkspace({
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [viewingPdf, setViewingPdf] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Modal State
@@ -123,6 +127,38 @@ export function ExportWorkspace({
       setError(err instanceof Error ? err.message : t("exportPkg.downloadError"));
     } finally {
       setDownloading(false);
+    }
+  };
+
+  const handleDownloadPdf = async (format: "ieee" | "imrad" = "ieee") => {
+    setDownloadingPdf(true);
+    try {
+      const { blob, filename } = await downloadExportPdfFile(projectId, snapshot.id, { format });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t("exportPkg.downloadError"));
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  const handleViewPdf = async (format: "ieee" | "imrad" = "ieee") => {
+    setViewingPdf(true);
+    try {
+      const { blob } = await downloadExportPdfFile(projectId, snapshot.id, { format, inline: true });
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, "_blank");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t("exportPkg.downloadError"));
+    } finally {
+      setViewingPdf(false);
     }
   };
 
@@ -338,7 +374,7 @@ export function ExportWorkspace({
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -358,6 +394,28 @@ export function ExportWorkspace({
                 >
                   <ArrowDownTrayIcon className="size-4" />
                   {downloading ? t("exportPkg.downloading") : t("exportPkg.download")}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleDownloadPdf("ieee")}
+                  disabled={!exportPackage || downloadingPdf}
+                  className="gap-1.5 text-xs font-medium text-primary hover:bg-primary/10 border-primary/40 shadow-xs"
+                  title={t("exportPkg.downloadPdfTooltip")}
+                >
+                  <ArrowDownTrayIcon className="size-4" />
+                  {downloadingPdf ? t("exportPkg.downloadingPdf") : t("exportPkg.downloadPdfIeee")}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleViewPdf("ieee")}
+                  disabled={!exportPackage || viewingPdf}
+                  className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                  title={t("exportPkg.viewPdf")}
+                >
+                  <EyeIcon className="size-4" />
+                  {viewingPdf ? t("exportPkg.viewingPdf") : t("exportPkg.viewPdf")}
                 </Button>
               </div>
             </CardHeader>
@@ -398,7 +456,33 @@ export function ExportWorkspace({
                         {exportPackage.manifest.map((file, idx) => (
                           <tr key={idx} className="hover:bg-muted/20 transition-colors">
                             <td className="py-2 px-3 font-semibold text-primary font-mono whitespace-nowrap">
-                              {file.filename}
+                              <div className="flex items-center gap-2">
+                                <span>{file.filename}</span>
+                                {file.filename === "manuscript.md" && (
+                                  <span className="inline-flex items-center gap-1.5 ml-1 font-sans font-normal">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDownloadPdf("ieee")}
+                                      disabled={downloadingPdf}
+                                      className="text-[10px] text-primary hover:underline inline-flex items-center gap-1 cursor-pointer bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20 hover:bg-primary/20 transition-colors"
+                                      title={t("exportPkg.downloadPdfIeee")}
+                                    >
+                                      <ArrowDownTrayIcon className="size-3" />
+                                      PDF (IEEE)
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleViewPdf("ieee")}
+                                      disabled={viewingPdf}
+                                      className="text-[10px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1 cursor-pointer bg-muted/60 hover:bg-muted px-1.5 py-0.5 rounded border border-border transition-colors"
+                                      title={t("exportPkg.viewPdf")}
+                                    >
+                                      <EyeIcon className="size-3" />
+                                      {t("exportPkg.viewPdf")}
+                                    </button>
+                                  </span>
+                                )}
+                              </div>
                             </td>
                             <td className="py-2 px-3 font-sans text-xs text-foreground">
                               {file.description}
