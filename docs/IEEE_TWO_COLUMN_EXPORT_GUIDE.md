@@ -39,3 +39,4 @@ Các file PDF được tạo ra tức thời tại thư mục giải pháp và t
 5. **Trích Dẫn Số:** Tự động chuyển đổi các trích dẫn thành dạng số `[1]`, `[2]`, `[3]-[5]`.
 6. **Bảng Biểu TABLE I:** Trình bày PRISMA 2020 Flow theo phong cách bảng 2 dòng kẻ chuẩn mực của IEEE.
 7. **Tuyên bố Đạo đức AI:** Tuân thủ hướng dẫn bản quyền và tác giả AI của IEEE và COPE.
+
