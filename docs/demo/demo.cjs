@@ -17,8 +17,8 @@ const OUT = process.env.DEMO_SHOTS ?? path.join(__dirname, "shots");
 const BASE = process.env.DEMO_BASE_URL ?? "http://127.0.0.1:5180";
 const DEMO_EMAIL = process.env.DEMO_EMAIL ?? "demo@example.com";
 const DEMO_PASSWORD = process.env.DEMO_PASSWORD ?? "Demo@12345";
-const PACE = Number(process.env.PACE || 1400); // ms to linger on each result so people can read it
-const SLOW = Number(process.env.SLOW || 250);
+const PACE = Number(process.env.PACE || 1800); // ms to linger on each result so people can read it
+const SLOW = Number(process.env.SLOW || 350);
 fs.mkdirSync(OUT, { recursive: true });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -52,15 +52,46 @@ async function click(page, re, opts = {}) {
   await b.waitFor({ state: "visible", timeout: opts.timeout ?? 15000 });
   await b.click();
 }
-async function goto(page, sidebarText) {
-  await page.getByRole("link", { name: sidebarText }).first().click();
+async function goto(page, target) {
+  if (typeof target === "string" && target.startsWith("/")) {
+    const currentUrl = new URL(page.url());
+    const projectId = currentUrl.searchParams.get("projectId");
+    const snapshotId = currentUrl.searchParams.get("snapshotId");
+    const dest = new URL(target, BASE);
+    if (projectId && !dest.searchParams.has("projectId")) dest.searchParams.set("projectId", projectId);
+    if (snapshotId && !dest.searchParams.has("snapshotId")) dest.searchParams.set("snapshotId", snapshotId);
+    await page.goto(dest.toString());
+  } else {
+    try {
+      await page.getByRole("link", { name: target }).first().click({ timeout: 2500 });
+    } catch {
+      await page.locator(`a:has-text("${target}")`).first().click();
+    }
+  }
   await page.waitForLoadState("networkidle");
 }
 
 let GLOBAL_PAGE = null;
 (async () => {
-  const browser = await chromium.launch({ channel: "chrome", headless: false, slowMo: SLOW, args: ["--window-size=1500,950", "--window-position=20,20"] });
-  const page = await browser.newPage({ viewport: { width: 1440, height: 860 } });
+  const os = require("os");
+  const profileDir = path.join(os.tmpdir(), "pw-demo-profile-" + Date.now());
+  const chromePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+  const edgePath = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
+  const executablePath = fs.existsSync(chromePath) ? chromePath : edgePath;
+
+  const context = await chromium.launchPersistentContext(profileDir, {
+    executablePath,
+    headless: false,
+    slowMo: SLOW,
+    viewport: { width: 1440, height: 860 },
+    args: [
+      "--window-size=1550,960",
+      "--window-position=40,40",
+      "--no-default-browser-check",
+      "--no-first-run",
+    ],
+  });
+  const page = context.pages()[0] || await context.newPage();
   GLOBAL_PAGE = page;
   page.on("pageerror", (e) => console.log("PAGE ERROR:", e.message));
   const stamp = new Date().toISOString().slice(11, 19).replace(/:/g, "");
@@ -76,44 +107,42 @@ let GLOBAL_PAGE = null;
 
   // 2. Projects
   await step(page, "2. Projects: tạo project viết bài, liên kết với project SLR", async () => {
-    await goto(page, /^Projects$/);
+    await goto(page, "/import?newProject=1");
     await page.getByLabel(/Tên writing project/).fill(projectName);
     await page.getByLabel(/SLR project ID|ID project/i).fill(`proj_demo_${stamp}`);
     await snap(page, "projects-form");
-    await click(page, /Tạo project/);
+    await click(page, /Tạo và tiếp tục|Tạo project/);
     await page.getByText(projectName).first().waitFor();
     await snap(page, "projects-created");
   });
 
   // 3. Snapshots
   await step(page, "3. Snapshot & readiness: chọn run đã duyệt ở SLR, nhập thành snapshot bất biến", async () => {
-    await goto(page, /Snapshot & readiness/);
-    await page.locator("#snapshot-project").selectOption({ label: projectName });
     await page.getByText("run-20261030101014-gbekjc").first().waitFor();
     await snap(page, "snapshots-run-picker");
   });
   await step(page, "3. Bấm chọn run, rồi Nhập snapshot (BE kiểm tra readiness)", async () => {
     await page.getByRole("button", { name: /run-20261030101014-gbekjc/ }).first().click();
-    await click(page, /Nhập snapshot/);
+    await click(page, /Import snapshot|Nhập snapshot/);
     await page.getByText(/READY|Sẵn sàng/i).first().waitFor({ timeout: 20000 });
     await snap(page, "snapshots-imported");
   });
 
   await step(page, "4. Hồ sơ tạp chí: khung IMRaD, luôn ghi rõ chưa xác minh với tạp chí nào", async () => {
-    await goto(page, /Hồ sơ tạp chí/);
+    await goto(page, "/journal-profiles");
     await snap(page, "journal-profile");
   });
 
   await step(page, "5. Methods / PRISMA: sinh bằng mẫu cố định, không dùng AI; số liệu lấy từ snapshot", async () => {
-    await goto(page, /Methods \/ PRISMA/);
-    await click(page, /Tạo Methods/);
+    await goto(page, "/methods");
+    await click(page, /Tạo Methods|Tạo lại/);
     await page.waitForTimeout(1500);
     await snap(page, "methods");
   });
 
   await step(page, "6. Dàn ý / H1: sinh dàn ý, kiểm tra độ phủ câu hỏi nghiên cứu", async () => {
-    await goto(page, /Dàn ý \/ H1/);
-    await click(page, /Tạo dàn ý từ snapshot/);
+    await goto(page, "/outline");
+    await click(page, /Tạo dàn ý từ snapshot|Tạo dàn ý/);
     await page.waitForTimeout(1500);
     await snap(page, "outline");
   });
@@ -124,8 +153,8 @@ let GLOBAL_PAGE = null;
   });
 
   await step(page, "7. Kế hoạch đoạn: chia section thành các đoạn, gắn bằng chứng cho từng đoạn", async () => {
-    await goto(page, /Kế hoạch đoạn/);
-    await click(page, /Tạo kế hoạch đoạn văn/);
+    await goto(page, "/drafting#paragraph-plans");
+    await click(page, /Tạo kế hoạch đoạn văn|Tạo kế hoạch/);
     await page.waitForTimeout(1800);
     await snap(page, "plans");
   });
@@ -134,13 +163,16 @@ let GLOBAL_PAGE = null;
   // 8. Drafting
   const tab = async (label) => { await page.getByRole("button", { name: label }).first().click(); await page.waitForTimeout(700); };
   const draftIfNeeded = async () => {
-    const b = page.getByRole("button", { name: /Soạn section bằng AI|Soạn lại section/ }).first();
+    const b = page.getByRole("button", { name: /Viết từ kế hoạch|Soạn section bằng AI|Soạn lại section/ }).first();
     await b.waitFor({ state: "visible" });
-    if (/Soạn section bằng AI/.test(await b.innerText())) { await b.click(); await page.getByText(/Văn bản đã soạn/).first().waitFor({ timeout: 30000 }); }
+    if (/Viết từ kế hoạch|Soạn section bằng AI/.test(await b.innerText())) {
+      await b.click();
+      await page.getByText(/Văn bản đã soạn/).first().waitFor({ timeout: 30000 });
+    }
   };
   await step(page, "8. Soạn thảo: AI chỉ viết từ bằng chứng đã gắn ở kế hoạch đoạn (ở demo dùng LLM giả để ổn định)", async () => {
-    await goto(page, /Soạn thảo & H2/);
-    await tab(/Kết quả \(M7\)/); await draftIfNeeded();
+    await goto(page, "/drafting");
+    await tab(/Kết quả \(M7\)|Kết quả/); await draftIfNeeded();
     await snap(page, "draft-results");
   });
   await step(page, "8. Bấm vào mã trích dẫn [E-01]: kiểm tra nó có thuộc gói bằng chứng của bản nháp không", async () => {
@@ -155,15 +187,15 @@ let GLOBAL_PAGE = null;
 
   // 9. Fail-closed: export is blocked before approvals
   await step(page, "9. Chặn an toàn: chưa duyệt H2 và chưa kiểm chứng thì Xuất bản bị chặn, nêu rõ lý do", async () => {
-    await goto(page, /Xuất bản & H3/);
+    await goto(page, "/export");
     await page.getByText(/Chưa đủ điều kiện để xuất/).first().waitFor();
     await snap(page, "export-blocked");
   });
 
   // 10. Manual edit forces re-verification
   await step(page, "10. Sửa tay bản nháp Kết quả: tạo phiên bản mới, nút Duyệt H2 bị khóa cho tới khi kiểm chứng lại", async () => {
-    await goto(page, /Soạn thảo & H2/);
-    await tab(/Kết quả \(M7\)/);
+    await goto(page, "/drafting");
+    await tab(/Kết quả \(M7\)|Kết quả/);
     await click(page, /Sửa tay/);
     const ta = page.locator("#draft-editor");
     await ta.waitFor();
@@ -176,7 +208,7 @@ let GLOBAL_PAGE = null;
 
   // 11. Verification
   await step(page, "11. Cổng chất lượng G1–G7: chạy kiểm chứng (trích dẫn, trích nguyên văn, PRISMA, số liệu, độ phủ câu hỏi nghiên cứu...)", async () => {
-    await goto(page, /Cổng chất lượng/);
+    await goto(page, "/verification");
     await click(page, /Chạy kiểm chứng/);
     await page.getByText(/Đạt/).first().waitFor({ timeout: 30000 });
     await snap(page, "verification");
@@ -193,25 +225,25 @@ let GLOBAL_PAGE = null;
     await page.getByText(/Đã duyệt/).first().waitFor();
   };
   await step(page, "12. OWNER duyệt H2 cho từng section (Kết quả, Thảo luận, Mở đầu, Phương pháp)", async () => {
-    await goto(page, /Soạn thảo & H2/);
-    await tab(/Kết quả \(M7\)/); await approveH2();
+    await goto(page, "/drafting");
+    await tab(/Kết quả \(M7\)|Kết quả/); await approveH2();
     await snap(page, "h2-results");
     await tab(/Thảo luận/); await approveH2();
     await tab(/Mở đầu/); await approveH2();
-    await tab(/Phương pháp \(M2\)/); await approveH2();
+    await tab(/Phương pháp \(M2\)|Phương pháp/); await approveH2();
     await snap(page, "h2-methods");
   });
 
   // 12b. Abstract and Conclusion are written last, from the approved sections
   await step(page, "12. Tóm tắt và Kết luận được viết sau cùng, chỉ từ các section đã duyệt H2 (không thêm số liệu hay trích dẫn mới)", async () => {
-    await goto(page, /Soạn thảo & H2/);
+    await goto(page, "/drafting");
     await tab(/Tóm tắt/); await draftIfNeeded();
     await snap(page, "draft-abstract");
     await approveH2();
     await tab(/Kết luận/); await draftIfNeeded(); await approveH2();
   });
   await step(page, "12. Có section mới nên báo cáo kiểm chứng đã cũ: chạy lại các cổng", async () => {
-    await goto(page, /Cổng chất lượng/);
+    await goto(page, "/verification");
     await click(page, /Chạy lại các cổng/);
     await page.getByText(/Đạt/).first().waitFor({ timeout: 30000 });
     await snap(page, "verification-rerun");
@@ -219,7 +251,7 @@ let GLOBAL_PAGE = null;
 
   // 13. Export
   await step(page, "13. Xuất bản: danh sách kiểm tra đạt, OWNER duyệt H3", async () => {
-    await goto(page, /Xuất bản & H3/);
+    await goto(page, "/export");
     await click(page, /Cho phép duyệt H3/);
     await click(page, /Cho phép và duyệt H3/);
     await page.getByText(/ĐÃ DUYỆT H3/).first().waitFor();
@@ -236,8 +268,8 @@ let GLOBAL_PAGE = null;
     await snap(page, "lineage");
   });
   await caption(page, "Kết thúc demo. Bản thảo chỉ xuất được khi đủ section, đã duyệt H1/H2/H3 và kiểm chứng còn hiện hành");
-  await sleep(4000);
-  await browser.close();
+  await sleep(15000);
+  await context.close();
 })().catch(async (e) => {
   console.error("ERR", String(e.message).slice(0, 300));
   try { await GLOBAL_PAGE.screenshot({ path: OUT + "/ERROR.png" }); console.log("url at error:", GLOBAL_PAGE.url()); console.log((await GLOBAL_PAGE.locator("body").innerText()).slice(0, 900)); } catch {}

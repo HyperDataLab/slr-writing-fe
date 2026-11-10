@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { ArrowPathIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
-import { listSlrRuns } from "@/features/snapshots/api/snapshots.api";
-import type { MvpArtifactState, SlrRunSummary } from "@/features/snapshots/model/snapshot.types";
+import { getSlrHealth, listSlrRuns } from "@/features/snapshots/api/snapshots.api";
+import type { MvpArtifactState, SlrHealthStatus, SlrRunSummary } from "@/features/snapshots/model/snapshot.types";
 import { useStableT } from "@/shared/i18n/use-stable-t";
+import { ApiError } from "@/shared/lib/api-client";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 
@@ -40,6 +41,7 @@ export function SlrRunPicker({
   const { t, i18n } = useTranslation();
   const stableT = useStableT();
   const [runs, setRuns] = useState<SlrRunSummary[] | null>(null);
+  const [slrStatus, setSlrStatus] = useState<SlrHealthStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -48,12 +50,31 @@ export function SlrRunPicker({
     setLoading(true);
     setError(null);
     try {
-      const items = await listSlrRuns(projectId);
-      if (isCurrent()) setRuns(items);
+      const [items, health] = await Promise.all([
+        listSlrRuns(projectId),
+        getSlrHealth().catch(() => null),
+      ]);
+      if (isCurrent()) {
+        setRuns(items);
+        if (health) setSlrStatus(health);
+      }
     } catch (err: unknown) {
       if (!isCurrent()) return;
       setRuns(null);
-      setError(err instanceof Error ? err.message : stableT("snapshots.runs.loadError"));
+      const health = await getSlrHealth().catch(() => null);
+      if (isCurrent() && health) setSlrStatus(health);
+
+      if (err instanceof ApiError) {
+        if (err.code === "SLR_UNREACHABLE") {
+          setError(stableT("snapshots.runs.unreachableError"));
+        } else if (err.code === "SLR_PROJECT_ACCESS_DENIED" || err.code === "SLR_FORBIDDEN") {
+          setError(stableT("snapshots.runs.forbiddenError"));
+        } else {
+          setError(err.message || stableT("snapshots.runs.loadError"));
+        }
+      } else {
+        setError(err instanceof Error ? err.message : stableT("snapshots.runs.loadError"));
+      }
     } finally {
       if (isCurrent()) setLoading(false);
     }
@@ -70,7 +91,27 @@ export function SlrRunPicker({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-medium text-foreground">{t("snapshots.runs.title")}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-foreground">{t("snapshots.runs.title")}</span>
+          {slrStatus && (
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                slrStatus.reachable
+                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  : "bg-destructive/10 text-destructive"
+              }`}
+            >
+              <span
+                className={`size-1.5 rounded-full ${
+                  slrStatus.reachable ? "bg-emerald-500" : "bg-destructive animate-pulse"
+                }`}
+              />
+              {slrStatus.reachable
+                ? `SLR Online${slrStatus.latencyMs ? ` (${slrStatus.latencyMs}ms)` : ""}`
+                : "SLR Offline"}
+            </span>
+          )}
+        </div>
         <Button
           type="button"
           variant="ghost"
@@ -87,9 +128,10 @@ export function SlrRunPicker({
       {loading && !runs ? (
         <p role="status" className="text-sm text-muted-foreground">{t("snapshots.runs.loading")}</p>
       ) : error ? (
-        <p role="alert" className="text-sm text-destructive">
-          {error} <span className="text-muted-foreground">{t("snapshots.runs.manualFallback")}</span>
-        </p>
+        <div role="alert" className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive">
+          <p className="font-medium">{error}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{t("snapshots.runs.manualFallback")}</p>
+        </div>
       ) : runs && runs.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("snapshots.runs.empty")}</p>
       ) : (
