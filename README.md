@@ -18,6 +18,12 @@ The development server proxies `/api` to `http://localhost:5100` by default. API
 
 [`docs/demo`](docs/demo/README.md) has a scripted live demo that drives the whole writing flow in a real Chrome window (fake slr-be, mock LLM, Firebase Auth emulator), with the talking points for each step.
 
+## PDF Export & Live Demo Walkthrough
+
+- `npm run export:pdf` / `npm run export:pdf:ieee` / `npm run export:pdf:imrad`: Xuất bản bài báo PDF chuẩn IEEE 2 cột hoặc IMRaD 1 cột từ CLI.
+- `npm run demo:walkthrough`: Chạy kịch bản demo trực quan tương tác 8 bước trên trình duyệt thật kèm narrator banner.
+- **Tải và Xem trực tiếp trên Web UI**: Tích hợp các nút **[ 📄 Tải bài báo PDF (IEEE) ]** và **[ 👁️ Xem PDF (IEEE) ]** trực tiếp trên màn hình Xuất bản thảo (`/export`). Xem chi tiết tại [`docs/IEEE_TWO_COLUMN_EXPORT_GUIDE.md`](docs/IEEE_TWO_COLUMN_EXPORT_GUIDE.md).
+
 ## Languages
 
 The interface supports Vietnamese (`vi`, default) and English (`en`). Use the language selector in the app header; the selected language is saved in browser storage and applied to the document language.
