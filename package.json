@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "test:ui-visual": "node scripts/capture-live-ui.cjs",
+    "demo:walkthrough": "node scripts/live-demo-walkthrough.cjs",
     "export:pdf": "node ../slr-writing-be/scripts/generate-paper-pdf.cjs --profile=all",
     "export:pdf:ieee": "node ../slr-writing-be/scripts/generate-paper-pdf.cjs --profile=ieee",
     "export:pdf:imrad": "node ../slr-writing-be/scripts/generate-paper-pdf.cjs --profile=imrad",

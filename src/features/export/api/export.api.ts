@@ -83,6 +83,49 @@ export async function downloadExportZipFile(projectId: string, snapshotId: strin
   return { blob, filename };
 }
 
+export async function downloadExportPdfFile(
+  projectId: string,
+  snapshotId: string,
+  options?: {
+    format?: "ieee" | "imrad";
+    version?: number;
+    inline?: boolean;
+  },
+): Promise<{ blob: Blob; filename: string }> {
+  const baseUrl = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
+  const query = new URLSearchParams();
+  if (options?.format) query.set("format", options.format);
+  if (options?.version) query.set("version", String(options.version));
+  if (options?.inline) query.set("inline", "1");
+
+  const queryString = query.toString() ? `?${query.toString()}` : "";
+  const path = `${manuscriptPath(projectId, snapshotId)}/export/download-pdf${queryString}`;
+  const url = `${baseUrl}/api${path}`;
+
+  const { headers } = await authHeaders();
+  const response = await fetch(url, { headers });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: { message?: string; code?: string } } | null;
+    throw new ApiError(
+      payload?.error?.message ?? `Failed to download PDF publication (HTTP ${response.status})`,
+      response.status,
+      payload?.error?.code ?? "REQUEST_FAILED",
+    );
+  }
+
+  const disposition = response.headers.get("Content-Disposition");
+  let filename = `manuscript-${options?.format ?? "ieee"}.pdf`;
+  if (disposition) {
+    const match = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+    if (match?.[1]) {
+      filename = match[1].replace(/['"]/g, "");
+    }
+  }
+
+  const blob = await response.blob();
+  return { blob, filename };
+}
+
 export function queryLineage(
   projectId: string,
   snapshotId: string,
