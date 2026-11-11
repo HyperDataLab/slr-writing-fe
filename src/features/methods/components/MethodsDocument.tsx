@@ -61,7 +61,7 @@ export function MethodsDocument({ markdown }: { markdown: string }) {
   const blocks = useMemo(() => parseGeneratedMarkdown(markdown), [markdown]);
 
   return (
-    <article aria-label={t("methods.documentLabel")} className="space-y-5 rounded-xl border border-border bg-card p-5 sm:p-7">
+    <article aria-label={t("methods.documentLabel")} className="mx-auto w-full max-w-[75ch] space-y-5 px-1 py-1 text-pretty sm:px-3">
       {blocks.map((block) => {
         if (block.type === "heading") {
           const className = block.level === 2
