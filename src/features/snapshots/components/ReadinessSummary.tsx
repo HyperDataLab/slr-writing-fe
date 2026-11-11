@@ -79,7 +79,7 @@ export function ReadinessSummary({
           <h3 id="snapshot-readiness-heading" className="text-sm font-semibold text-foreground">
             {t("snapshots.checksTitle")}
           </h3>
-          {issueDetails ?? counts}
+          {issueDetails || counts}
         </div>
       </section>
     );
