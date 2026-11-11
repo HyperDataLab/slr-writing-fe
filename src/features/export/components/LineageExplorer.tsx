@@ -69,6 +69,9 @@ export function LineageExplorer({
           <p className="text-xs text-muted-foreground mt-0.5">
             {t("exportPkg.lineage.description")}
           </p>
+          <p className="mt-1 text-[11px] text-warning">
+            {t("exportPkg.lineage.precisionNotice")}
+          </p>
         </div>
 
         {/* Filter Controls */}
@@ -120,11 +123,13 @@ export function LineageExplorer({
                   className="border border-border/60 rounded-lg overflow-hidden transition-colors hover:border-primary/40 bg-card"
                 >
                   {/* Paragraph Header */}
-                  <div
+                  <button
+                    type="button"
+                    aria-expanded={isExpanded}
                     onClick={() => toggleExpand(idx)}
-                    className="p-3 bg-muted/20 flex items-center justify-between cursor-pointer select-none text-xs gap-3"
+                    className="w-full p-3 bg-muted/20 flex items-center justify-between cursor-pointer select-none text-xs gap-3 text-left focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary"
                   >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span className="flex items-center gap-2 flex-1 min-w-0">
                       {isExpanded ? (
                         <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground" />
                       ) : (
@@ -136,12 +141,12 @@ export function LineageExplorer({
                       <span className="font-mono text-[11px] text-muted-foreground uppercase bg-muted px-1.5 py-0.5 rounded shrink-0">
                         {item.sectionKey}
                       </span>
-                      <p className="text-muted-foreground truncate italic">
+                      <span className="text-muted-foreground truncate italic">
                         &ldquo;{item.text.slice(0, 100)}...&rdquo;
-                      </p>
-                    </div>
+                      </span>
+                    </span>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    <span className="flex items-center gap-2 shrink-0">
                       <Badge variant="outline" className="text-[10px]">
                         {t("exportPkg.lineage.evidenceCount", { count: item.evidence.length })}
                       </Badge>
@@ -159,8 +164,8 @@ export function LineageExplorer({
                           {t(`plans.strength.${item.claimStrength}`, { defaultValue: item.claimStrength })}
                         </Badge>
                       )}
-                    </div>
-                  </div>
+                    </span>
+                  </button>
 
                   {/* Expanded Content */}
                   {isExpanded && (

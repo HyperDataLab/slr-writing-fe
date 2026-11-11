@@ -104,3 +104,125 @@ export async function apiRequest<T>(path: string, init: ApiRequestInit = {}): Pr
   return payload.data;
 }
 
+/**
+ * Consume an authenticated server-sent event request. `progress` events are delivered as they arrive and the
+ * `complete` event resolves the request with its JSON payload. Existing API envelope errors still use ApiError.
+ */
+export async function apiEventStreamRequest<TProgress, TResult>(
+  path: string,
+  onProgress: (progress: TProgress) => void,
+  init: ApiRequestInit = {},
+): Promise<TResult> {
+  const { token: explicitToken, headers: requestHeaders, ...requestInit } = init;
+  const { headers: authHeaderSet, token } = await authHeaders(explicitToken);
+  const headers = new Headers(requestHeaders);
+  headers.set("Accept", "text/event-stream");
+  authHeaderSet.forEach((value, key) => headers.set(key, value));
+
+  const baseUrl = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
+  const normalizedPath = path.startsWith("/") ? path : "/" + path;
+  const response = await fetch(baseUrl + "/api" + normalizedPath, {
+    ...requestInit,
+    headers,
+  });
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as ApiEnvelope<TResult> | null;
+    if (response.status === 401 && token && payload && !payload.success && SESSION_REJECTED_CODES.has(payload.error?.code)) {
+      unauthorizedHandler?.(token);
+    }
+    const apiError = payload && !payload.success ? payload.error : undefined;
+    throw new ApiError(
+      apiError?.message ?? i18n.t("common.requestError"),
+      response.status,
+      apiError?.code ?? "REQUEST_FAILED",
+      apiError?.requestId,
+      apiError?.details,
+    );
+  }
+
+  if (!response.body) {
+    throw new ApiError("The verification stream is unavailable.", response.status, "STREAM_UNAVAILABLE");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let eventName = "message";
+  let dataLines: string[] = [];
+  let hasCompletion = false;
+  let completion: TResult | undefined;
+
+  const dispatch = () => {
+    if (dataLines.length === 0) {
+      eventName = "message";
+      return;
+    }
+
+    let data: unknown;
+    try {
+      data = JSON.parse(dataLines.join("\n"));
+    } catch {
+      throw new ApiError("The verification stream returned invalid data.", response.status, "INVALID_STREAM_DATA");
+    }
+
+    if (eventName === "progress") {
+      onProgress(data as TProgress);
+    } else if (eventName === "complete") {
+      completion = data as TResult;
+      hasCompletion = true;
+    } else if (eventName === "error") {
+      const errorData = data as { message?: string; status?: number; code?: string; requestId?: string };
+      throw new ApiError(
+        errorData.message ?? i18n.t("common.requestError"),
+        errorData.status ?? 500,
+        errorData.code ?? "STREAM_REQUEST_FAILED",
+        errorData.requestId,
+      );
+    }
+
+    eventName = "message";
+    dataLines = [];
+  };
+
+  const processLine = (line: string) => {
+    if (!line) {
+      dispatch();
+      return;
+    }
+    if (line.startsWith(":")) return;
+    const colonIndex = line.indexOf(":");
+    const field = colonIndex < 0 ? line : line.slice(0, colonIndex);
+    const value = colonIndex < 0 ? "" : line.slice(colonIndex + 1).replace(/^ /, "");
+    if (field === "event") eventName = value;
+    if (field === "data") dataLines.push(value);
+  };
+
+  try {
+    while (!hasCompletion) {
+      const { value, done } = await reader.read();
+      if (done) {
+        buffer += decoder.decode();
+        if (buffer) processLine(buffer.replace(/\r$/, ""));
+        if (!hasCompletion) dispatch();
+        break;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+      let newline = buffer.indexOf("\n");
+      while (newline >= 0 && !hasCompletion) {
+        processLine(buffer.slice(0, newline).replace(/\r$/, ""));
+        buffer = buffer.slice(newline + 1);
+        newline = buffer.indexOf("\n");
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  if (!hasCompletion) {
+    throw new ApiError("The verification stream ended before a report was returned.", response.status, "STREAM_INCOMPLETE");
+  }
+  return completion as TResult;
+}
+

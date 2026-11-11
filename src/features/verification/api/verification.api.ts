@@ -1,6 +1,8 @@
-import { apiRequest } from "@/shared/lib/api-client";
+import { apiEventStreamRequest, apiRequest } from "@/shared/lib/api-client";
 import type {
   CitationManifestView,
+  GateId,
+  GateStatus,
   VerificationReportView,
 } from "@/features/verification/model/verification.types";
 
@@ -22,6 +24,22 @@ export function runVerification(
   return apiRequest<{ report: VerificationReportView }>(`${verificationPath(projectId, snapshotId)}/run`, {
     method: "POST",
   });
+}
+
+export type VerificationGateProgress =
+  | { gateId: GateId; state: "RUNNING" }
+  | { gateId: GateId; state: "COMPLETED"; status: GateStatus };
+
+export function runVerificationWithProgress(
+  projectId: string,
+  snapshotId: string,
+  onProgress: (progress: VerificationGateProgress) => void,
+): Promise<{ created: boolean; report: VerificationReportView }> {
+  return apiEventStreamRequest<VerificationGateProgress, { created: boolean; report: VerificationReportView }>(
+    `${verificationPath(projectId, snapshotId)}/run/stream`,
+    onProgress,
+    { method: "POST" },
+  );
 }
 
 export function getVerificationRevision(

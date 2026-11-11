@@ -22,12 +22,20 @@ export interface MethodsWarning {
   ref?: string;
 }
 
+export interface MethodsFactPassage {
+  id: string;
+  startLine: number;
+  endLine: number;
+  factKeys: string[];
+}
+
 export interface MethodsRevision {
   id: string;
   sectionId: string;
   version: number;
   markdown: string;
   facts: MethodsFact[];
+  factPassages?: MethodsFactPassage[];
   warnings: MethodsWarning[];
   generator: string;
   contentHash: string;

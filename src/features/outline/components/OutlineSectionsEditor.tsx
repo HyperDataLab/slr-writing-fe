@@ -85,59 +85,68 @@ export function OutlineSectionsEditor({
   }
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
+    <Card className="outline-sections-card">
+      <CardHeader className="outline-sections-header">
+        <div>
           <CardTitle>{t("outline.sectionsTitle")}</CardTitle>
           <CardDescription>{t("outline.sectionsDescription")}</CardDescription>
-        </CardHeader>
-      </Card>
-
-      {orderedBlueprintSections.map(({ profileSection, section }, index) => section ? (
-        <GsapReveal key={section.key} delay={index * 0.035} effect="fade">
-          <OutlineSectionEditor
-            section={section}
-            profileSection={profileSection}
-            claimOptions={claimOptions}
-            disabled={disabled}
-            locale={locale}
-            onChange={handleSectionChange}
-            onRemoveSubsection={(subsectionId) => removeSubsection(section.key, subsectionId)}
-          />
-        </GsapReveal>
-      ) : (
-        <GsapReveal key={profileSection.key} delay={index * 0.035} effect="fade">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t(`journalProfiles.sectionTitles.${profileSection.key}`, { defaultValue: profileSection.title })}</CardTitle>
-              <CardDescription>{t("outline.missingSectionDescription")}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button type="button" size="sm" variant="outline" disabled={disabled} onClick={() => restoreSection(profileSection)}>
-                {t("outline.restoreSection")}
-              </Button>
-            </CardContent>
-          </Card>
-        </GsapReveal>
-      ))}
-
-      {unknownSections.map((section, index) => (
-        <GsapReveal key={section.key} delay={(orderedBlueprintSections.length + index) * 0.035} effect="fade">
-          <div className="space-y-3">
+        </div>
+        <span className="outline-sections-count">{t("outline.sectionCount", { count: profileSections.length + unknownSections.length })}</span>
+      </CardHeader>
+      <CardContent className="outline-sections-list">
+        {orderedBlueprintSections.map(({ profileSection, section }, index) => section ? (
+          <GsapReveal key={section.key} delay={index * 0.035} effect="fade">
             <OutlineSectionEditor
               section={section}
+              sectionIndex={index}
+              profileSection={profileSection}
               claimOptions={claimOptions}
               disabled={disabled}
               locale={locale}
               onChange={handleSectionChange}
               onRemoveSubsection={(subsectionId) => removeSubsection(section.key, subsectionId)}
             />
-            <Button type="button" size="sm" variant="outline" disabled={disabled} onClick={() => removeUnknownSection(section.key)}>
-              {t("outline.removeUnknownSection")}: {section.key}
-            </Button>
-          </div>
-        </GsapReveal>
-      ))}
-    </div>
+          </GsapReveal>
+        ) : (
+          <GsapReveal key={profileSection.key} delay={index * 0.035} effect="fade">
+            <Card className="outline-section-card outline-missing-section">
+              <CardHeader className="outline-section-card-header">
+                <div className="outline-section-title-group">
+                  <span className="outline-section-number" aria-hidden="true">{String(index).padStart(2, "0")}</span>
+                  <div>
+                    <CardTitle>{t(`journalProfiles.sectionTitles.${profileSection.key}`, { defaultValue: profileSection.title })}</CardTitle>
+                    <CardDescription>{t("outline.missingSectionDescription")}</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Button type="button" size="sm" variant="outline" disabled={disabled} onClick={() => restoreSection(profileSection)}>
+                  {t("outline.restoreSection")}
+                </Button>
+              </CardContent>
+            </Card>
+          </GsapReveal>
+        ))}
+
+        {unknownSections.map((section, index) => (
+          <GsapReveal key={section.key} delay={(orderedBlueprintSections.length + index) * 0.035} effect="fade">
+            <div className="outline-unknown-section">
+              <OutlineSectionEditor
+                section={section}
+                sectionIndex={orderedBlueprintSections.length + index}
+                claimOptions={claimOptions}
+                disabled={disabled}
+                locale={locale}
+                onChange={handleSectionChange}
+                onRemoveSubsection={(subsectionId) => removeSubsection(section.key, subsectionId)}
+              />
+              <Button type="button" size="sm" variant="outline" disabled={disabled} onClick={() => removeUnknownSection(section.key)}>
+                {t("outline.removeUnknownSection")}: {section.key}
+              </Button>
+            </div>
+          </GsapReveal>
+        ))}
+      </CardContent>
+    </Card>
   );
 }

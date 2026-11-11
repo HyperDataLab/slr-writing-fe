@@ -7,7 +7,8 @@ import type { SnapshotSummary } from "@/features/snapshots/model/snapshot.types"
 import { listSnapshots } from "@/features/snapshots/api/snapshots.api";
 import { useProjects } from "@/features/projects/hooks/use-projects";
 import { Button } from "@/shared/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
+import { Badge } from "@/shared/ui/badge";
+import { Card, CardContent } from "@/shared/ui/card";
 import { GsapReveal } from "@/shared/ui/gsap-motion";
 
 export function MethodsPage() {
@@ -106,24 +107,20 @@ export function MethodsPage() {
   const activeSnapshot = snapshots.find((snapshot) => snapshot.id === selectedSnapshotId);
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-5">
       <GsapReveal>
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">{t("methods.step")}</p>
           <h2 className="slrw-page-title mt-1">{t("methods.title")}</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{t("methods.description")}</p>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">{t("methods.description")}</p>
         </div>
       </GsapReveal>
 
       <GsapReveal>
       <Card>
-        <CardHeader>
-          <CardTitle>{t("methods.selectTitle")}</CardTitle>
-          <CardDescription>{t("methods.selectDescription")}</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
+        <CardContent className="grid gap-4 pt-4 sm:grid-cols-2 sm:pt-5">
           <div className="space-y-2">
-            <label htmlFor="methods-project" className="text-sm font-medium text-foreground">
+            <label htmlFor="methods-project" className="w-fit cursor-pointer text-sm font-medium text-foreground">
               {t("methods.projectLabel")}
             </label>
             <select
@@ -131,30 +128,37 @@ export function MethodsPage() {
               value={selectedProjectId}
               onChange={(event) => updateSelection(event.target.value)}
               disabled={projectsLoading}
-              className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors focus-visible:border-foreground/40 disabled:opacity-60"
+              className="h-11 w-full rounded-xl border border-input bg-background px-3 text-base text-foreground outline-none transition-colors focus-visible:border-focus focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60 md:h-10 md:text-sm"
             >
               <option value="">{t("methods.chooseProject")}</option>
               {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
             </select>
           </div>
           <div className="space-y-2">
-            <label htmlFor="methods-snapshot" className="text-sm font-medium text-foreground">
+            <label htmlFor="methods-snapshot" className="w-fit cursor-pointer text-sm font-medium text-foreground">
               {t("methods.snapshotLabel")}
             </label>
-            <select
-              id="methods-snapshot"
-              value={selectedSnapshotId}
-              onChange={(event) => updateSelection(selectedProjectId, event.target.value)}
-              disabled={!selectedProjectId || snapshotsLoading || snapshots.length === 0}
-              className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors focus-visible:border-foreground/40 disabled:opacity-60"
-            >
-              <option value="">{t("methods.chooseSnapshot")}</option>
-              {snapshots.map((snapshot) => (
-                <option key={snapshot.id} value={snapshot.id}>
-                  {snapshot.sourceRunId} · {t(`snapshots.status.${snapshot.status}`)}
-                </option>
-              ))}
-            </select>
+            <div className="flex min-w-0 items-center gap-2">
+              <select
+                id="methods-snapshot"
+                value={selectedSnapshotId}
+                onChange={(event) => updateSelection(selectedProjectId, event.target.value)}
+                disabled={!selectedProjectId || snapshotsLoading || snapshots.length === 0}
+                className="h-11 min-w-0 flex-1 rounded-xl border border-input bg-background px-3 text-base text-foreground outline-none transition-colors focus-visible:border-focus focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60 md:h-10 md:text-sm"
+              >
+                <option value="">{t("methods.chooseSnapshot")}</option>
+                {snapshots.map((snapshot) => (
+                  <option key={snapshot.id} value={snapshot.id}>
+                    {snapshot.sourceRunId}
+                  </option>
+                ))}
+              </select>
+              {activeSnapshot && (
+                <Badge variant={activeSnapshot.status === "READY" ? "default" : "outline"}>
+                  {t(`snapshots.status.${activeSnapshot.status}`)}
+                </Badge>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -212,8 +216,6 @@ export function MethodsPage() {
           <MethodsWorkspace projectId={selectedProjectId} snapshot={activeSnapshot} />
         </GsapReveal>
       ) : null}
-
-      <p className="text-xs leading-5 text-muted-foreground">{t("methods.englishOutput")}</p>
     </div>
   );
 }

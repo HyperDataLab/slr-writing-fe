@@ -411,6 +411,21 @@ export function ParagraphPlansWorkspace({
         <p>{t("plans.apiLimitations")}</p>
       </div>
 
+      {view && (
+        <div className="grid grid-cols-2 gap-2" role="group" aria-label={t("plans.summaryLabel")}>
+          <div className="rounded-lg bg-muted/50 px-3 py-2.5">
+            <span className="block text-xs text-muted-foreground">{t("plans.totalParagraphs")}</span>
+            <strong className="mt-0.5 block text-lg leading-6 text-foreground">{view.stats.totalParagraphs}</strong>
+          </div>
+          <div className="rounded-lg bg-muted/50 px-3 py-2.5">
+            <span className="block text-xs text-muted-foreground">{t("plans.readyToDraft")}</span>
+            <strong className="mt-0.5 block text-lg leading-6 text-foreground">
+              {view.stats.readyParagraphs}<span className="text-sm font-medium text-muted-foreground"> / {view.stats.totalParagraphs}</span>
+            </strong>
+          </div>
+        </div>
+      )}
+
       {hasUnsavedChanges && (
         <p className="draft-plan-unsaved" role="status">{t("plans.edit.unsaved")}</p>
       )}
@@ -432,7 +447,7 @@ export function ParagraphPlansWorkspace({
             </div>
             <Button type="button" onClick={() => void handleGenerate()} disabled={generating} isLoading={generating}>
               <SparklesIcon aria-hidden="true" />
-              {generating ? t("plans.planning") : t("plans.generateFromBlueprint")}
+              {generating ? t("plans.planning") : t("plans.generate")}
             </Button>
           </CardContent>
         </Card>
