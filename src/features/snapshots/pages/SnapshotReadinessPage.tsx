@@ -5,7 +5,6 @@ import {
   CircleStackIcon,
   ClockIcon,
   DocumentArrowUpIcon,
-  ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router";
@@ -78,16 +77,16 @@ function SnapshotHistoryRow({
         onClick={onSelect}
         aria-pressed={selected}
         className={cn(
-          "flex w-full items-center gap-4 rounded-xl border px-4 py-4 text-left transition-colors",
+          "flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition-colors",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
           selected ? "border-primary/20 bg-secondary/55" : "border-transparent hover:bg-muted/50",
         )}
       >
         <span className={cn(
-          "flex size-11 shrink-0 items-center justify-center rounded-xl",
+          "flex size-9 shrink-0 items-center justify-center rounded-lg",
           selected ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
         )}>
-          <CircleStackIcon className="size-5" aria-hidden="true" />
+          <CircleStackIcon className="size-4" aria-hidden="true" />
         </span>
         <span className="min-w-0 flex-1">
           <span className="block max-w-full truncate text-sm font-semibold text-foreground">{snapshot.sourceRunId}</span>
@@ -436,15 +435,11 @@ export function SnapshotReadinessPage() {
                 <div className="flex flex-col gap-2 border-t border-border/70 pt-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-xs leading-5 text-muted-foreground">{t("snapshots.immutableNote")}</p>
                   <div className="flex shrink-0 flex-wrap items-center gap-2">
-                    {canOpenOutline ? (
+                    {canOpenOutline && (
                       <Button asChild>
                         <Link to={openOutlineUrl}>
                           <CheckCircleIcon aria-hidden="true" />{t("snapshots.openOutline")}
                         </Link>
-                      </Button>
-                    ) : (
-                      <Button type="button" variant="outline" disabled>
-                        <ExclamationTriangleIcon aria-hidden="true" />{t("snapshots.editorLocked")}
                       </Button>
                     )}
                   </div>

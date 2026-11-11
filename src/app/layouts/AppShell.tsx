@@ -5,6 +5,7 @@ import {
   ArrowDownTrayIcon,
   ArrowUpTrayIcon,
   Bars3Icon,
+  BookOpenIcon,
   ChevronDownIcon,
   CircleStackIcon,
   ListBulletIcon,
@@ -44,6 +45,7 @@ const workspaceItems: NavItem[] = [
     ],
   },
   { labelKey: "navigation.snapshotsShort", to: "/snapshots", icon: Squares2X2Icon },
+  { labelKey: "navigation.journalProfiles", to: "/journal-profiles", icon: BookOpenIcon },
 ];
 
 const projectToolItems: NavItem[] = [
