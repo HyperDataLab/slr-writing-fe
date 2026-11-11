@@ -3,7 +3,6 @@ import { ArrowPathIcon, ChevronDownIcon, ClipboardDocumentIcon, ExclamationTrian
 import { useTranslation } from "react-i18next";
 import { generateMethods, getLatestMethods, getMethodsRevision } from "@/features/methods/api/methods.api";
 import { MethodsDocument } from "@/features/methods/components/MethodsDocument";
-import { MethodsFactList } from "@/features/methods/components/MethodsFactList";
 import type { MethodsRevision, MethodsRevisionSummary } from "@/features/methods/model/methods.types";
 import { getSnapshot } from "@/features/snapshots/api/snapshots.api";
 import type { SnapshotDetail, SnapshotSummary } from "@/features/snapshots/model/snapshot.types";
@@ -212,8 +211,6 @@ export function MethodsWorkspace({
     }
   }
 
-  const prismaFacts = revision?.facts.filter((fact) => fact.key.startsWith("prisma.")) ?? [];
-  const sourceFacts = revision?.facts.filter((fact) => !fact.key.startsWith("prisma.")) ?? [];
   const displayedVersionIsLatest = revision?.version === versions.at(-1)?.version;
   const generator = revision?.generator ?? "methods-template@1";
   const isDeterministicTemplate = generator === "methods-template@1";
@@ -339,7 +336,11 @@ export function MethodsWorkspace({
                 {isLoadingVersion ? (
                   <p role="status" className="py-8 text-center text-sm text-muted-foreground">{t("methods.loadingRevision")}</p>
                 ) : (
-                  <MethodsDocument markdown={revision.markdown} />
+                  <MethodsDocument
+                    markdown={revision.markdown}
+                    facts={revision.facts}
+                    factPassages={revision.factPassages ?? []}
+                  />
                 )}
                 <dl className="grid gap-3 rounded-xl bg-secondary/60 p-4 text-xs sm:grid-cols-2">
                   <div className="min-w-0 space-y-1">
@@ -359,32 +360,24 @@ export function MethodsWorkspace({
 
           <GsapReveal effect="fade">
             <Card>
-              <div className="divide-y divide-border">
-                <MethodsDisclosure title={t("methods.sourcesSummary", { count: sourceFacts.length })}>
-                  <MethodsFactList facts={sourceFacts} />
-                </MethodsDisclosure>
-                <MethodsDisclosure title={t("methods.prismaSummary", { count: prismaFacts.length })}>
-                  <MethodsFactList facts={prismaFacts} />
-                </MethodsDisclosure>
-                <MethodsDisclosure
-                  title={t("methods.warningsSummary", { count: revision.warnings.length })}
-                  icon={<ExclamationTriangleIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
-                >
-                  {revision.warnings.length === 0 ? (
-                    <p>{t("methods.noWarnings")}</p>
-                  ) : (
-                    <ul className="divide-y divide-border">
-                      {revision.warnings.map((warning, index) => (
-                        <GsapListItem key={`${warning.code}-${warning.ref ?? index}`} delay={index * 0.04} className="space-y-1 py-3 first:pt-0 last:pb-0">
-                          <p className="text-xs font-semibold text-foreground">{warning.code}</p>
-                          <p className="text-sm leading-5 text-muted-foreground">{warning.message}</p>
-                          {warning.ref && <code className="block break-all text-xs text-muted-foreground">{warning.ref}</code>}
-                        </GsapListItem>
-                      ))}
-                    </ul>
-                  )}
-                </MethodsDisclosure>
-              </div>
+              <MethodsDisclosure
+                title={t("methods.warningsSummary", { count: revision.warnings.length })}
+                icon={<ExclamationTriangleIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
+              >
+                {revision.warnings.length === 0 ? (
+                  <p>{t("methods.noWarnings")}</p>
+                ) : (
+                  <ul className="divide-y divide-border">
+                    {revision.warnings.map((warning, index) => (
+                      <GsapListItem key={`${warning.code}-${warning.ref ?? index}`} delay={index * 0.04} className="space-y-1 py-3 first:pt-0 last:pb-0">
+                        <p className="text-xs font-semibold text-foreground">{warning.code}</p>
+                        <p className="text-sm leading-5 text-muted-foreground">{warning.message}</p>
+                        {warning.ref && <code className="block break-all text-xs text-muted-foreground">{warning.ref}</code>}
+                      </GsapListItem>
+                    ))}
+                  </ul>
+                )}
+              </MethodsDisclosure>
             </Card>
           </GsapReveal>
         </>
