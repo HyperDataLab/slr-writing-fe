@@ -169,41 +169,43 @@ function GroundedPassage({
     >
       {canShowFacts && passage && (
         <div
-          className="relative z-10 flex justify-end"
+          className="space-y-2"
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
-          <button
-            ref={triggerRef}
-            type="button"
-            aria-label={label}
-            aria-expanded={Boolean(isOpen)}
-            aria-controls={popoverId}
-            aria-describedby={isOpen ? popoverId : undefined}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            onClick={(event) => {
-              if (isPinned) {
-                onUnpin(passage.id);
-                setIsFocused(false);
-                setIsHovered(false);
-                event.currentTarget.blur();
-                return;
-              }
-              onPin(passage.id);
-            }}
-            className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-secondary px-3 text-xs font-medium text-foreground outline-none transition-colors hover:bg-secondary/70 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          >
-            <LinkIcon aria-hidden="true" className="size-3.5" />
-            {label}
-            <ChevronDownIcon aria-hidden="true" className={`size-3.5 transition-transform motion-reduce:transition-none ${isOpen ? "rotate-180" : ""}`} />
-          </button>
+          <div className="flex justify-end">
+            <button
+              ref={triggerRef}
+              type="button"
+              aria-label={label}
+              aria-expanded={Boolean(isOpen)}
+              aria-controls={popoverId}
+              aria-describedby={isOpen ? popoverId : undefined}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              onClick={(event) => {
+                if (isPinned) {
+                  onUnpin(passage.id);
+                  setIsFocused(false);
+                  setIsHovered(false);
+                  event.currentTarget.blur();
+                  return;
+                }
+                onPin(passage.id);
+              }}
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-secondary px-3 text-xs font-medium text-foreground outline-none transition-colors hover:bg-secondary/70 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              <LinkIcon aria-hidden="true" className="size-3.5" />
+              {label}
+              <ChevronDownIcon aria-hidden="true" className={`size-3.5 transition-transform motion-reduce:transition-none ${isOpen ? "rotate-180" : ""}`} />
+            </button>
+          </div>
           <section
             id={popoverId}
             role="region"
             aria-label={t("methods.factSourcePopoverTitle")}
             hidden={!isOpen}
-            className="absolute right-0 top-full mt-2 max-h-72 w-[min(28rem,calc(100vw-3rem))] overflow-y-auto overscroll-contain rounded-xl bg-popover p-4 text-popover-foreground shadow-lg ring-1 ring-border"
+            className="ml-auto max-h-72 w-full max-w-[28rem] overflow-y-auto overscroll-contain rounded-xl bg-popover p-4 text-popover-foreground shadow-lg ring-1 ring-border"
           >
             <h4 className="mb-3 text-sm font-semibold">{t("methods.factSourcePopoverTitle")}</h4>
             <MethodsFactList facts={group.facts} />
