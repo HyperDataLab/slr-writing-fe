@@ -117,7 +117,7 @@ export function MethodsPage() {
       </GsapReveal>
 
       <GsapReveal>
-      <Card aria-label={t("methods.selectTitle")}>
+      <Card>
         <CardContent className="grid gap-4 pt-4 sm:grid-cols-2">
           <div className="space-y-2">
             <label htmlFor="methods-project" className="w-fit cursor-pointer text-sm font-medium text-foreground">

@@ -341,7 +341,7 @@ export function MethodsWorkspace({
                   <div className="min-w-0 space-y-1">
                     <dt className="text-muted-foreground">{t("methods.sourceIntegrityHash")}</dt>
                     <dd className="break-all font-mono leading-5 text-foreground">
-                      {snapshotDetail?.integrityHash ?? t(snapshotDetailState === "loading" ? "methods.snapshotFactsLoading" : "methods.snapshotFactsUnavailable")}
+                      {snapshotDetail?.integrityHash ?? t(snapshotDetailState === "loading" ? "methods.snapshotFactsLoading" : "methods.sourceIntegrityUnavailable")}
                     </dd>
                   </div>
                   <div className="min-w-0 space-y-1">
