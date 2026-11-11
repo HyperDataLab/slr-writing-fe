@@ -309,7 +309,7 @@ export function AppShell() {
         </header>
 
         <main id="app-main" className="slrw-page" tabIndex={-1}>
-          <div className="slrw-page-inner">
+          <div className={cn("slrw-page-inner", pathname === "/snapshots" && "slrw-page-inner-wide")}>
             <GsapRouteReveal key={routeMotionKey} className="slrw-route-transition">
               {outlet}
             </GsapRouteReveal>

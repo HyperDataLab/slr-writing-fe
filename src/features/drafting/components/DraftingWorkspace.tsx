@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useStableT } from "@/shared/i18n/use-stable-t";
 import { Link } from "react-router";
 import {
+  ArrowRightIcon,
   ArrowPathIcon,
   CircleStackIcon,
   CheckBadgeIcon,
@@ -63,6 +64,7 @@ export function DraftingWorkspace({
   const [loading, setLoading] = useState(true);
   const [drafting, setDrafting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [blueprintApprovalRequired, setBlueprintApprovalRequired] = useState(false);
   const { t } = useTranslation();
   const stableT = useStableT();
   const [editing, setEditing] = useState(false);
@@ -88,6 +90,7 @@ export function DraftingWorkspace({
     const seq = ++loadSeq.current;
     setLoading(true);
     setError(null);
+    setBlueprintApprovalRequired(false);
     setSelectedCitation(null);
     setDraftView(null);
     setEditing(false);
@@ -104,7 +107,9 @@ export function DraftingWorkspace({
     } catch (err: unknown) {
       if (seq !== loadSeq.current) return;
       setDraftView(null);
-      if (!(err instanceof ApiError && err.status === 404)) {
+      if (err instanceof ApiError && err.code === "BLUEPRINT_NOT_APPROVED") {
+        setBlueprintApprovalRequired(true);
+      } else if (!(err instanceof ApiError && err.status === 404)) {
         setError(err instanceof Error ? err.message : stableT("draft.loadError"));
       }
     } finally {
@@ -188,6 +193,7 @@ export function DraftingWorkspace({
   const reportCoversVersion = verifiedCurrent;
   const needsReverify = !!latest && latest.generator === "manual-edit" && !(reportCoversVersion && !verificationFailed);
   const verificationLink = `/verification?projectId=${encodeURIComponent(projectId)}&snapshotId=${encodeURIComponent(snapshot.id)}`;
+  const outlineHref = `/outline?${new URLSearchParams({ projectId, snapshotId: snapshot.id }).toString()}`;
 
   const handleStartDraftFromPlan = async () => {
     if (!latest) await handleGenerate();
@@ -394,6 +400,21 @@ export function DraftingWorkspace({
 
           {loading ? (
             <div className="draft-paper-state" role="status">{t("draft.loading")}</div>
+          ) : blueprintApprovalRequired ? (
+            <Card className="draft-empty-card" role="status">
+              <CardContent className="space-y-4">
+                <div className="size-12 rounded-xl bg-warning-soft text-warning mx-auto flex items-center justify-center">
+                  <ExclamationTriangleIcon className="size-6" aria-hidden="true" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold">{t("draft.h1RequiredTitle")}</h3>
+                  <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">{t("draft.h1RequiredDescription")}</p>
+                </div>
+                <Button asChild size="sm" className="gap-1.5">
+                  <Link to={outlineHref}>{t("draft.openOutlineForH1")}<ArrowRightIcon aria-hidden="true" /></Link>
+                </Button>
+              </CardContent>
+            </Card>
           ) : !latest ? (
             <Card className="draft-empty-card">
               <CardContent className="space-y-4">

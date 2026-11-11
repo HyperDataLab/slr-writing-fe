@@ -1,33 +1,20 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ArrowRightIcon,
   CheckCircleIcon,
   CircleStackIcon,
   ClockIcon,
-  DocumentTextIcon,
   DocumentArrowUpIcon,
   ExclamationTriangleIcon,
-  PlusIcon,
-  PencilSquareIcon,
 } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router";
 import { useProjects } from "@/features/projects/hooks/use-projects";
 import { Button } from "@/shared/ui/button";
 import { Badge } from "@/shared/ui/badge";
-import { Input } from "@/shared/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/ui/dialog";
 import { ReadinessSummary } from "@/features/snapshots/components/ReadinessSummary";
-import { SlrRunPicker } from "@/features/snapshots/components/SlrRunPicker";
 import { getSnapshot, listSnapshots } from "@/features/snapshots/api/snapshots.api";
-import { useSnapshotImport } from "@/features/snapshots/hooks/use-snapshot-import";
 import { GsapListItem, GsapReveal } from "@/shared/ui/gsap-motion";
 import { cn } from "@/shared/utils/cn";
 import type {
@@ -36,6 +23,27 @@ import type {
   SnapshotStatus,
   SnapshotSummary,
 } from "@/features/snapshots/model/snapshot.types";
+
+const CORE_ARTIFACTS = ["A1", "A2", "A7", "A10"] as const;
+type ArtifactReviewState = "approved" | "unreviewed" | "needs_human_review" | "rejected" | "missing";
+type ArtifactValidationState = "valid" | "invalid" | "not_applicable";
+
+function artifactReviewState(value: string | undefined): ArtifactReviewState {
+  return value === "approved" || value === "unreviewed" || value === "needs_human_review" || value === "rejected"
+    ? value
+    : "missing";
+}
+
+function artifactStatusVariant(status: ArtifactReviewState): "success" | "warning" | "destructive" | "outline" {
+  if (status === "approved") return "success";
+  if (status === "rejected") return "destructive";
+  if (status === "missing") return "outline";
+  return "warning";
+}
+
+function artifactValidationState(value: string | undefined): ArtifactValidationState | undefined {
+  return value === "valid" || value === "invalid" || value === "not_applicable" ? value : undefined;
+}
 
 function formatDate(value: string, locale: string): string {
   const date = new Date(value);
@@ -105,15 +113,6 @@ export function SnapshotReadinessPage() {
     || (typeof window !== "undefined" ? localStorage.getItem("slrw_selected_project_id") : null)
     || "";
   const { projects, isLoading: projectsLoading, error: projectsError, load: loadProjects } = useProjects();
-  const {
-    isImporting,
-    readiness: importReadiness,
-    error: importError,
-    importRun,
-    reset: resetImport,
-  } = useSnapshotImport();
-  const [runId, setRunId] = useState("");
-  const [importOpen, setImportOpen] = useState(false);
   const [snapshots, setSnapshots] = useState<SnapshotSummary[]>([]);
   const [snapshotsProjectId, setSnapshotsProjectId] = useState("");
   const [snapshotsLoading, setSnapshotsLoading] = useState(false);
@@ -250,14 +249,7 @@ export function SnapshotReadinessPage() {
 
 
   const activeProject = projects.find((project) => project.id === selectedProjectId);
-  useEffect(() => {
-    if (searchParams.get("mode") !== "import" || !activeProject) return;
-    setImportOpen(true);
-    const next = new URLSearchParams(searchParams);
-    next.delete("mode");
-    setSearchParams(next, { replace: true });
-  }, [activeProject, searchParams, setSearchParams]);
-  const readiness = selectedReadiness ?? importReadiness;
+  const readiness = selectedReadiness;
   const locale = i18n.resolvedLanguage ?? "vi";
   const openOutlineUrl = selectedProjectId && selectedSnapshotId
     ? "/outline?projectId=" + encodeURIComponent(selectedProjectId) + "&snapshotId=" + encodeURIComponent(selectedSnapshotId)
@@ -270,6 +262,7 @@ export function SnapshotReadinessPage() {
     ? [
         { label: t("snapshots.counts.studies"), value: snapshotDetail._count.studies },
         { label: t("snapshots.counts.evidence"), value: snapshotDetail._count.evidence },
+        { label: t("snapshots.counts.claims"), value: snapshotDetail._count.claims },
       ]
     : [];
   const secondaryMetrics = snapshotDetail
@@ -277,7 +270,6 @@ export function SnapshotReadinessPage() {
         { label: t("snapshots.counts.researchQuestions"), value: snapshotDetail._count.researchQuestions },
         { label: t("snapshots.counts.documents"), value: snapshotDetail._count.documents },
         { label: t("snapshots.counts.findings"), value: snapshotDetail._count.findings },
-        { label: t("snapshots.counts.claims"), value: snapshotDetail._count.claims },
       ]
     : [];
 
@@ -285,34 +277,10 @@ export function SnapshotReadinessPage() {
     setSelectedSnapshotId(snapshotId);
     setDetailError(null);
     setSelectedReadiness(null);
-    resetImport();
     const next = new URLSearchParams(searchParams);
     if (snapshotId) next.set("snapshotId", snapshotId);
     else next.delete("snapshotId");
     setSearchParams(next, { replace: true });
-  }
-
-  async function handleImport(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!selectedProjectId) return;
-
-    setSelectedReadiness(null);
-    const imported = await importRun(selectedProjectId, runId);
-    if (imported) {
-      setRunId("");
-      setSelectedSnapshotId(imported.snapshot.id);
-      setSelectedReadiness({ status: "READY", issues: imported.warnings });
-      setSnapshotRefreshKey((current) => current + 1);
-      setImportOpen(false);
-    }
-  }
-
-  function handleImportDialogChange(open: boolean) {
-    setImportOpen(open);
-    if (!open && !isImporting) {
-      setRunId("");
-      resetImport();
-    }
   }
 
   return (
@@ -325,32 +293,17 @@ export function SnapshotReadinessPage() {
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{t("snapshots.description")}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {canOpenOutline ? (
-              <Button asChild variant="outline">
-                <Link to={openOutlineUrl}>
-                  <PencilSquareIcon aria-hidden="true" />
-                  {t("snapshots.openOutline")}
-                </Link>
-              </Button>
-            ) : (
-              <Button type="button" variant="outline" disabled>
-                <PencilSquareIcon aria-hidden="true" />
-                {t("snapshots.openOutline")}
-              </Button>
-            )}
-            <Button
-              type="button"
-              onClick={() => setImportOpen(true)}
-              disabled={!activeProject || projectsLoading}
-            >
-              <PlusIcon aria-hidden="true" />
-              {t("snapshots.importCta")}
+            <Button asChild>
+              <Link to="/import">
+                <DocumentArrowUpIcon aria-hidden="true" />
+                {t("snapshots.importCta")}
+              </Link>
             </Button>
           </div>
         </div>
       </GsapReveal>
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.12fr)_minmax(22rem,0.92fr)]">
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(16rem,0.8fr)_minmax(0,1.35fr)]">
         <GsapReveal effect="fade">
           <Card className="overflow-hidden">
             <CardHeader className="flex-row items-start justify-between gap-4 border-b border-border">
@@ -380,7 +333,7 @@ export function SnapshotReadinessPage() {
                   <p className="mt-3 text-sm font-semibold">{t("snapshots.noProjects")}</p>
                   <p className="mt-1 text-sm text-muted-foreground">{t("snapshots.noProjectsBody")}</p>
                   <Button asChild variant="outline" className="mt-4">
-                    <Link to="/projects">{t("snapshots.openProjects")}<ArrowRightIcon aria-hidden="true" /></Link>
+                    <Link to="/import">{t("snapshots.importCta")}<ArrowRightIcon aria-hidden="true" /></Link>
                   </Button>
                 </div>
               ) : !activeProject ? (
@@ -403,8 +356,8 @@ export function SnapshotReadinessPage() {
                   <DocumentArrowUpIcon className="mx-auto size-9 text-muted-foreground" aria-hidden="true" />
                   <p className="mt-3 text-sm font-semibold">{t("snapshots.emptyHistory")}</p>
                   <p className="mt-1 text-sm text-muted-foreground">{t("snapshots.emptyHistoryBody")}</p>
-                  <Button type="button" variant="outline" className="mt-4" onClick={() => setImportOpen(true)}>
-                    <PlusIcon aria-hidden="true" />{t("snapshots.importCta")}
+                  <Button asChild variant="outline" className="mt-4">
+                    <Link to="/import"><DocumentArrowUpIcon aria-hidden="true" />{t("snapshots.importCta")}</Link>
                   </Button>
                 </div>
               ) : (
@@ -433,23 +386,46 @@ export function SnapshotReadinessPage() {
             <Card><CardContent className="py-7"><p role="alert" className="text-sm text-destructive">{detailError}</p></CardContent></Card>
           ) : snapshotDetail ? (
             <Card className="overflow-hidden">
-              <CardHeader className="space-y-4 border-b border-border pb-5">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="flex size-11 items-center justify-center rounded-xl bg-secondary text-primary">
-                    <CircleStackIcon className="size-5" aria-hidden="true" />
-                  </span>
+              <CardHeader className="border-b border-border/70 px-5 py-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <CardTitle className="break-all text-lg leading-6">{snapshotDetail.sourceRunId}</CardTitle>
+                    <CardDescription className="mt-1 text-xs leading-5">
+                      {t("snapshots.importedOn", { date: formatDate(snapshotDetail.importedAt, locale) })}
+                      <span aria-hidden="true"> · </span>{snapshotDetail.sourceSystem}
+                      <span aria-hidden="true"> · </span>{snapshotDetail.corpusVersion}
+                    </CardDescription>
+                  </div>
                   <Badge variant={statusVariant(snapshotDetail.status)}>{t("snapshots.status." + snapshotDetail.status)}</Badge>
                 </div>
-                <div>
-                  <CardTitle className="break-all text-xl">{snapshotDetail.sourceRunId}</CardTitle>
-                  <CardDescription className="mt-1.5">
-                    {t("snapshots.importedOn", { date: formatDate(snapshotDetail.importedAt, locale) })}
-
-                  </CardDescription>
-                </div>
               </CardHeader>
-              <CardContent className="space-y-5 pt-5">
-                <div className="grid grid-cols-2 gap-3">
+              <CardContent className="space-y-4 px-5 pt-4">
+                <section aria-label={t("snapshots.artifactsTitle")}>
+                  <ul className="flex flex-wrap gap-2">
+                    {CORE_ARTIFACTS.map((type) => {
+                      const artifact = snapshotDetail.artifacts.find((item) => item.artifactType === type);
+                      const state = artifactReviewState(artifact?.reviewStatus);
+                      const validation = artifactValidationState(artifact?.validationStatus);
+                      const label = artifact
+                        ? `${type}: ${t(`snapshots.artifactState.${state}`)}${validation ? `, ${t(`snapshots.artifactValidation.${validation}`)}` : ""}`
+                        : `${type}: ${t("snapshots.artifactState.missing")}`;
+                      return (
+                        <li key={type}>
+                          <Badge
+                            variant={validation === "invalid" ? "destructive" : artifactStatusVariant(state)}
+                            aria-label={label}
+                            title={label}
+                          >
+                            <span className="font-mono">{type}</span>
+                            <span aria-hidden="true">·</span>
+                            {t(`snapshots.artifactState.${state}`)}{validation === "invalid" && ` · ${t("snapshots.artifactValidation.invalid")}`}
+                          </Badge>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   {primaryMetrics.map((metric) => (
                     <div key={metric.label} className="rounded-xl bg-secondary/55 p-4">
                       <p className="text-2xl font-bold tabular-nums text-foreground">{metric.value.toLocaleString(locale)}</p>
@@ -457,33 +433,57 @@ export function SnapshotReadinessPage() {
                     </div>
                   ))}
                 </div>
-                <dl className="grid grid-cols-2 gap-x-5 gap-y-3">
-                  {secondaryMetrics.map((metric) => (
-                    <div key={metric.label} className="flex items-baseline justify-between gap-2 border-b border-border/70 pb-2">
-                      <dt className="text-xs text-muted-foreground">{metric.label}</dt>
-                      <dd className="text-sm font-semibold tabular-nums text-foreground">{metric.value.toLocaleString(locale)}</dd>
-                    </div>
-                  ))}
-                </dl>
-                <div className="rounded-lg border border-border px-3.5 py-3">
-                  <p className="text-xs font-semibold text-foreground">{t("snapshots.sourceRun")}</p>
-                  <p className="mt-1 break-all text-xs leading-5 text-muted-foreground">{snapshotDetail.sourceSystem} · {snapshotDetail.corpusVersion}</p>
-                  <p className="mt-2 break-all font-mono text-[11px] text-muted-foreground">
-                    {t("snapshots.integrityHash", { hash: snapshotDetail.integrityHash })}
+                <details className="text-xs text-muted-foreground">
+                  <summary className="w-fit cursor-pointer rounded-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    {t("snapshots.moreCounts", { count: secondaryMetrics.length })}
+                  </summary>
+                  <dl className="mt-2 grid grid-cols-2 gap-x-5 gap-y-2 sm:grid-cols-3">
+                    {secondaryMetrics.map((metric) => (
+                      <div key={metric.label} className="flex items-baseline justify-between gap-2">
+                        <dt>{metric.label}</dt>
+                        <dd className="font-semibold tabular-nums text-foreground">{metric.value.toLocaleString(locale)}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </details>
+                {readiness ? (
+                  <ReadinessSummary report={readiness} variant="inline" />
+                ) : (
+                  <p role="status" className="border-t border-border pt-4 text-sm text-muted-foreground">
+                    {t("snapshots.readinessUnavailable")}
+                  </p>
+                )}
+                <div className="flex min-w-0 items-center justify-between gap-3 rounded-lg bg-secondary/55 px-3.5 py-2.5">
+                  <p className="shrink-0 text-xs text-muted-foreground">{t("snapshots.integrityHashLabel")}</p>
+                  <p
+                    className="min-w-0 truncate font-mono text-[11px] text-foreground"
+                    title={snapshotDetail.integrityHash}
+                    aria-label={t("snapshots.integrityHash", { hash: snapshotDetail.integrityHash })}
+                  >
+                    {snapshotDetail.integrityHash}
                   </p>
                 </div>
-                {canOpenOutline ? (
-                  <Button asChild variant="outline" className="w-full">
-                    <Link to={openOutlineUrl}>
-                      <CheckCircleIcon aria-hidden="true" />{t("snapshots.openOutline")}
-                    </Link>
-                  </Button>
-                ) : (
-                  <Button type="button" variant="outline" className="w-full" disabled>
-                    <ExclamationTriangleIcon aria-hidden="true" />{t("snapshots.editorLocked")}
-                  </Button>
-                )}
-                <p className="text-xs leading-5 text-muted-foreground">{t("snapshots.immutableNote")}</p>
+                <div className="flex flex-col gap-2 border-t border-border/70 pt-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs leading-5 text-muted-foreground">{t("snapshots.immutableNote")}</p>
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    {canOpenOutline ? (
+                      <Button asChild>
+                        <Link to={openOutlineUrl}>
+                          <CheckCircleIcon aria-hidden="true" />{t("snapshots.openOutline")}
+                        </Link>
+                      </Button>
+                    ) : (
+                      <Button type="button" variant="outline" disabled>
+                        <ExclamationTriangleIcon aria-hidden="true" />{t("snapshots.editorLocked")}
+                      </Button>
+                    )}
+                    {canOpenOutline && (
+                      <Button asChild variant="ghost" size="sm">
+                        <Link to={methodsUrl}>{t("snapshots.methodsOptionalTitle")}<ArrowRightIcon aria-hidden="true" /></Link>
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </CardContent>
             </Card>
           ) : readiness ? (
@@ -506,85 +506,9 @@ export function SnapshotReadinessPage() {
             </Card>
           )}
 
-          {snapshotDetail && readiness && (
-            <ReadinessSummary report={readiness} />
-          )}
-          {snapshotDetail?.status === "READY" && (
-            <GsapReveal delay={0.12} effect="fade">
-              <Card>
-                <CardHeader className="flex-row items-start justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
-                      <DocumentTextIcon className="size-5" aria-hidden="true" />
-                    </span>
-                    <div>
-                      <CardTitle>{t("snapshots.methodsOptionalTitle")}</CardTitle>
-                      <CardDescription className="mt-1">{t("snapshots.methodsOptionalDescription")}</CardDescription>
-                    </div>
-                  </div>
-                  <Badge variant="outline">{t("snapshots.optional")}</Badge>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-xs leading-5 text-muted-foreground">{t("snapshots.methodsOptionalNote")}</p>
-                  <Button asChild variant="outline" className="w-full">
-                    <Link to={methodsUrl}>
-                      {t("snapshots.openMethods")}<ArrowRightIcon aria-hidden="true" />
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            </GsapReveal>
-          )}
         </GsapReveal>
       </div>
 
-      <Dialog open={importOpen} onOpenChange={handleImportDialogChange}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-          <DialogHeader className="pr-8 text-left">
-            <DialogTitle>{t("snapshots.importDialogTitle")}</DialogTitle>
-            <DialogDescription>{t("snapshots.importDialogDescription", { project: activeProject?.name ?? "" })}</DialogDescription>
-          </DialogHeader>
-          {activeProject ? (
-            <form className="space-y-4" onSubmit={handleImport}>
-              <SlrRunPicker
-                key={selectedProjectId}
-                projectId={selectedProjectId}
-                selectedRunId={runId}
-                onSelect={setRunId}
-                refreshKey={snapshotRefreshKey}
-              />
-              <div className="flex flex-col gap-2.5 border-t border-border pt-4">
-                <label htmlFor="snapshot-run-id" className="block text-sm font-medium text-foreground">
-                  {t("snapshots.runIdLabelManual")}
-                </label>
-                <Input
-                  id="snapshot-run-id"
-                  autoComplete="off"
-                  maxLength={128}
-                  required
-                  value={runId}
-                  onChange={(event) => setRunId(event.target.value)}
-                  className="w-full"
-                  placeholder={t("snapshots.runIdPlaceholder")}
-                />
-                <p className="text-xs leading-5 text-muted-foreground">
-                  {t("snapshots.runIdHelp", { project: activeProject.name })}
-                </p>
-              </div>
-              {importError && <p role="alert" className="rounded-lg border border-destructive/25 bg-destructive/5 px-3 py-2.5 text-sm text-destructive">{importError}</p>}
-              {importReadiness && <ReadinessSummary report={importReadiness} />}
-              <div className="flex justify-end">
-                <Button type="submit" disabled={isImporting || !runId.trim()}>
-                  <DocumentArrowUpIcon aria-hidden="true" />
-                  {t(isImporting ? "snapshots.importing" : "snapshots.importAction")}
-                </Button>
-              </div>
-            </form>
-          ) : (
-            <p className="rounded-lg border border-dashed border-border p-5 text-sm text-muted-foreground">{t("snapshots.chooseProjectBody")}</p>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -494,6 +494,10 @@
   margin: 0 auto;
 }
 
+.slrw-page-inner-wide {
+  max-width: 1920px;
+}
+
 .slrw-skip-link {
   position: fixed;
   top: 10px;
