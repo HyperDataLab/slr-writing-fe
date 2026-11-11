@@ -118,7 +118,7 @@ export function MethodsPage() {
 
       <GsapReveal>
       <Card>
-        <CardContent className="grid gap-4 pt-4 sm:grid-cols-2">
+        <CardContent className="grid gap-4 pt-4 sm:grid-cols-2 sm:pt-5">
           <div className="space-y-2">
             <label htmlFor="methods-project" className="w-fit cursor-pointer text-sm font-medium text-foreground">
               {t("methods.projectLabel")}
@@ -149,7 +149,7 @@ export function MethodsPage() {
                 <option value="">{t("methods.chooseSnapshot")}</option>
                 {snapshots.map((snapshot) => (
                   <option key={snapshot.id} value={snapshot.id}>
-                    {snapshot.sourceRunId} · {t(`snapshots.status.${snapshot.status}`)}
+                    {snapshot.sourceRunId}
                   </option>
                 ))}
               </select>

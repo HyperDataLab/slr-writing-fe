@@ -239,9 +239,13 @@ export function MethodsWorkspace({
           <div className="min-w-0 rounded-xl bg-secondary/70 p-3 sm:p-4">
             <p className="text-sm font-semibold text-foreground">{t("methods.pipelineSnapshot")}</p>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              {snapshotDetail
-                ? `${snapshotDetail._count.studies} ${t("methods.studyCount")} · ${snapshotDetail._count.findings} ${t("methods.findingCount")}`
-                : t(snapshotDetailState === "loading" ? "methods.snapshotFactsLoading" : "methods.snapshotFactsUnavailable")}
+              {snapshotDetail ? (
+                <>
+                  {snapshotDetail._count.studies} {t("methods.studyCount", { count: snapshotDetail._count.studies })}
+                  <span aria-hidden="true"> · </span>
+                  {snapshotDetail._count.findings} {t("methods.findingCount", { count: snapshotDetail._count.findings })}
+                </>
+              ) : t(snapshotDetailState === "loading" ? "methods.snapshotFactsLoading" : "methods.snapshotFactsUnavailable")}
             </p>
           </div>
           <div className="min-w-0 rounded-xl bg-secondary/70 p-3 sm:p-4">
