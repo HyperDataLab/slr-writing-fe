@@ -1,4 +1,4 @@
-import { useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { ChevronDownIcon, LinkIcon } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
 import { MethodsFactList } from "@/features/methods/components/MethodsFactList";
@@ -142,11 +142,29 @@ function GroundedPassage({
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const hoverCloseTimer = useRef<number | null>(null);
   const passage = group.passage;
   const canShowFacts = Boolean(passage && group.facts.length > 0);
   const isOpen = canShowFacts && (isPinned || isHovered || isFocused);
   const popoverId = `${documentId}-${passage?.id ?? "facts"}-sources`;
   const label = t("methods.factSourceMarker", { count: group.facts.length });
+
+  useEffect(() => () => {
+    if (hoverCloseTimer.current !== null) window.clearTimeout(hoverCloseTimer.current);
+  }, []);
+
+  const keepOpenWhileHovering = () => {
+    if (hoverCloseTimer.current !== null) window.clearTimeout(hoverCloseTimer.current);
+    hoverCloseTimer.current = null;
+    setIsHovered(true);
+  };
+  const closeAfterPointerLeaves = () => {
+    if (hoverCloseTimer.current !== null) window.clearTimeout(hoverCloseTimer.current);
+    hoverCloseTimer.current = window.setTimeout(() => {
+      setIsHovered(false);
+      hoverCloseTimer.current = null;
+    }, 180);
+  };
 
   return (
     <div
@@ -164,48 +182,48 @@ function GroundedPassage({
         triggerRef.current?.blur();
       }}
       className={`relative space-y-3 rounded-xl px-2 py-2 transition-colors motion-reduce:transition-none ${
-        isOpen ? "bg-primary/[0.06] ring-1 ring-primary/25" : ""
+        isOpen ? "z-[100] bg-primary/[0.06] ring-1 ring-primary/25" : "z-0"
       }`}
     >
       {canShowFacts && passage && (
         <div
-          className="space-y-2"
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
+          className="relative z-[100] flex justify-end"
+          onMouseEnter={keepOpenWhileHovering}
+          onMouseLeave={closeAfterPointerLeaves}
         >
-          <div className="flex justify-end">
-            <button
-              ref={triggerRef}
-              type="button"
-              aria-label={label}
-              aria-expanded={Boolean(isOpen)}
-              aria-controls={popoverId}
-              aria-describedby={isOpen ? popoverId : undefined}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              onClick={(event) => {
-                if (isPinned) {
-                  onUnpin(passage.id);
-                  setIsFocused(false);
-                  setIsHovered(false);
-                  event.currentTarget.blur();
-                  return;
-                }
-                onPin(passage.id);
-              }}
-              className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-secondary px-3 text-xs font-medium text-foreground outline-none transition-colors hover:bg-secondary/70 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              <LinkIcon aria-hidden="true" className="size-3.5" />
-              {label}
-              <ChevronDownIcon aria-hidden="true" className={`size-3.5 transition-transform motion-reduce:transition-none ${isOpen ? "rotate-180" : ""}`} />
-            </button>
-          </div>
+          <button
+            ref={triggerRef}
+            type="button"
+            aria-label={label}
+            aria-expanded={Boolean(isOpen)}
+            aria-controls={popoverId}
+            aria-describedby={isOpen ? popoverId : undefined}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            onClick={(event) => {
+              if (isPinned) {
+                onUnpin(passage.id);
+                setIsFocused(false);
+                setIsHovered(false);
+                event.currentTarget.blur();
+                return;
+              }
+              onPin(passage.id);
+            }}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-secondary px-3 text-xs font-medium text-foreground outline-none transition-colors hover:bg-secondary/70 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            <LinkIcon aria-hidden="true" className="size-3.5" />
+            {label}
+            <ChevronDownIcon aria-hidden="true" className={`size-3.5 transition-transform motion-reduce:transition-none ${isOpen ? "rotate-180" : ""}`} />
+          </button>
           <section
             id={popoverId}
             role="region"
             aria-label={t("methods.factSourcePopoverTitle")}
             hidden={!isOpen}
-            className="ml-auto max-h-72 w-full max-w-[28rem] overflow-y-auto overscroll-contain rounded-xl bg-popover p-4 text-popover-foreground shadow-lg ring-1 ring-border"
+            className="absolute right-0 top-full z-[110] mt-2 max-h-72 w-[min(28rem,calc(100vw-3rem))] overflow-y-auto overscroll-contain rounded-xl bg-popover p-4 text-popover-foreground shadow-lg ring-1 ring-border"
+            onMouseEnter={keepOpenWhileHovering}
+            onMouseLeave={closeAfterPointerLeaves}
           >
             <h4 className="mb-3 text-sm font-semibold">{t("methods.factSourcePopoverTitle")}</h4>
             <MethodsFactList facts={group.facts} />
