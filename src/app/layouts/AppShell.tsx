@@ -5,6 +5,7 @@ import {
   ArrowDownTrayIcon,
   ArrowUpTrayIcon,
   Bars3Icon,
+  BeakerIcon,
   BookOpenIcon,
   ChevronDownIcon,
   CircleStackIcon,
@@ -46,6 +47,7 @@ const workspaceItems: NavItem[] = [
   },
   { labelKey: "navigation.snapshotsShort", to: "/snapshots", icon: Squares2X2Icon },
   { labelKey: "navigation.journalProfiles", to: "/journal-profiles", icon: BookOpenIcon },
+  { labelKey: "navigation.methods", to: "/methods", icon: BeakerIcon },
 ];
 
 const projectToolItems: NavItem[] = [
@@ -312,7 +314,7 @@ export function AppShell() {
         </header>
 
         <main id="app-main" className="slrw-page" tabIndex={-1}>
-          <div className={cn("slrw-page-inner", pathname === "/snapshots" && "slrw-page-inner-wide")}>
+          <div className={cn("slrw-page-inner", (pathname === "/snapshots" || pathname.startsWith("/methods")) && "slrw-page-inner-wide")}>
             <GsapRouteReveal key={routeMotionKey} className="slrw-route-transition">
               {outlet}
             </GsapRouteReveal>
