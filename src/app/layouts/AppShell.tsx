@@ -148,6 +148,7 @@ function SidebarNavItem({
 }
 function getPageTitleKey(pathname: string): string {
   if (pathname === "/") return "navigation.overview";
+  if (pathname.startsWith("/snapshots")) return "navigation.snapshotsShort";
   if (pathname.startsWith("/projects")) return "navigation.projects";
   if (pathname === "/import") return "navigation.importProject";
   if (pathname.startsWith("/methods")) return "navigation.methods";
@@ -280,7 +281,7 @@ export function AppShell() {
             </button>
             <nav className="slrw-breadcrumbs" aria-label={t("navigation.breadcrumbs")}>
               <Link to="/">{t("navigation.workspace")}</Link>
-              {!pathname.startsWith("/projects") && activeProject && (
+              {!pathname.startsWith("/projects") && pathname !== "/snapshots" && activeProject && (
                 <>
                   <span aria-hidden="true">/</span>
                   <span className="slrw-breadcrumb-project" title={activeProject.name}>{activeProject.name}</span>

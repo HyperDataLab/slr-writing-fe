@@ -61,13 +61,11 @@ function statusVariant(status: SnapshotStatus): "success" | "warning" | "destruc
 function SnapshotHistoryRow({
   snapshot,
   selected,
-  latest,
   locale,
   onSelect,
 }: {
   snapshot: SnapshotSummary;
   selected: boolean;
-  latest: boolean;
   locale: string;
   onSelect: () => void;
 }) {
@@ -92,12 +90,9 @@ function SnapshotHistoryRow({
           <CircleStackIcon className="size-5" aria-hidden="true" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="flex flex-wrap items-center gap-2">
-            <span className="max-w-full truncate text-sm font-semibold text-foreground">{snapshot.sourceRunId}</span>
-            {latest && <Badge variant="success">{t("snapshots.latest")}</Badge>}
-          </span>
+          <span className="block max-w-full truncate text-sm font-semibold text-foreground">{snapshot.sourceRunId}</span>
           <span className="mt-1 block text-xs text-muted-foreground">
-            {formatDate(snapshot.importedAt, locale)} <span aria-hidden="true">·</span> {snapshot.corpusVersion}
+            {formatDate(snapshot.importedAt, locale)} <span aria-hidden="true">·</span> {snapshot.sourceSystem === "manual" ? t("snapshots.jsonBundle") : snapshot.sourceSystem}
           </span>
         </span>
         <Badge variant={statusVariant(snapshot.status)}>{t("snapshots.status." + snapshot.status)}</Badge>
@@ -254,9 +249,6 @@ export function SnapshotReadinessPage() {
   const openOutlineUrl = selectedProjectId && selectedSnapshotId
     ? "/outline?projectId=" + encodeURIComponent(selectedProjectId) + "&snapshotId=" + encodeURIComponent(selectedSnapshotId)
     : "/outline";
-  const methodsUrl = selectedProjectId && selectedSnapshotId
-    ? "/methods?projectId=" + encodeURIComponent(selectedProjectId) + "&snapshotId=" + encodeURIComponent(selectedSnapshotId)
-    : "/methods";
   const canOpenOutline = snapshotDetail?.status === "READY";
   const primaryMetrics = snapshotDetail
     ? [
@@ -265,14 +257,6 @@ export function SnapshotReadinessPage() {
         { label: t("snapshots.counts.claims"), value: snapshotDetail._count.claims },
       ]
     : [];
-  const secondaryMetrics = snapshotDetail
-    ? [
-        { label: t("snapshots.counts.researchQuestions"), value: snapshotDetail._count.researchQuestions },
-        { label: t("snapshots.counts.documents"), value: snapshotDetail._count.documents },
-        { label: t("snapshots.counts.findings"), value: snapshotDetail._count.findings },
-      ]
-    : [];
-
   function handleSnapshotSelect(snapshotId: string) {
     setSelectedSnapshotId(snapshotId);
     setDetailError(null);
@@ -367,7 +351,6 @@ export function SnapshotReadinessPage() {
                       <SnapshotHistoryRow
                         snapshot={snapshot}
                         selected={snapshot.id === selectedSnapshotId}
-                        latest={index === 0}
                         locale={locale}
                         onSelect={() => handleSnapshotSelect(snapshot.id)}
                       />
@@ -389,11 +372,11 @@ export function SnapshotReadinessPage() {
               <CardHeader className="border-b border-border/70 px-5 py-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{t("snapshots.detailTitle")}</p>
                     <CardTitle className="break-all text-lg leading-6">{snapshotDetail.sourceRunId}</CardTitle>
                     <CardDescription className="mt-1 text-xs leading-5">
                       {t("snapshots.importedOn", { date: formatDate(snapshotDetail.importedAt, locale) })}
-                      <span aria-hidden="true"> · </span>{snapshotDetail.sourceSystem}
-                      <span aria-hidden="true"> · </span>{snapshotDetail.corpusVersion}
+                      <span aria-hidden="true"> · </span>{snapshotDetail.sourceSystem === "manual" ? t("snapshots.jsonBundle") : snapshotDetail.sourceSystem}
                     </CardDescription>
                   </div>
                   <Badge variant={statusVariant(snapshotDetail.status)}>{t("snapshots.status." + snapshotDetail.status)}</Badge>
@@ -433,19 +416,6 @@ export function SnapshotReadinessPage() {
                     </div>
                   ))}
                 </div>
-                <details className="text-xs text-muted-foreground">
-                  <summary className="w-fit cursor-pointer rounded-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                    {t("snapshots.moreCounts", { count: secondaryMetrics.length })}
-                  </summary>
-                  <dl className="mt-2 grid grid-cols-2 gap-x-5 gap-y-2 sm:grid-cols-3">
-                    {secondaryMetrics.map((metric) => (
-                      <div key={metric.label} className="flex items-baseline justify-between gap-2">
-                        <dt>{metric.label}</dt>
-                        <dd className="font-semibold tabular-nums text-foreground">{metric.value.toLocaleString(locale)}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                </details>
                 {readiness ? (
                   <ReadinessSummary report={readiness} variant="inline" />
                 ) : (
@@ -475,11 +445,6 @@ export function SnapshotReadinessPage() {
                     ) : (
                       <Button type="button" variant="outline" disabled>
                         <ExclamationTriangleIcon aria-hidden="true" />{t("snapshots.editorLocked")}
-                      </Button>
-                    )}
-                    {canOpenOutline && (
-                      <Button asChild variant="ghost" size="sm">
-                        <Link to={methodsUrl}>{t("snapshots.methodsOptionalTitle")}<ArrowRightIcon aria-hidden="true" /></Link>
                       </Button>
                     )}
                   </div>

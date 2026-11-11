@@ -1,4 +1,4 @@
-import { CheckCircleIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
+import { CheckCircleIcon, ChevronDownIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
 import type { ReadinessReport } from "@/features/snapshots/model/snapshot.types";
 import { Badge } from "@/shared/ui/badge";
@@ -57,6 +57,20 @@ export function ReadinessSummary({
       ))}
     </ul>
   );
+  const issueDetails = report.issues.length > 0 && (
+    <details open={report.status === "BLOCKED"} className="group min-w-0 text-xs text-muted-foreground">
+      <summary className="flex w-fit cursor-pointer list-none items-center gap-1.5 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+        <span className="rounded-md bg-secondary px-2 py-1 text-foreground">
+          {t("snapshots.blockingIssue", { count: blockingCount })}
+        </span>
+        <span className="rounded-md bg-secondary px-2 py-1 text-muted-foreground">
+          {t("snapshots.warning", { count: warningCount })}
+        </span>
+        <ChevronDownIcon className="size-3 transition-transform group-open:rotate-180" aria-hidden="true" />
+      </summary>
+      <div className="mt-2">{issues}</div>
+    </details>
+  );
 
   if (variant === "inline") {
     return (
@@ -65,16 +79,8 @@ export function ReadinessSummary({
           <h3 id="snapshot-readiness-heading" className="text-sm font-semibold text-foreground">
             {t("snapshots.checksTitle")}
           </h3>
-          <div className="flex flex-wrap gap-1.5 text-xs">
-            <span className="rounded-md bg-secondary px-2 py-1 text-foreground">
-              {t("snapshots.blockingIssue", { count: blockingCount })}
-            </span>
-            <span className="rounded-md bg-secondary px-2 py-1 text-muted-foreground">
-              {t("snapshots.warning", { count: warningCount })}
-            </span>
-          </div>
+          {issueDetails ?? counts}
         </div>
-        {issues}
       </section>
     );
   }
