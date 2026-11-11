@@ -190,22 +190,11 @@ export function OutlinePage() {
   const header = (
     <header className="outline-page-header">
       <div className="outline-page-heading">
-        <p className="outline-page-eyebrow">{t("outline.studioEyebrow")}</p>
         <h1 className="slrw-page-title">{t("outline.studioTitle")}</h1>
-        <p>{t("outline.studioDescription")}</p>
-        {(activeProject || activeSnapshot) && (
-          <div className="outline-page-meta">
-            {activeProject && <span>{activeProject.name}</span>}
-            {activeSnapshot && <span>{t("workflow.run")}: {activeSnapshot.sourceRunId}</span>}
-          </div>
-        )}
       </div>
       <div className="outline-page-actions">
         <Button asChild variant="outline" size="sm" className="gap-2">
           <Link to={writingHref}>{t("outline.openWritingStudio")}<ArrowRightIcon aria-hidden="true" /></Link>
-        </Button>
-        <Button asChild size="sm" className="gap-2">
-          <Link to={snapshotHref}>{activeSnapshot ? t("outline.openCurrentSnapshot") : t("outline.openSnapshots")}<ArrowRightIcon aria-hidden="true" /></Link>
         </Button>
       </div>
     </header>
@@ -326,6 +315,7 @@ export function OutlinePage() {
       <OutlineWorkspace
         key={`${activeProject.id}:${activeSnapshot.id}`}
         projectId={activeProject.id}
+        projectName={activeProject.name}
         snapshot={activeSnapshot}
         profiles={profiles}
         profilesLoading={profilesLoading}

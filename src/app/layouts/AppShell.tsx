@@ -251,6 +251,11 @@ export function AppShell() {
 
   useEffect(() => { void loadProjects(); }, [loadProjects, selectedProjectId]);
 
+  useEffect(() => {
+    if (window.location.hash) return;
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [pathname]);
+
   const sidebarProps = {
     selectedProjectId,
     selectedSnapshotId,

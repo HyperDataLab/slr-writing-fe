@@ -76,14 +76,14 @@ export function ParagraphPlanCard({
           <p className="text-[11px] text-muted-foreground mt-1">{item.sentenceSlots.map((slot) => t(`plans.slot.${slot}`)).join(" → ")}</p>
         </div>
 
-        <div className="grid grid-cols-1 gap-2 pt-1 border-t border-border/40 text-xs sm:grid-cols-2">
+        <div className="draft-plan-targets grid grid-cols-1 gap-2 pt-1 border-t border-border/40 text-xs sm:grid-cols-2">
           <div>
             <span className="text-muted-foreground block mb-1 font-medium">{t("plans.card.targetEvidence")} ({item.evidenceIds.length})</span>
             {item.evidenceIds.length > 0 ? (
               <div className="flex flex-wrap gap-1">
                 {item.evidenceIds.map((ev) => (
                   <span key={ev} className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[11px] font-mono">
-                    {ev}
+                    [{ev}]
                   </span>
                 ))}
               </div>
