@@ -1,6 +1,15 @@
+import type { GateId, GateStatus } from "@/features/verification/model/verification.types";
+
 export interface H3StatusView {
   h3Status: 'PENDING' | 'APPROVED' | 'REJECTED';
   canApprove: boolean;
+  readiness: {
+    h1Approved: boolean;
+    requiredSectionsDrafted: boolean;
+    allH2Approved: boolean;
+    verificationCurrent: boolean;
+    qualityGates: Array<{ gateId: GateId; status: GateStatus }>;
+  };
   blockingReasons: string[];
   requiredSections: string[];
   omittedSections: string[];

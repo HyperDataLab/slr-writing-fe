@@ -5,6 +5,8 @@ import {
   ArrowDownTrayIcon,
   ArrowUpTrayIcon,
   Bars3Icon,
+  BeakerIcon,
+  BookOpenIcon,
   ChevronDownIcon,
   CircleStackIcon,
   ListBulletIcon,
@@ -44,6 +46,8 @@ const workspaceItems: NavItem[] = [
     ],
   },
   { labelKey: "navigation.snapshotsShort", to: "/snapshots", icon: Squares2X2Icon },
+  { labelKey: "navigation.journalProfiles", to: "/journal-profiles", icon: BookOpenIcon },
+  { labelKey: "navigation.methods", to: "/methods", icon: BeakerIcon },
 ];
 
 const projectToolItems: NavItem[] = [
@@ -148,6 +152,7 @@ function SidebarNavItem({
 }
 function getPageTitleKey(pathname: string): string {
   if (pathname === "/") return "navigation.overview";
+  if (pathname.startsWith("/snapshots")) return "navigation.snapshotsShort";
   if (pathname.startsWith("/projects")) return "navigation.projects";
   if (pathname === "/import") return "navigation.importProject";
   if (pathname.startsWith("/methods")) return "navigation.methods";
@@ -246,6 +251,11 @@ export function AppShell() {
 
   useEffect(() => { void loadProjects(); }, [loadProjects, selectedProjectId]);
 
+  useEffect(() => {
+    if (window.location.hash) return;
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [pathname]);
+
   const sidebarProps = {
     selectedProjectId,
     selectedSnapshotId,
@@ -280,7 +290,7 @@ export function AppShell() {
             </button>
             <nav className="slrw-breadcrumbs" aria-label={t("navigation.breadcrumbs")}>
               <Link to="/">{t("navigation.workspace")}</Link>
-              {!pathname.startsWith("/projects") && activeProject && (
+              {!pathname.startsWith("/projects") && pathname !== "/snapshots" && activeProject && (
                 <>
                   <span aria-hidden="true">/</span>
                   <span className="slrw-breadcrumb-project" title={activeProject.name}>{activeProject.name}</span>
@@ -309,7 +319,7 @@ export function AppShell() {
         </header>
 
         <main id="app-main" className="slrw-page" tabIndex={-1}>
-          <div className="slrw-page-inner">
+          <div className={cn("slrw-page-inner", (pathname === "/snapshots" || pathname.startsWith("/methods")) && "slrw-page-inner-wide")}>
             <GsapRouteReveal key={routeMotionKey} className="slrw-route-transition">
               {outlet}
             </GsapRouteReveal>

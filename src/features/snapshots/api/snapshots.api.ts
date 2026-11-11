@@ -18,6 +18,16 @@ export function importSnapshotFromSlr(projectId: string, input: ImportSnapshotIn
   );
 }
 
+export function importSnapshotBundle(projectId: string, bundle: Record<string, unknown>): Promise<SnapshotImportResponse> {
+  return apiRequest<SnapshotImportResponse>(
+    "/projects/" + encodeURIComponent(projectId) + "/snapshots",
+    {
+      method: "POST",
+      body: JSON.stringify(bundle),
+    },
+  );
+}
+
 export function listSlrRuns(projectId: string): Promise<SlrRunSummary[]> {
   return apiRequest<SlrRunSummary[]>("/projects/" + encodeURIComponent(projectId) + "/slr-runs");
 }

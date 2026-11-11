@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError } from "@/shared/lib/api-client";
-import { importSnapshotFromSlr } from "@/features/snapshots/api/snapshots.api";
+import { importSnapshotBundle, importSnapshotFromSlr } from "@/features/snapshots/api/snapshots.api";
 import { createImportSnapshotSchema } from "@/features/snapshots/model/snapshot.schema";
 import type { ReadinessIssue, ReadinessReport, SnapshotImportResponse } from "@/features/snapshots/model/snapshot.types";
 
@@ -34,23 +34,13 @@ export function useSnapshotImport() {
     errorCode: null,
   });
 
-  const importRun = useCallback(async (projectId: string, runId: string): Promise<SnapshotImportResponse | null> => {
-    const parsedInput = createImportSnapshotSchema(t).safeParse({ runId });
-    if (!parsedInput.success) {
-      setState({
-        isImporting: false,
-        result: null,
-        readiness: null,
-        error: parsedInput.error.issues[0]?.message ?? t("snapshots.invalidRunId"),
-        errorCode: "VALIDATION_ERROR",
-      });
-      return null;
-    }
-
+  const submitImport = useCallback(async (
+    request: () => Promise<SnapshotImportResponse>,
+  ): Promise<SnapshotImportResponse | null> => {
     setState({ isImporting: true, result: null, readiness: null, error: null, errorCode: null });
 
     try {
-      const result = await importSnapshotFromSlr(projectId, parsedInput.data);
+      const result = await request();
       setState({
         isImporting: false,
         result,
@@ -73,10 +63,29 @@ export function useSnapshotImport() {
     }
   }, [t]);
 
+  const importRun = useCallback(async (projectId: string, runId: string): Promise<SnapshotImportResponse | null> => {
+    const parsedInput = createImportSnapshotSchema(t).safeParse({ runId });
+    if (!parsedInput.success) {
+      setState({
+        isImporting: false,
+        result: null,
+        readiness: null,
+        error: parsedInput.error.issues[0]?.message ?? t("snapshots.invalidRunId"),
+        errorCode: "VALIDATION_ERROR",
+      });
+      return null;
+    }
+
+    return submitImport(() => importSnapshotFromSlr(projectId, parsedInput.data));
+  }, [submitImport, t]);
+
+  const importBundle = useCallback((projectId: string, bundle: Record<string, unknown>) =>
+    submitImport(() => importSnapshotBundle(projectId, bundle)), [submitImport]);
+
   const reset = useCallback(() => {
     setState({ isImporting: false, result: null, readiness: null, error: null, errorCode: null });
   }, []);
 
-  return { ...state, importRun, reset };
+  return { ...state, importRun, importBundle, reset };
 }
 

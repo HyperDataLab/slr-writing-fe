@@ -8,7 +8,7 @@ import { OutlineCoverageEditor } from "@/features/outline/components/OutlineCove
 import { OutlineIssuesPanel } from "@/features/outline/components/OutlineIssuesPanel";
 import { OutlineSectionsEditor } from "@/features/outline/components/OutlineSectionsEditor";
 import type { BlueprintContent, BlueprintView } from "@/features/outline/model/outline.types";
-import { collectClaimOptions, collectQuestionIds, ensureCoverageEntries } from "@/features/outline/utils/outline.helpers";
+import { ANSWERING_SECTION_KEYS, collectClaimOptions, collectQuestionIds, ensureCoverageEntries } from "@/features/outline/utils/outline.helpers";
 import type { SnapshotSummary } from "@/features/snapshots/model/snapshot.types";
 import { ApiError } from "@/shared/lib/api-client";
 import { Badge } from "@/shared/ui/badge";
@@ -37,12 +37,14 @@ function orderSectionsForProfile(content: BlueprintContent, profile: JournalProf
 
 export function OutlineWorkspace({
   projectId,
+  projectName,
   snapshot,
   profiles,
   profilesLoading,
   requestedProfileId,
 }: {
   projectId: string;
+  projectName: string;
   snapshot: SnapshotSummary;
   profiles: JournalProfile[];
   profilesLoading: boolean;
@@ -317,47 +319,69 @@ export function OutlineWorkspace({
   }
 
   const editingDisabled = !profile || !isReady || !isLatest || isBusy;
-  const canApprove = Boolean(profile && isLatest && isReady && !dirty && view.approvable && !isBusy);
-  const canReject = Boolean(profile && isLatest && isReady && !dirty && decisionNote.trim() && !isBusy);
-  const includedSections = draft.sections.filter((section) => section.include);
-  const totalProfileSections = profile?.sections.length ?? draft.sections.length;
-  const activeSubsectionIds = new Set(includedSections.flatMap((section) => section.subsections.map((subsection) => subsection.id)));
-  const coveredQuestionCount = questionIds.filter((questionId) => {
-    const coverage = draft.coverage.find((item) => item.rqId === questionId);
-    return Boolean(coverage && (
-      coverage.subsectionIds.some((subsectionId) => activeSubsectionIds.has(subsectionId))
-      || coverage.notApplicableReason?.trim()
-    ));
-  }).length;
+  const canApprove = Boolean(profile && isLatest && isReady && !dirty && view.approvable && view.approval.status === "PENDING" && !isBusy);
+  const canReject = Boolean(profile && isLatest && isReady && !dirty && decisionNote.trim() && view.approval.status === "PENDING" && !isBusy);
+  const coverageRows = questionIds.map((rqId) => {
+    const coverage = draft.coverage.find((item) => item.rqId === rqId);
+    const subsections = draft.sections.flatMap((section) => {
+      if (!section.include || !ANSWERING_SECTION_KEYS.has(section.key)) return [];
+      const profileSection = profile?.sections.find((item) => item.key === section.key);
+      const sectionTitle = t(`journalProfiles.sectionTitles.${section.key}`, {
+        defaultValue: profileSection?.title ?? section.key,
+      });
+      return section.subsections
+        .filter((subsection) => coverage?.subsectionIds.includes(subsection.id) || subsection.rqIds.includes(rqId))
+        .map((subsection) => ({ id: subsection.id, sectionTitle, title: subsection.title }));
+    });
+    const notApplicableReason = coverage?.notApplicableReason?.trim() ?? "";
+    return { rqId, subsections, notApplicableReason, covered: subsections.length > 0 || Boolean(notApplicableReason) };
+  });
+  const coveredQuestionCount = coverageRows.filter((row) => row.covered).length;
   const blockingIssueCount = view.issues.filter((issue) => issue.severity === "blocking").length;
   const warningIssueCount = view.issues.length - blockingIssueCount;
-  const sectionProgressMax = Math.max(totalProfileSections, 1);
-  const questionProgressMax = Math.max(questionIds.length, 1);
-
   return (
-    <div className="space-y-5">
+    <div className="outline-workspace-content">
       <GsapReveal>
-        <Card>
-          <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <CardTitle>{t("outline.blueprintTitle")}</CardTitle>
-                <Badge variant="secondary">{t("outline.versionOption", { version: view.revision.version })}</Badge>
-                <Badge variant="outline">{t(`outline.origin.${view.revision.origin}`)}</Badge>
-                <Badge variant={view.approval.status === "APPROVED" ? "default" : "outline"} className={view.approval.status === "REJECTED" ? "border-destructive/40 text-destructive" : undefined}>
-                  {t(`outline.approvalStatus.${view.approval.status}`)}
-                </Badge>
-              </div>
-              <CardDescription>
-                {t("outline.profileInUse", {
-                  name: profile?.name ?? view.revision.content.profile.id,
-                  version: view.revision.content.profile.version,
-                })}
-              </CardDescription>
+        <Card className="outline-revision-context">
+          <CardContent className="outline-revision-context-content">
+            <div className="outline-context-identity">
+              <span className="outline-context-project">
+                <span className="outline-revision-label">{t("outline.projectLabel")}</span>
+                <strong>{projectName}</strong>
+              </span>
+              <span className="outline-context-snapshot">
+                <span className="outline-revision-label">{t("outline.snapshotLabel")}</span>
+                <Link to={`/snapshots?projectId=${encodeURIComponent(projectId)}&snapshotId=${encodeURIComponent(snapshot.id)}`}>
+                  {snapshot.sourceRunId}
+                </Link>
+              </span>
+              <Badge variant={snapshot.status === "READY" ? "success" : "secondary"}>{snapshot.status}</Badge>
             </div>
-            <div className="flex flex-wrap items-end gap-3">
-              <div className="min-w-48 space-y-1.5">
-                <label htmlFor="outline-version" className="text-xs font-medium text-muted-foreground">{t("outline.versionLabel")}</label>
+            <div className="outline-revision-profile">
+              <strong>{t("outline.profileInUse", {
+                name: profile?.name ?? view.revision.content.profile.id,
+                version: view.revision.content.profile.version,
+              })}</strong>
+              <Badge variant="secondary">{t("outline.versionOption", { version: view.revision.version })}</Badge>
+              <Badge
+                variant={view.approval.status === "APPROVED" ? "default" : "outline"}
+                className={view.approval.status === "REJECTED" ? "border-destructive/40 text-destructive" : undefined}
+              >
+                {t(`outline.approvalStatus.${view.approval.status}`)}
+              </Badge>
+              {profile?.verification.status === "unverified" && profile.notice && (
+                <details className="outline-profile-notice">
+                  <summary>
+                    <Badge variant="warning">{t("journalProfiles.status.unverified")}</Badge>
+                    <span>{t("journalProfiles.verificationDetails")}</span>
+                  </summary>
+                  <p>{profile.notice}</p>
+                </details>
+              )}
+            </div>
+            <div className="outline-revision-controls">
+              <div className="outline-version-control">
+                <label htmlFor="outline-version">{t("outline.versionLabel")}</label>
                 <select
                   id="outline-version"
                   value={selectedVersion}
@@ -380,15 +404,10 @@ export function OutlineWorkspace({
               )}
               <Button type="button" size="sm" variant="outline" disabled={isBusy} onClick={() => void loadLatest()}>
                 <ArrowPathIcon aria-hidden="true" />
-                {t("workflow.refresh")}
+                <span className="sr-only">{t("workflow.refresh")}</span>
               </Button>
             </div>
-          </CardHeader>
-          {profile?.verification.status === "unverified" && profile.notice && (
-            <CardContent className="pt-0">
-              <p className="rounded-lg border border-warning-border bg-warning-soft p-3 text-xs leading-5 text-warning">{profile.notice}</p>
-            </CardContent>
-          )}
+          </CardContent>
         </Card>
       </GsapReveal>
 
@@ -421,7 +440,7 @@ export function OutlineWorkspace({
         </div>
       )}
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(19rem,0.85fr)]">
+      <div className="outline-review-layout">
         <OutlineSectionsEditor
           content={draft}
           profile={profile}
@@ -431,99 +450,138 @@ export function OutlineWorkspace({
           onChange={setDraft}
         />
 
-        <aside className="outline-builder-inspector space-y-5">
-          <Card className="outline-health-summary">
-            <CardHeader>
+        <aside className="outline-review-rail">
+          <Card className="outline-coverage-summary">
+            <CardHeader className="outline-coverage-summary-header">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <CardTitle>{t("outline.structureHealthTitle")}</CardTitle>
-                <Badge variant={canApprove ? "default" : "outline"}>
-                  {t(canApprove ? "outline.approvable" : "outline.blocked")}
+                <CardTitle>{t("outline.coverageTitle")}</CardTitle>
+                <Badge variant={coveredQuestionCount === questionIds.length && questionIds.length > 0 ? "default" : "outline"}>
+                  {questionIds.length > 0
+                    ? t("outline.coverageCount", { covered: coveredQuestionCount, total: questionIds.length })
+                    : t("outline.noQuestions")}
                 </Badge>
               </div>
-              <CardDescription>{t("outline.structureHealthDescription")}</CardDescription>
             </CardHeader>
-            <CardContent className="outline-health-summary-content">
-              <div className="outline-health-progress-item">
-                <div className="outline-health-progress-label">
-                  <span>{t("outline.healthSections")}</span>
-                  <strong>{includedSections.length}/{totalProfileSections}</strong>
+            <CardContent className="outline-coverage-summary-content">
+              {coverageRows.length === 0 ? (
+                <p className="outline-coverage-empty">{t("outline.noQuestions")}</p>
+              ) : (
+                <ol className="outline-coverage-list">
+                  {coverageRows.map((row) => (
+                    <li className="outline-coverage-row" key={row.rqId}>
+                      <span className="outline-coverage-rq">{row.rqId}</span>
+                      <div className="outline-coverage-targets">
+                        {row.subsections.length > 0 ? row.subsections.map((subsection) => (
+                          <span className="outline-coverage-target" key={subsection.id}>
+                            <span>{subsection.sectionTitle}</span>
+                            <strong>{subsection.title || t("outline.untitledSubsection")}</strong>
+                          </span>
+                        )) : row.notApplicableReason ? (
+                          <span className="outline-coverage-unassigned">
+                            {t("outline.notApplicableReason")}: {row.notApplicableReason}
+                          </span>
+                        ) : (
+                          <span className="outline-coverage-unassigned">{t("outline.coverageNeedsMapping")}</span>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              )}
+              <details className="outline-disclosure">
+                <summary>{t("outline.editCoverage")}</summary>
+                <div className="outline-disclosure-content">
+                  <OutlineCoverageEditor
+                    content={draft}
+                    questionIds={questionIds}
+                    profile={profile}
+                    disabled={editingDisabled}
+                    onChange={setDraft}
+                  />
                 </div>
-                <progress
-                  className="outline-health-progress"
-                  value={includedSections.length}
-                  max={sectionProgressMax}
-                  aria-label={t("outline.healthSectionProgress")}
-                />
-              </div>
-              <div className="outline-health-progress-item">
-                <div className="outline-health-progress-label">
-                  <span>{t("outline.healthQuestions")}</span>
-                  <strong>{coveredQuestionCount}/{questionIds.length}</strong>
+              </details>
+              <details className="outline-disclosure">
+                <summary>
+                  <span>{t("outline.issuesTitle")}</span>
+                  <Badge variant={view.approvable ? "default" : "outline"}>
+                    {t("outline.issuesDescription", { blocking: blockingIssueCount, warning: warningIssueCount })}
+                  </Badge>
+                </summary>
+                <div className="outline-disclosure-content">
+                  <OutlineIssuesPanel issues={view.issues} approvable={view.approvable} />
                 </div>
-                <progress
-                  className="outline-health-progress"
-                  value={coveredQuestionCount}
-                  max={questionProgressMax}
-                  aria-label={t("outline.healthQuestionProgress")}
-                />
-              </div>
-              <div className="outline-health-issue-counts">
-                <span>{t("outline.healthBlocking")}</span>
-                <strong>{blockingIssueCount}</strong>
-                <span>{t("outline.issuesDescription", { blocking: blockingIssueCount, warning: warningIssueCount })}</span>
-              </div>
+              </details>
             </CardContent>
           </Card>
-          <OutlineCoverageEditor
-            content={draft}
-            questionIds={questionIds}
-            profile={profile}
-            disabled={editingDisabled}
-            onChange={setDraft}
-          />
-          <OutlineIssuesPanel issues={view.issues} approvable={view.approvable} />
 
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("outline.approvalTitle")}</CardTitle>
-              <CardDescription>{t("outline.approvalDescription")}</CardDescription>
+          <Card className="outline-owner-review">
+            <CardHeader className="outline-owner-review-header">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <CardTitle>{t("outline.ownerReviewTitle")}</CardTitle>
+                <Badge
+                  variant={view.approval.status === "APPROVED" ? "default" : "outline"}
+                  className={view.approval.status === "REJECTED" ? "border-destructive/40 text-destructive" : undefined}
+                >
+                  {t(`outline.approvalStatus.${view.approval.status}`)}
+                </Badge>
+              </div>
+              <CardDescription>
+                {t(view.approval.status === "APPROVED"
+                  ? "outline.approvalRecorded"
+                  : view.approval.status === "REJECTED"
+                    ? "outline.changesRequested"
+                    : "outline.ownerReviewDescription")}
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="rounded-lg bg-secondary/60 p-3 text-xs leading-5 text-muted-foreground">{t("outline.ownerOnly")}</p>
+            <CardContent className="outline-owner-review-content">
+              <p className="outline-owner-only">{t("outline.ownerOnly")}</p>
               {view.approval.decision && (
-                <div className="space-y-1 rounded-lg border border-border p-3 text-xs text-muted-foreground">
-                  <p>{t("outline.decidedBy", { user: view.approval.decision.decidedBy })}</p>
-                  <p>{t("outline.decidedAt", { date: new Date(view.approval.decision.decidedAt).toLocaleString(locale) })}</p>
-                  <p>{t("outline.recordedRole", { role: view.approval.decision.slrRole })}</p>
-                  {view.approval.decision.note && <p className="pt-1 text-foreground">{view.approval.decision.note}</p>}
+                <div className="outline-provenance-record" role="status">
+                  <CheckBadgeIcon aria-hidden="true" />
+                  <div>
+                    <strong>{t(view.approval.decision.decision === "APPROVED" ? "outline.approvalRecorded" : "outline.changesRequested")}</strong>
+                    <p>{t("outline.decidedBy", { user: view.approval.decision.decidedBy })}</p>
+                    <p>{t("outline.decidedAt", { date: new Date(view.approval.decision.decidedAt).toLocaleString(locale) })}</p>
+                    <p>{t("outline.recordedRole", { role: view.approval.decision.slrRole })}</p>
+                    {view.approval.decision.note && <p className="outline-provenance-note">{view.approval.decision.note}</p>}
+                    <span>{t("outline.provenanceEventRecorded")}</span>
+                  </div>
                 </div>
               )}
-              <div className="space-y-1.5">
-                <label htmlFor="outline-decision-note" className="text-xs font-medium text-muted-foreground">
-                  {t("outline.decisionNote")}
-                </label>
-                <textarea
-                  id="outline-decision-note"
-                  rows={3}
-                  maxLength={2000}
-                  value={decisionNote}
-                  onChange={(event) => setDecisionNote(event.target.value)}
-                  disabled={!isLatest || isBusy || !isReady}
-                  placeholder={t("outline.decisionNotePlaceholder")}
-                  className="w-full resize-y rounded-xl border border-input bg-background px-3 py-2 text-sm transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
-                />
-                {dirty && <p className="text-xs text-muted-foreground">{t("outline.saveBeforeDecision")}</p>}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button type="button" size="sm" disabled={!dirty || !isLatest || !isReady || isBusy} onClick={() => void handleSave()}>
+              {view.approval.status === "PENDING" && (
+                <details className="outline-decision-details">
+                  <summary>
+                    <span>{t("outline.addDecisionNote")}</span>
+                    <span className="outline-decision-summary-hint">{t("outline.decisionNoteHint")}</span>
+                  </summary>
+                  <div className="outline-decision-field">
+                    <label htmlFor="outline-decision-note">{t("outline.decisionNote")}</label>
+                    <textarea
+                      id="outline-decision-note"
+                      rows={2}
+                      maxLength={2000}
+                      value={decisionNote}
+                      onChange={(event) => setDecisionNote(event.target.value)}
+                      disabled={!isLatest || isBusy || !isReady}
+                      placeholder={t("outline.decisionNotePlaceholder")}
+                      className="w-full resize-y rounded-xl border border-input bg-background px-3 py-2 text-sm transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+                    />
+                    {dirty && <p className="text-xs text-muted-foreground">{t("outline.saveBeforeDecision")}</p>}
+                  </div>
+                </details>
+              )}
+              <div className="outline-owner-actions">
+                {dirty && (
+                  <Button type="button" size="sm" disabled={!isLatest || !isReady || isBusy} onClick={() => void handleSave()}>
                   {t(saving ? "outline.saving" : "outline.saveRevision")}
-                </Button>
-                <Button type="button" size="sm" variant="outline" disabled={!canApprove} onClick={() => void handleDecision("APPROVED")}>
+                  </Button>
+                )}
+                <Button type="button" size="sm" disabled={!canApprove} onClick={() => void handleDecision("APPROVED")}>
                   <CheckBadgeIcon aria-hidden="true" />
                   {t(deciding ? "outline.deciding" : "outline.approveH1")}
                 </Button>
                 <Button type="button" size="sm" variant="outline" disabled={!canReject} onClick={() => void handleDecision("REJECTED")}>
-                  {t("outline.rejectH1")}
+                  {t("outline.requestChanges")}
                 </Button>
               </div>
             </CardContent>

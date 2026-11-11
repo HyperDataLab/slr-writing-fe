@@ -1,7 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { MethodsFact } from "@/features/methods/model/methods.types";
 import { Badge } from "@/shared/ui/badge";
-import { GsapListItem } from "@/shared/ui/gsap-motion";
 
 function formatFactValue(value: MethodsFact["value"], locale: string, missingLabel: string, emptyLabel: string) {
   if (value === null) return missingLabel;
@@ -25,8 +24,8 @@ export function MethodsFactList({ facts }: { facts: MethodsFact[] }) {
   }
 
   return (
-    <ul className="divide-y divide-border">
-      {facts.map((fact, index) => {
+    <ul className="space-y-3">
+      {facts.map((fact) => {
         const factLabelKey = fact.key.replace(/\./g, "_");
         const factLabel = t(`methods.factLabels.${factLabelKey}`, { defaultValue: fact.label });
         const value = formatFactValue(
@@ -37,21 +36,21 @@ export function MethodsFactList({ facts }: { facts: MethodsFact[] }) {
         );
 
         return (
-          <GsapListItem key={fact.key} delay={index * 0.025} className="space-y-2 py-4 first:pt-0 last:pb-0">
+          <li key={fact.key} className="space-y-1.5 border-b border-border/70 pb-3 last:border-0 last:pb-0">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <p className="text-sm font-medium text-foreground">{factLabel}</p>
-              <Badge variant={fact.status === "explicit" ? "default" : "outline"}>
+              <Badge variant={fact.status === "explicit" ? "secondary" : "outline"}>
                 {t(fact.status === "explicit" ? "methods.explicit" : "methods.missing")}
               </Badge>
             </div>
-            <p className="break-words text-sm leading-6 text-muted-foreground">{value}</p>
-            <code className="block break-all text-[11px] leading-5 text-muted-foreground">{fact.source}</code>
+            <p className="break-words text-xs leading-5 text-foreground">{value}</p>
+            <code className="block break-all text-[10px] leading-4 text-muted-foreground">{fact.source}</code>
             {fact.derivation && (
-              <p className="text-xs leading-5 text-muted-foreground">
+              <p className="text-[11px] leading-4 text-muted-foreground">
                 {t("methods.derivation")}: {fact.derivation}
               </p>
             )}
-          </GsapListItem>
+          </li>
         );
       })}
     </ul>

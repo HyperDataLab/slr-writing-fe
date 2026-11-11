@@ -67,8 +67,8 @@ export function ProjectsPage() {
           </CardHeader>
           <CardContent>
             <form className="space-y-4" onSubmit={handleCreate}>
-              <div className="space-y-2">
-                <label htmlFor="project-name" className="text-sm font-medium text-foreground">
+              <div className="flex flex-col gap-2">
+                <label htmlFor="project-name" className="block text-sm font-medium text-foreground">
                   {t("projects.nameLabel")}
                 </label>
                 <input
@@ -82,8 +82,8 @@ export function ProjectsPage() {
                   placeholder={t("projects.namePlaceholder")}
                 />
               </div>
-              <div className="space-y-2">
-                <label htmlFor="slr-project-id" className="text-sm font-medium text-foreground">
+              <div className="flex flex-col gap-2">
+                <label htmlFor="slr-project-id" className="block text-sm font-medium text-foreground">
                   {t("projects.slrIdLabel")}
                 </label>
                 <input

@@ -8,7 +8,11 @@ import {
   ExclamationCircleIcon,
   ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
-import { getLatestVerification, runVerification } from "@/features/verification/api/verification.api";
+import {
+  getLatestVerification,
+  runVerificationWithProgress,
+  type VerificationGateProgress,
+} from "@/features/verification/api/verification.api";
 import { CitationManifestTable } from "@/features/verification/components/CitationManifestTable";
 import { GateAuditCard } from "@/features/verification/components/GateAuditCard";
 import type { GateId, QualityGateResult, VerificationReportView } from "@/features/verification/model/verification.types";
@@ -18,6 +22,8 @@ import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { GsapStagger, GsapReveal } from "@/shared/ui/gsap-motion";
+
+const QUALITY_GATE_ORDER: GateId[] = ["G1", "G2", "G3", "G4", "G5", "G6", "G7"];
 
 export function VerificationWorkspace({
   projectId,
@@ -32,6 +38,7 @@ export function VerificationWorkspace({
   const [report, setReport] = useState<VerificationReportView | null>(null);
   const [loading, setLoading] = useState(true);
   const [auditing, setAuditing] = useState(false);
+  const [gateProgress, setGateProgress] = useState<VerificationGateProgress[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"gates" | "manifest">(
     searchParams.get("tab") === "manifest" ? "manifest" : "gates",
@@ -69,10 +76,14 @@ export function VerificationWorkspace({
 
   const handleRunAudit = async () => {
     setAuditing(true);
+    setGateProgress([]);
     setError(null);
     try {
-      const { report: newReport } = await runVerification(projectId, snapshot.id);
+      const { report: newReport } = await runVerificationWithProgress(projectId, snapshot.id, (progress) => {
+        setGateProgress((current) => [...current.filter((item) => item.gateId !== progress.gateId), progress]);
+      });
       setReport(newReport);
+      setGateProgress([]);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t("verify.runError"));
     } finally {
@@ -83,10 +94,18 @@ export function VerificationWorkspace({
   const summary = report?.summary;
   const manifest = report?.manifest ?? null;
   const statusVariant =
-    report?.status === "PASSED" ? "success" : report?.status === "PASSED_WITH_WARNINGS" ? "warning" : "destructive";
+    report?.status === "FAILED"
+      ? "destructive"
+      : report?.isCurrent === false || report?.status === "PASSED_WITH_WARNINGS"
+      ? "warning"
+      : "success";
   const gateEntries = (Object.entries(report?.gates ?? {}) as Array<[GateId, QualityGateResult]>).sort(([a], [b]) =>
     a.localeCompare(b),
   );
+  const gateProgressById = new Map(gateProgress.map((item) => [item.gateId, item]));
+  const activeGate = gateProgress.find((item) => item.state === "RUNNING");
+  const completedGateCount = gateProgress.filter((item) => item.state === "COMPLETED").length;
+  const progressPercent = Math.round((completedGateCount / QUALITY_GATE_ORDER.length) * 100);
 
   return (
     <GsapStagger className="space-y-6">
@@ -124,11 +143,79 @@ export function VerificationWorkspace({
               disabled={auditing}
               className="gap-1.5"
             >
-              <ShieldCheckIcon className="size-4" />
+              {auditing
+                ? <ArrowPathIcon className="size-4 motion-safe:animate-spin" />
+                : <ShieldCheckIcon className="size-4" />}
               {auditing ? t("verify.auditing") : report ? t("verify.rerun") : t("verify.run")}
             </Button>
           </div>
         </CardHeader>
+
+        {auditing && (
+          <CardContent className="pt-0" aria-busy="true">
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4" role="status" aria-live="polite">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{t("verify.progress.title")}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {t("verify.progress.detail", { completed: completedGateCount, total: QUALITY_GATE_ORDER.length })}
+                  </p>
+                </div>
+                {activeGate?.state === "RUNNING" && (
+                  <Badge variant="outline" className="gap-1.5">
+                    <ArrowPathIcon className="size-3 motion-safe:animate-spin" />
+                    {t("verify.progress.current", { gate: activeGate.gateId })}
+                  </Badge>
+                )}
+              </div>
+
+              <div
+                className="mt-3 h-2 overflow-hidden rounded-full bg-muted"
+                role="progressbar"
+                aria-label={t("verify.progress.title")}
+                aria-valuemin={0}
+                aria-valuemax={QUALITY_GATE_ORDER.length}
+                aria-valuenow={completedGateCount}
+                aria-valuetext={t("verify.progress.detail", { completed: completedGateCount, total: QUALITY_GATE_ORDER.length })}
+              >
+                <div
+                  className="h-full rounded-full bg-primary transition-[width] duration-300 motion-reduce:transition-none"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+
+              <ol className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-7">
+                {QUALITY_GATE_ORDER.map((gateId) => {
+                  const progress = gateProgressById.get(gateId);
+                  const isRunning = progress?.state === "RUNNING";
+                  const isComplete = progress?.state === "COMPLETED";
+                  const statusLabel = isRunning
+                    ? t("verify.progress.running")
+                    : progress?.state === "COMPLETED"
+                    ? t(`verify.gateStatus.${progress.status}`)
+                    : t("verify.progress.waiting");
+
+                  return (
+                    <li
+                      key={gateId}
+                      aria-current={isRunning ? "step" : undefined}
+                      className={`flex min-w-0 items-center justify-between gap-2 rounded-md border px-2.5 py-2 text-xs ${
+                        isRunning
+                          ? "border-primary/40 bg-primary/10 text-primary"
+                          : isComplete
+                          ? "border-success/20 bg-success/10 text-success"
+                          : "border-border/60 bg-background/70 text-muted-foreground"
+                      }`}
+                    >
+                      <span className="font-semibold">{gateId}</span>
+                      <span className="truncate text-right">{statusLabel}</span>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
+          </CardContent>
+        )}
 
         {/* Overall Status Banner */}
         {report && (
@@ -138,9 +225,14 @@ export function VerificationWorkspace({
                 <span className="text-[11px] text-muted-foreground uppercase tracking-wider block font-medium">{t("verify.overallStatus")}</span>
                 <div className="mt-1 flex items-center justify-center">
                   <Badge variant={statusVariant} className="gap-1 text-xs">
-                    {report.status === "FAILED" ? <ExclamationCircleIcon className="size-3.5" /> : <CheckCircleIcon className="size-3.5" />}
+                    {report.status === "FAILED" || !report.isCurrent
+                      ? <ExclamationCircleIcon className="size-3.5" />
+                      : <CheckCircleIcon className="size-3.5" />}
                     {t(`verify.overall.${report.status}`)}
                   </Badge>
+                  {!report.isCurrent && (
+                    <Badge variant="warning" className="ml-1 text-xs">{t("verify.stale")}</Badge>
+                  )}
                 </div>
               </div>
 
@@ -180,6 +272,12 @@ export function VerificationWorkspace({
         <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm p-4 rounded-lg flex items-center justify-between">
           <span>{error}</span>
           <Button variant="ghost" size="sm" onClick={() => setError(null)}>{t("workflow.dismiss")}</Button>
+        </div>
+      )}
+
+      {report && !report.isCurrent && (
+        <div role="alert" className="rounded-lg border border-warning-border bg-warning-soft p-3 text-sm text-warning">
+          {t("verify.staleReport")}
         </div>
       )}
 
@@ -225,7 +323,9 @@ export function VerificationWorkspace({
               </p>
             </div>
             <Button onClick={handleRunAudit} disabled={auditing} className="gap-2">
-              <ShieldCheckIcon className="size-4" />
+              {auditing
+                ? <ArrowPathIcon className="size-4 motion-safe:animate-spin" />
+                : <ShieldCheckIcon className="size-4" />}
               {auditing ? t("verify.auditingShort") : t("verify.runFull")}
             </Button>
           </CardContent>

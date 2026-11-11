@@ -22,7 +22,7 @@ React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui source components with Rad
 | `drafting` | Draft a section from READY plans, edit it by hand (new version, H2 approve locked until re-verified), show markdown with evidence markers, record OWNER H2. Methods is excluded (it has its own page). | M7 |
 | `verification` | Run and show G1–G7 (`NOT_RUN` and `NOT_APPLICABLE` stay distinct from `PASS`), review issues, and the citation manifest. | M8 |
 | `approvals` | Not a feature folder: H1 lives in `outline`, H2 in `drafting`, H3 in `export`. Each presents the OWNER decision with its recorded provenance. | Cross-cutting workflow |
-| `export` | Show H3 readiness (`blockingReasons`, `requiredSections`, `omittedSections`), record H3, create and download the package, and query evidence lineage. | M9 |
+| `export` | Show H3 readiness (`blockingReasons`, `requiredSections`, `omittedSections`), record H3, create and download the package (PKZIP and IEEE 2-column / IMRaD PDF with 1-click download and browser preview), and query evidence lineage. | M9 |
 | `manuscripts` | Reserved name from the original plan; no folder exists. | n/a |
 
 ## Delivery status
@@ -31,7 +31,7 @@ React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui source components with Rad
 2. `methods` → `journal-profiles` → `outline`: done (Outline/H1 uses optimistic-concurrency revisions and OWNER decisions).
 3. `paragraph-plans` → `drafting` (H2): done; read, generate and approve only.
 4. `verification`: done.
-5. `export` → H3: done.
+5. `export` → H3: done (PKZIP bundle and 1-click IEEE/IMRaD PDF export & browser preview).
 
 ## Open items
 
