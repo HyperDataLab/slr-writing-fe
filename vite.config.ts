@@ -24,6 +24,22 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    build: {
+      chunkSizeWarningLimit: 600,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes("node_modules")) {
+              if (id.includes("firebase")) return "vendor-firebase";
+              if (id.includes("gsap") || id.includes("motion")) return "vendor-animation";
+              if (id.includes("@heroicons") || id.includes("@radix-ui")) return "vendor-ui";
+              if (id.includes("react-router") || id.includes("react-dom") || id.includes("react/")) return "vendor-react";
+              if (id.includes("i18next")) return "vendor-i18n";
+            }
+          },
+        },
+      },
+    },
   };
 });
 
