@@ -8,7 +8,10 @@ import {
   ExclamationTriangleIcon,
   InformationCircleIcon,
   PencilSquareIcon,
+  PlusIcon,
   SparklesIcon,
+  TrashIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import {
   createParagraphPlans,
@@ -46,31 +49,108 @@ function linesToIds(value: string) {
   return value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
 }
 
-function PlanTextList({
+function PlanTagList({
   id,
   label,
   values,
   hint,
+  placeholder,
   onChange,
 }: {
   id: string;
   label: string;
   values: string[];
   hint: string;
+  placeholder?: string;
   onChange: (next: string[]) => void;
 }) {
+  const { t } = useTranslation();
+  const [pasteMode, setPasteMode] = useState(false);
+  const [inputValue, setInputValue] = useState("");
   const hintId = `${id}-hint`;
+
+  const handleAdd = () => {
+    const trimmed = inputValue.trim();
+    if (!trimmed) return;
+    if (!values.includes(trimmed)) {
+      onChange([...values, trimmed]);
+    }
+    setInputValue("");
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAdd();
+    }
+  };
+
+  const handleRemove = (itemToRemove: string) => {
+    onChange(values.filter((v) => v !== itemToRemove));
+  };
+
   return (
     <div className="space-y-1.5">
-      <label htmlFor={id} className="w-fit cursor-pointer text-sm font-medium text-foreground">{label}</label>
-      <textarea
-        id={id}
-        value={values.join("\n")}
-        onChange={(event) => onChange(linesToIds(event.target.value))}
-        aria-describedby={hintId}
-        rows={3}
-        className="min-h-24 w-full resize-y rounded-xl border border-input bg-card px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:bg-secondary disabled:text-muted-foreground md:text-sm"
-      />
+      <div className="flex items-center justify-between">
+        <label htmlFor={pasteMode ? `${id}-text` : `${id}-input`} className="w-fit cursor-pointer text-sm font-medium text-foreground">
+          {label} ({values.length})
+        </label>
+        <button
+          type="button"
+          onClick={() => setPasteMode(!pasteMode)}
+          className="text-xs text-primary hover:underline"
+        >
+          {pasteMode ? t("plans.edit.tagMode") : t("plans.edit.pasteMode")}
+        </button>
+      </div>
+
+      {pasteMode ? (
+        <textarea
+          id={`${id}-text`}
+          value={values.join("\n")}
+          onChange={(event) => onChange(linesToIds(event.target.value))}
+          aria-describedby={hintId}
+          rows={3}
+          className="min-h-24 w-full resize-y rounded-xl border border-input bg-card px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:bg-secondary disabled:text-muted-foreground md:text-sm"
+        />
+      ) : (
+        <div className="space-y-2">
+          {values.length > 0 && (
+            <div className="flex min-h-11 flex-wrap items-center gap-1.5 rounded-xl border border-input bg-card/60 p-2">
+              {values.map((v) => (
+                <span
+                  key={v}
+                  className="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-0.5 text-xs font-mono font-medium text-secondary-foreground"
+                >
+                  {v}
+                  <button
+                    type="button"
+                    onClick={() => handleRemove(v)}
+                    className="rounded p-0.5 text-muted-foreground hover:bg-destructive/20 hover:text-destructive"
+                    aria-label={`Remove ${v}`}
+                  >
+                    <XMarkIcon className="size-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <input
+              id={`${id}-input`}
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={placeholder ?? t("plans.edit.enterIdPlaceholder")}
+              className="flex min-h-11 flex-1 rounded-xl border border-input bg-card px-4 py-2 text-base text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:min-h-10 md:text-sm"
+            />
+            <Button type="button" variant="outline" size="sm" onClick={handleAdd} disabled={!inputValue.trim()}>
+              {t("plans.edit.addTag")}
+            </Button>
+          </div>
+        </div>
+      )}
       <p id={hintId} className="text-xs leading-5 text-muted-foreground">{hint}</p>
     </div>
   );
@@ -97,6 +177,17 @@ function PlanEditor({
     <Card className="border border-border shadow-none">
       <CardContent className="grid gap-4 p-4 sm:p-5">
         <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <label htmlFor={`${id}-subsection`} className="w-fit cursor-pointer text-sm font-medium text-foreground">{t("plans.edit.subsection")}</label>
+            <input
+              id={`${id}-subsection`}
+              type="text"
+              className={selectClass}
+              value={item.subsectionId}
+              disabled={saving}
+              onChange={(event) => onChange({ ...item, subsectionId: event.target.value })}
+            />
+          </div>
           <div className="space-y-1.5">
             <label htmlFor={`${id}-move`} className="w-fit cursor-pointer text-sm font-medium text-foreground">{t("plans.edit.move")}</label>
             <select
@@ -133,7 +224,7 @@ function PlanEditor({
               {PLAN_STATUSES.map((status) => <option key={status} value={status}>{t(`plans.status.${status}`)}</option>)}
             </select>
           </div>
-          <label className="flex min-h-11 items-center gap-3 rounded-xl bg-muted/40 px-3 text-sm text-foreground">
+          <label className="flex min-h-11 items-center gap-3 rounded-xl bg-muted/40 px-3 text-sm text-foreground sm:col-span-2">
             <input
               type="checkbox"
               className="size-4 accent-primary"
@@ -146,28 +237,28 @@ function PlanEditor({
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <PlanTextList
+          <PlanTagList
             id={`${id}-questions`}
             label={t("plans.edit.researchQuestions")}
             values={item.rqIds}
             hint={t("plans.edit.idsHint")}
             onChange={(rqIds) => onChange({ ...item, rqIds })}
           />
-          <PlanTextList
+          <PlanTagList
             id={`${id}-claims`}
             label={t("plans.edit.claims")}
             values={item.claimIds}
             hint={t("plans.edit.idsHint")}
             onChange={(claimIds) => onChange({ ...item, claimIds })}
           />
-          <PlanTextList
+          <PlanTagList
             id={`${id}-findings`}
             label={t("plans.edit.findings")}
             values={item.findingIds}
             hint={t("plans.edit.idsHint")}
             onChange={(findingIds) => onChange({ ...item, findingIds })}
           />
-          <PlanTextList
+          <PlanTagList
             id={`${id}-evidence`}
             label={t("plans.edit.evidence")}
             values={item.evidenceIds}
@@ -202,7 +293,7 @@ function PlanEditor({
           </div>
         </fieldset>
 
-        <PlanTextList
+        <PlanTagList
           id={`${id}-limitations`}
           label={t("plans.edit.limitations")}
           values={item.limitations}
@@ -356,10 +447,45 @@ export function ParagraphPlansWorkspace({
 
   const handleEditChange = (next: ParagraphPlanItem) => setEditingPlan(next);
 
+  const handleAddParagraph = () => {
+    const nextNumber = sectionPlans.length + 1;
+    const newId = `p-${sectionKey}-${nextNumber}-${Date.now().toString(36)}`;
+    const newPlan: ParagraphPlanItem = {
+      id: newId,
+      sectionKey,
+      subsectionId: `${sectionKey}-s1`,
+      rhetoricalMove: "report_evidence",
+      rqIds: [],
+      claimIds: [],
+      findingIds: [],
+      evidenceIds: [],
+      claimStrength: "neutral",
+      conditionsRequired: false,
+      citationPolicy: "registry_only",
+      sentenceSlots: ["topic", "evidence", "synthesis"],
+      limitations: [],
+      status: "DRAFT",
+    };
+    setEditingPlan(newPlan);
+  };
+
   const handleSaveEdit = async () => {
     if (!editingPlan) return;
-    const nextPlans = plans.map((plan) => plan.id === editingPlan.id ? editingPlan : plan);
+    const exists = plans.some((plan) => plan.id === editingPlan.id);
+    const nextPlans = exists
+      ? plans.map((plan) => (plan.id === editingPlan.id ? editingPlan : plan))
+      : [...plans, editingPlan];
     if (await persistPlans(nextPlans)) setEditingPlan(null);
+  };
+
+  const handleDelete = async (planId: string) => {
+    if (saving || editingPlan) return;
+    if (!window.confirm(stableT("plans.confirmDelete"))) return;
+    const nextPlans = plans.filter((plan) => plan.id !== planId);
+    setPlans(nextPlans);
+    if (await persistPlans(nextPlans)) {
+      setNotice(stableT("plans.deleteSuccess"));
+    }
   };
 
   const handleMove = async (index: number, offset: -1 | 1) => {
@@ -394,6 +520,19 @@ export function ParagraphPlansWorkspace({
           <p className="mt-1 text-sm leading-6 text-muted-foreground">{t("plans.sectionDescription", { section: sectionLabel })}</p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {view && canDraft && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAddParagraph}
+              disabled={loading || generating || saving || Boolean(editingPlan)}
+              className="gap-1.5"
+            >
+              <PlusIcon className="size-4" aria-hidden="true" />
+              {t("plans.addParagraph")}
+            </Button>
+          )}
           <Button type="button" variant="outline" size="sm" onClick={() => void loadPlans()} disabled={loading || generating || saving}>
             <ArrowPathIcon className={loading ? "animate-spin" : ""} aria-hidden="true" />
             {t("workflow.refresh")}
@@ -458,6 +597,20 @@ export function ParagraphPlansWorkspace({
           <CardContent className="p-5">
             <h4 className="text-sm font-semibold text-foreground">{t("plans.noPlansForSection")}</h4>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">{t("plans.noPlansForSectionDescription")}</p>
+            {canDraft && (
+              <div className="mt-4">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleAddParagraph}
+                  disabled={loading || generating || saving || Boolean(editingPlan)}
+                  className="gap-1.5"
+                >
+                  <PlusIcon className="size-4" aria-hidden="true" />
+                  {t("plans.addParagraph")}
+                </Button>
+              </div>
+            )}
             {!canDraft ? (
               <p className="mt-3 text-sm text-muted-foreground">{t("draft.methodsOnOwnPage")}</p>
             ) : !hasDraft && (
@@ -538,12 +691,35 @@ export function ParagraphPlansWorkspace({
                           <PencilSquareIcon aria-hidden="true" />
                           {t("plans.edit.edit")}
                         </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="size-11 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive md:size-9"
+                          aria-label={t("plans.edit.delete", { n: index + 1 })}
+                          title={t("plans.edit.delete", { n: index + 1 })}
+                          onClick={() => void handleDelete(item.id)}
+                          disabled={saving || Boolean(editingPlan)}
+                        >
+                          <TrashIcon className="size-4" aria-hidden="true" />
+                        </Button>
                       </div>
                     )}
                   />
                 )}
               </div>
             ))}
+            {editingPlan && !plans.some((p) => p.id === editingPlan.id) && (
+              <div role="listitem" className="draft-plan-list-item">
+                <PlanEditor
+                  item={editingPlan}
+                  saving={saving}
+                  onChange={handleEditChange}
+                  onSave={() => void handleSaveEdit()}
+                  onCancel={() => setEditingPlan(null)}
+                />
+              </div>
+            )}
           </div>
 
           {!canDraft && !hasDraft ? (
