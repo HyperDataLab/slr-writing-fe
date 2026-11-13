@@ -15,10 +15,11 @@ React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui source components with Rad
 | `auth` | Firebase sign-in (email/password, Google), session restore, route guard, sign-out; supplies the ID token to the API client and ends the session on 401. Implemented against the Auth emulator; a real Firebase project is still to be wired for deployment. | M1 |
 | `projects` | List, create, and open writing projects linked to an SLR project. | Existing project API; M1 permission check |
 | `snapshots` | Pick a run from the linked SLR project (or type a run id) and import it, show immutable snapshot history/details, and present readiness issues and stale state. | M0, M10 |
+| `evidence` | Browse and inspect snapshot Evidence Registry directly, filter by verification status and unlinked items, and correlate with manuscript lineage claims. | Cross-cutting workflow |
 | `methods` | Generate and review deterministic Methods revisions from a READY snapshot; show PRISMA facts, source paths, and missing-data warnings. | M2 |
 | `journal-profiles` | List and view read-only journal profiles, preserve section order and expected sources, and clearly label verification status and suggested word budgets. | M3 |
 | `outline` | Generate and version a manuscript blueprint from a READY snapshot and Journal Profile; assign snapshot claims, show RQ coverage and backend issues, and request H1 approval. Profile section order is fixed; subsections can be reordered. OWNER authorization is enforced by the backend. | M5 |
-| `paragraph-plans` | Generate and show paragraph plans from the approved blueprint, with per-section status and the backend's readiness issues. Implemented as its own feature, not under `manuscripts`. | M6 |
+| `paragraph-plans` | Generate, edit, reorder, add, and delete paragraph plans with tag chips, subsection IDs, and evidence registry links from the approved blueprint, with per-section status and the backend's readiness issues. Implemented as its own feature, not under `manuscripts`. | M6 |
 | `drafting` | Draft a section from READY plans, edit it by hand (new version, H2 approve locked until re-verified), show markdown with evidence markers, record OWNER H2. Methods is excluded (it has its own page). | M7 |
 | `verification` | Run and show G1–G7 (`NOT_RUN` and `NOT_APPLICABLE` stay distinct from `PASS`), review issues, and the citation manifest. | M8 |
 | `approvals` | Not a feature folder: H1 lives in `outline`, H2 in `drafting`, H3 in `export`. Each presents the OWNER decision with its recorded provenance. | Cross-cutting workflow |
@@ -29,13 +30,13 @@ React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui source components with Rad
 
 1. `projects` → `snapshots`: done. `auth` done (Firebase; dev-auth shortcut kept for local development).
 2. `methods` → `journal-profiles` → `outline`: done (Outline/H1 uses optimistic-concurrency revisions and OWNER decisions).
-3. `paragraph-plans` → `drafting` (H2): done; read, generate and approve only.
+3. `paragraph-plans` → `drafting` (H2): done; read, generate, manual edit, and approve.
 4. `verification`: done.
 5. `export` → H3: done (PKZIP bundle and 1-click IEEE/IMRaD PDF export & browser preview).
+6. `evidence`: done (query directly from snapshot registry + lineage correlation).
 
 ## Open items
 
-- Manual edit of paragraph plans (the BE `PUT` route exists). Manual edit of drafts is done.
 - A real Firebase project for staging/production (`VITE_FIREBASE_*`); sign-in is verified against the Auth emulator only.
 - A run with real evidence to exercise G2/G5.
 

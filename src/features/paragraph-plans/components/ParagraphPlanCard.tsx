@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router";
 import type { ReactNode } from "react";
 import type { ParagraphPlanItem } from "@/features/paragraph-plans/model/paragraph-plan.types";
 import { Badge } from "@/shared/ui/badge";
@@ -82,9 +83,14 @@ export function ParagraphPlanCard({
             {item.evidenceIds.length > 0 ? (
               <div className="flex flex-wrap gap-1">
                 {item.evidenceIds.map((ev) => (
-                  <span key={ev} className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[11px] font-mono">
+                  <Link
+                    key={ev}
+                    to={`/evidence?search=${encodeURIComponent(ev)}`}
+                    title={t("plans.card.viewInEvidenceRegistry")}
+                    className="bg-primary/10 text-primary hover:bg-primary/20 transition-colors px-1.5 py-0.5 rounded text-[11px] font-mono inline-flex items-center"
+                  >
                     [{ev}]
-                  </span>
+                  </Link>
                 ))}
               </div>
             ) : (
